@@ -1,26 +1,131 @@
+/* Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600&display=swap");
+
 @import "tailwindcss";
 
+/* Design Tokens */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: 0 0% 97%;
+  --foreground: 0 0% 8%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 8%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 8%;
+
+  --primary: 0 0% 8%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 0 0% 8%;
+
+  --muted: 0 0% 90%;
+  --muted-foreground: 0 0% 40%;
+
+  --accent: 240 80% 90%;
+  --accent-foreground: 0 0% 8%;
+
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+
+  --border: 0 0% 85%;
+  --input: 0 0% 85%;
+  --ring: 0 0% 8%;
+
+  --radius: 0.75rem;
+
+  --font-heading: "Anton", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  --highlight: 240 80% 90%;
+
+  --sidebar-background: 0 0% 98%;
+  --sidebar-foreground: 240 5.3% 26.1%;
+  --sidebar-primary: 240 5.9% 10%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 240 4.8% 95.9%;
+  --sidebar-accent-foreground: 240 5.9% 10%;
+  --sidebar-border: 220 13% 91%;
+  --sidebar-ring: 217.2 91.2% 59.8%;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Dark mode */
+.dark {
+  --background: 0 0% 5%;
+  --foreground: 0 0% 95%;
+  --card: 0 0% 10%;
+  --card-foreground: 0 0% 95%;
+  --popover: 0 0% 10%;
+  --popover-foreground: 0 0% 95%;
+  --primary: 0 0% 95%;
+  --primary-foreground: 0 0% 8%;
+  --secondary: 0 0% 15%;
+  --secondary-foreground: 0 0% 95%;
+  --muted: 0 0% 20%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 240 60% 30%;
+  --accent-foreground: 0 0% 95%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 0 0% 20%;
+  --input: 0 0% 20%;
+  --ring: 0 0% 80%;
+  --highlight: 240 60% 30%;
+  --sidebar-background: 240 5.9% 10%;
+  --sidebar-foreground: 240 4.8% 95.9%;
+  --sidebar-primary: 224.3 76.3% 48%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 3.7% 15.9%;
+  --sidebar-accent-foreground: 240 4.8% 95.9%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-ring: 217.2 91.2% 59.8%;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@theme {
+  --color-neon-lime: #ccff00;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+}
+
+@keyframes sponsor-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom Neon Lime color */
+.bg-neon-lime {
+  background-color: rgba(50, 255, 0, 0.7);
+}
+
+/* Pulsing glow animation */
+@keyframes neonPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+.group-hover\:animate-neon-pulse:hover span {
+  animation: neonPulse 1.5s ease-in-out infinite;
+}
+
+.animate-sponsor-scroll {
+  animation: sponsor-scroll 60s linear infinite;
 }
