@@ -79,7 +79,7 @@ const SiteHeader = () => {
 
           <Link
             href="/login"
-            className="hidden lg:block bg-neon-lime text-black font-extrabold uppercase tracking-wide transition-all duration-300 ease-in-out px-6 py-3 rounded-full text-xs"
+            className="hidden lg:block bg-neon-lime text-white font-extrabold uppercase tracking-wide transition-all duration-300 ease-in-out px-6 py-3 rounded-full text-xs"
           >
             REGISTER NOW
           </Link>

@@ -73,7 +73,7 @@ const EventCard = ({
         <div className="mt-8">
           <Link
             href="/events/event-detail-page"
-            className="cursor-pointer inline-flex items-center gap-3 border border-gray-400 rounded-full pl-6 pr-1.5 py-1.5 text-sm font-semibold uppercase tracking-widest text-black bg-neon-lime hover:bg-gray-800! hover:text-white transition-colors duration-200"
+            className="cursor-pointer inline-flex items-center gap-3 border border-gray-400 rounded-full pl-6 pr-1.5 py-1.5 text-sm font-semibold uppercase tracking-widest text-white bg-neon-lime hover:bg-gray-800! hover:text-white transition-colors duration-200"
           >
             Event Details
             <span className="w-9 h-9 rounded-full bg-foreground text-background flex items-center justify-center">

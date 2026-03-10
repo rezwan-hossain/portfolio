@@ -83,7 +83,8 @@
 }
 
 @theme {
-  --color-neon-lime: #ccff00;
+  /* --color-neon-lime: #ccff00; */
+  --color-neon-lime: #99cd43;
 }
 
 h1,
@@ -105,9 +106,9 @@ h6 {
 }
 
 /* Custom Neon Lime color */
-.bg-neon-lime {
+/* .bg-neon-lime {
   background-color: rgba(50, 255, 0, 0.7);
-}
+} */
 
 /* Pulsing glow animation */
 @keyframes neonPulse {
