@@ -65,7 +65,7 @@ const ContactForm = () => {
     }`;
 
   return (
-    <div className="rounded-2xl bg-card p-8 lg:p-10 bg-neutral-100">
+    <div className="rounded-2xl bg-card p-8 lg:p-10 bg-neutral-50 border border-lime-100">
       <p className="mb-6 text-muted-foreground text-[15px]">
         Fill in the form below and we will get back to you as soon as possible.
       </p>
@@ -166,7 +166,7 @@ const ContactForm = () => {
         <div>
           <button
             type="submit"
-            className="rounded-full bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+            className="cursor-pointer rounded-full bg-neon-lime px-8 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
           >
             Send Message
           </button>

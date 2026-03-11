@@ -26,7 +26,7 @@ const SiteHeader = () => {
   return (
     <nav className="w-full bg-background">
       <div className="border-b border-gray-200">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-3 lg:px-8 ">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-2 lg:px-8 ">
           {/* <a
             href="/"
             className="font-display text-2xl font-extrabold tracking-tight text-foreground lg:text-3xl"
@@ -79,7 +79,7 @@ const SiteHeader = () => {
 
           <Link
             href="/login"
-            className="hidden lg:block bg-neon-lime text-white font-extrabold uppercase tracking-wide transition-all duration-300 ease-in-out px-6 py-3 rounded-full text-xs"
+            className="hidden lg:block bg-neon-lime text-white font-extrabold uppercase tracking-wide transition-all duration-300 ease-in-out px-6 py-4 rounded-full text-xs"
           >
             REGISTER NOW
           </Link>

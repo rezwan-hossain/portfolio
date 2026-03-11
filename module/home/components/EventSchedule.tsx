@@ -34,7 +34,7 @@ export default function EventSchedule() {
 
           <h2 className="text-4xl md:text-6xl font-bold uppercase leading-tighter text-gray-900 ">
             DAY <br />
-            <span className="text-lime-400">SCHEDULE</span>
+            <span className="text-neon-lime">SCHEDULE</span>
           </h2>
         </div>
 
@@ -45,7 +45,7 @@ export default function EventSchedule() {
               className="flex items-center justify-between p-6 border-b border-gray-100 hover:bg-gray-50 transition rounded-xl"
             >
               <div className="flex items-center gap-6">
-                <span className="text-2xl font-bold text-[#8CC600]">
+                <span className="text-2xl font-bold text-neon-lime">
                   {item.time}
                 </span>
 

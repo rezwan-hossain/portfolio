@@ -36,7 +36,7 @@ const CountdownTimer = ({ targetDate }: { targetDate: Date }) => {
   ];
 
   return (
-    <div className="bg-lime-500 rounded-lg p-6 lg:p-8">
+    <div className="bg-neon-lime rounded-lg p-6 lg:p-8">
       <h3 className="font-display text-white text-center text-xl lg:text-2xl tracking-widest mb-5 border-b border-white/10 pb-4">
         EVENT BEGINS IN
       </h3>

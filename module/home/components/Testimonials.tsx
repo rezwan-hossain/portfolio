@@ -31,7 +31,7 @@ export default function Testimonials() {
 
           <h2 className="text-4xl md:text-6xl font-bold uppercase leading-tighter text-gray-900 ">
             WHAT THEY <br />
-            <span className="text-lime-400">SAY</span>
+            <span className="text-neon-lime">SAY</span>
           </h2>
         </div>
 

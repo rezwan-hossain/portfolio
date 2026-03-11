@@ -72,7 +72,7 @@ export default function Categories() {
 
           <h2 className="text-4xl md:text-6xl font-bold uppercase leading-tighter text-gray-900 ">
             YOUR <br />
-            <span className="text-lime-400">DISTANCE</span>
+            <span className="text-neon-lime">DISTANCE</span>
           </h2>
         </div>
 

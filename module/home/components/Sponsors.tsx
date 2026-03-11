@@ -19,7 +19,7 @@ export default function Sponsors() {
 
         <h2 className="text-4xl md:text-6xl font-bold uppercase leading-tighter text-gray-900 ">
           Proud <br />
-          <span className="text-lime-400">Partners</span>
+          <span className="text-neon-lime">Partners</span>
         </h2>
       </div>
 

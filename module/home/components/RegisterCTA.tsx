@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 const RegisterCTA = () => (
   <section id="register" className="py-20 md:py-24">
     <div className="container mx-auto">
-      <div className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl bg-lime-500 p-10 text-center md:p-16">
+      <div className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl bg-neon-lime p-10 text-center md:p-16">
         {/* Decorative circles */}
         <div className="absolute top-0 right-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10" />
         <div className="absolute bottom-0 left-0 h-48 w-48 -translate-x-1/2 translate-y-1/2 rounded-full bg-white/10" />

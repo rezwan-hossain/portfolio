@@ -13,7 +13,7 @@ export default function UpcomingEvent() {
 
           <h2 className="text-4xl md:text-6xl font-bold uppercase leading-tighter text-gray-900 ">
             Marathon <br />
-            <span className="text-lime-400">Event</span>
+            <span className="text-neon-lime">Event</span>
           </h2>
         </div>
 
