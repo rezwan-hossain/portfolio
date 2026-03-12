@@ -1,4 +1,5 @@
 import Categories from "../components/Category";
+import CTASection from "../components/CTASection";
 import EventSchedule from "../components/EventSchedule";
 import FAQ from "../components/FAQ";
 import HeroSection from "../components/HeroSection";
@@ -31,13 +32,13 @@ export default async function Homepage() {
 			</h1> */}
 
       <section aria-label="Testimonials">
-        {/* <HeroSlider
+        <HeroSlider
           slides={heroSlides}
           autoPlay={true}
           interval={5000}
           height="h-[85vh]"
-        /> */}
-        <HeroSection />
+        />
+        {/* <HeroSection /> */}
       </section>
 
       <section aria-label="UpComing Event">
@@ -46,6 +47,9 @@ export default async function Homepage() {
 
       <section aria-label=" Event">
         <EventSchedule />
+      </section>
+      <section>
+        <CTASection />
       </section>
 
       <section aria-label=" Event">

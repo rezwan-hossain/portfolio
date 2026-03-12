@@ -5,35 +5,10 @@ import { useState, useEffect } from "react";
 import { MapPin, Calendar, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import heroImage from "@/assets/hero-marathon.jpg";
+import Countdown from "./Countdown";
+import { useCountdown } from "@/hooks/useCountdown";
 
 const TARGET_DATE = new Date("2026-10-15T06:00:00");
-
-const useCountdown = (targetDate: Date) => {
-  const [timeLeft, setTimeLeft] = useState({
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0,
-  });
-
-  useEffect(() => {
-    const tick = () => {
-      const diff = targetDate.getTime() - Date.now();
-      if (diff <= 0) return;
-      setTimeLeft({
-        days: Math.floor(diff / 86400000),
-        hours: Math.floor((diff % 86400000) / 3600000),
-        minutes: Math.floor((diff % 3600000) / 60000),
-        seconds: Math.floor((diff % 60000) / 1000),
-      });
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [targetDate]);
-
-  return timeLeft;
-};
 
 const HeroSection = () => {
   const countdown = useCountdown(TARGET_DATE);
@@ -69,7 +44,7 @@ const HeroSection = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="max-w-3xl"
+          className="max-w-3xl p-2"
         >
           <div className="flex flex-wrap items-center gap-4 mb-6">
             <span className="inline-flex items-center gap-2 bg-primary/20 backdrop-blur-sm border border-primary/30 rounded-full px-4 py-1.5 text-primary-foreground text-sm font-medium">
@@ -125,6 +100,9 @@ const HeroSection = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* Countdown - Centered at the bottom */}
+      {countdown && <Countdown countdown={countdown} />}
     </section>
   );
 };
