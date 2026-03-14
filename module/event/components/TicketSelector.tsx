@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { ArrowRight, ChevronDown, Minus, Plus } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 const tickets = [
   { label: "Student", price: 159 },
@@ -10,10 +12,28 @@ const tickets = [
 ];
 
 const TicketSelector = () => {
+  const router = useRouter();
+
   const [selectedTicket, setSelectedTicket] = useState(tickets[0]);
   const [quantity, setQuantity] = useState(1);
 
   const subtotal = selectedTicket.price * quantity;
+
+  const handleGetTicket = async () => {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      // 👇 Not logged in — redirect to login
+      router.push("/login");
+      return;
+    }
+
+    // ✅ Logged in — proceed with ticket purchase
+    router.push("/cart");
+  };
 
   return (
     <div className="border  border-gray-200 rounded-lg p-4">
@@ -98,7 +118,10 @@ const TicketSelector = () => {
       </div>
 
       {/* CTA */}
-      <button className="cursor-pointer w-full bg-neutral-900 text-white rounded-full py-4 flex items-center justify-center gap-3 font-body font-semibold text-sm tracking-wide hover:opacity-90 transition">
+      <button
+        onClick={handleGetTicket}
+        className="cursor-pointer w-full bg-neutral-900 text-white rounded-full py-4 flex items-center justify-center gap-3 font-body font-semibold text-sm tracking-wide hover:opacity-90 transition"
+      >
         GET TICKET
         <span className="w-8 h-8 rounded-full bg-[#FDFD96] flex items-center justify-center">
           <ArrowRight size={16} className="text-black" />
