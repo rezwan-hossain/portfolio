@@ -117,8 +117,8 @@ export default function SiteHeader2() {
 
         {/* CTA */}
         <Link
-          href="/login"
-          className="hidden lg:block bg-lime-500 text-white font-extrabold uppercase tracking-wide px-6 py-3 rounded-full text-xs transition-all hover:scale-105"
+          href="/register"
+          className="hidden lg:block bg-neon-lime text-white font-extrabold uppercase tracking-wide px-6 py-3 rounded-full text-xs transition-all hover:scale-105"
         >
           Register Now
         </Link>
@@ -154,7 +154,7 @@ export default function SiteHeader2() {
               ))}
 
               <Link
-                href="/login"
+                href="/register"
                 className="block text-center bg-lime-500 text-black font-bold uppercase tracking-wide px-6 py-4 rounded-full text-sm"
               >
                 Register Now

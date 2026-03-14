@@ -32,7 +32,7 @@ const eventDate = new Date(Date.now() + 143 * 24 * 60 * 60 * 1000);
 const EventDetailPage = () => {
   return (
     <div className="min-h-screen bg-background">
-      <div className="mt-16 ">
+      <div className="mt-42 ">
         <HeroText
           title="RunRise Nation Noboborsho Run 1433"
           date="July 25, 2026"

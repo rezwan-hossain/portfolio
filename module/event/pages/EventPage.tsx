@@ -3,8 +3,10 @@ import EventCard from "../components/EventCard";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background py-12 md:py-20 px-4 md:px-8">
-      <HeroText title="Events" />
+    <div className="min-h-screen bg-background  px-4 md:px-8">
+      <div className="mt-42 ">
+        <HeroText title="Events" />
+      </div>
       <div className="max-w-7xl mx-auto space-y-10 mt-12">
         <EventCard
           title="Innovation Summit 2027"

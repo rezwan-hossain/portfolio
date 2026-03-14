@@ -6,7 +6,7 @@ import { HeroText } from "@/components/ui/HeroText";
 const ContactPage = () => {
   return (
     <div className="min-h-screen bg-background font-body">
-      <div className="mt-16 ">
+      <div className="mt-42 ">
         <HeroText title="Contact" />
       </div>
 
