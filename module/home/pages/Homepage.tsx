@@ -32,13 +32,13 @@ export default async function Homepage() {
 			</h1> */}
 
       <section aria-label="Testimonials">
-        <HeroSlider
+        {/* <HeroSlider
           slides={heroSlides}
           autoPlay={true}
           interval={5000}
           height="h-[85vh]"
-        />
-        {/* <HeroSection /> */}
+        /> */}
+        <HeroSection />
       </section>
 
       <section aria-label="UpComing Event">

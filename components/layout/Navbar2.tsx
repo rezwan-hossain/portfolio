@@ -12,10 +12,10 @@ const navItems = [
   {
     label: "Events",
     href: "/events",
-    dropdown: [
-      { label: "Running", href: "/events/running" },
-      { label: "Cycling", href: "/events/cycling" },
-    ],
+    // dropdown: [
+    //   { label: "Running", href: "/events/running" },
+    //   { label: "Cycling", href: "/events/cycling" },
+    // ],
   },
   { label: "Gallery", href: "/gallery" },
   { label: "Contact", href: "/contact" },
@@ -86,11 +86,11 @@ export default function SiteHeader2() {
                 >
                   {item.label}
 
-                  {item.dropdown && <ChevronDown className="w-4 h-4" />}
+                  {/* {item.dropdown && <ChevronDown className="w-4 h-4" />} */}
                 </Link>
 
                 {/* DROPDOWN */}
-                <AnimatePresence>
+                {/* <AnimatePresence>
                   {item.dropdown && openDropdown === item.label && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
@@ -109,7 +109,7 @@ export default function SiteHeader2() {
                       ))}
                     </motion.div>
                   )}
-                </AnimatePresence>
+                </AnimatePresence> */}
               </li>
             );
           })}

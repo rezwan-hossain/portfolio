@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import heroImage from "@/assets/hero-marathon.jpg";
 import Countdown from "./Countdown";
 import { useCountdown } from "@/hooks/useCountdown";
+import Link from "next/link";
 
 const TARGET_DATE = new Date("2026-10-15T06:00:00");
 
@@ -14,7 +15,7 @@ const HeroSection = () => {
   const countdown = useCountdown(TARGET_DATE);
 
   return (
-    <section className=" relative min-h-screen flex items-center overflow-hidden">
+    <section className="relative min-h-screen flex items-center overflow-hidden">
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{
@@ -23,23 +24,8 @@ const HeroSection = () => {
       />
       <div className="absolute inset-0 bg-hero-gradient" />
 
-      {/* Scrolling ticker */}
-      {/* <div className="absolute top-16 md:top-20 left-0 right-0 bg-primary py-2 overflow-hidden">
-        <div className="marquee whitespace-nowrap flex gap-8">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <span
-              key={i}
-              className="text-primary-foreground font-display text-sm font-bold uppercase tracking-widest px-4"
-            >
-              PUSH YOUR LIMITS • JOIN THE MOVEMENT • RUN FOR GLORY • EVERY STEP
-              COUNTS • BE UNSTOPPABLE •&nbsp;
-            </span>
-          ))}
-        </div>
-      </div> */}
-
       {/* content */}
-      <div className="max-w-7xl mx-auto container relative z-10 pt-32 pb-16">
+      {/* <div className="max-w-7xl mx-auto container relative z-10 pt-32 pb-16">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -77,7 +63,7 @@ const HeroSection = () => {
             </button>
           </div>
 
-          {/* Countdown */}
+          
           <div className="flex gap-3 md:gap-4">
             {[
               { value: countdown.days, label: "Days" },
@@ -98,6 +84,36 @@ const HeroSection = () => {
               </div>
             ))}
           </div>
+        </motion.div>
+      </div> */}
+
+      {/* 
+        NEW: Centered CTA Button at the very bottom of the page,
+        directly on top of the Countdown component 
+      */}
+      <div className="absolute bottom-40 sm:bottom-50 left-1/2 -translate-x-1/2 z-20 flex w-full justify-center px-4">
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.9, duration: 0.7 }}
+        >
+          <Link
+            href="/register"
+            className="group flex items-center gap-2 rounded-full bg-neon-lime text-white
+      px-6 py-3 sm:px-10 sm:py-5
+      text-sm sm:text-lg font-bold
+  
+      transition-all duration-300
+      hover:scale-[1.03] active:scale-95
+      hover:shadow-[0_0_40px_rgba(255,255,255,0.4)]"
+          >
+            <span>Register Now</span>
+
+            <ArrowRight
+              size={18}
+              className="transition-transform duration-300 group-hover:translate-x-1"
+            />
+          </Link>
         </motion.div>
       </div>
 
