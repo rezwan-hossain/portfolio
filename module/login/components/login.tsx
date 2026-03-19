@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { loginUser } from "@/app/(auth)/login/actions";
+import { signInWithGoogle } from "@/app/(auth)/register/actions";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -25,6 +26,14 @@ export default function Login() {
     if (result?.error) {
       setError(result.error);
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError("");
+    const result = await signInWithGoogle();
+    if (result?.error) {
+      setError(result.error);
     }
   };
 
@@ -55,14 +64,16 @@ export default function Login() {
 
             {/* Google Login */}
             <button
+              onClick={handleGoogleSignIn}
               type="button"
-              className="w-full mt-8 bg-gray-500/10 flex items-center justify-center h-16 rounded-full"
+              className="cursor-pointer w-full mt-8 bg-gray-500/10 flex items-center justify-center h-16 rounded-full"
             >
               <Image
                 src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/googleLogo.svg"
                 alt="googleLogo"
-                width={24}
-                height={24}
+                width={90}
+                height={90}
+                className="object-contain" // Ensures it keeps its aspect ratio
               />
             </button>
 

@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/prisma";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
@@ -32,6 +33,28 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+       const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        // ✅ Create user in DB if not exists
+        await prisma.user.upsert({
+          where: { authId: user.id },
+          update: {
+            firstName:
+              user.user_metadata?.full_name ??
+              user.user_metadata?.name ??
+              undefined,
+            image: user.user_metadata?.avatar_url ?? undefined,
+          },
+          create: {
+            authId: user.id,
+            email: user.email!,
+            firstName: user.user_metadata?.full_name ?? null,
+            image: user.user_metadata?.avatar_url ?? null,
+          },
+        });
+      }
+
       return NextResponse.redirect(`${origin}/dashboard`);
     }
   }

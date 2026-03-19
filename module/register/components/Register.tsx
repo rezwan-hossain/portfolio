@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { registerUser } from "@/app/(auth)/register/actions";
+import { registerUser, signInWithGoogle } from "@/app/(auth)/register/actions";
 
 export default function Register() {
   // const [name, setName] = useState("");
@@ -38,6 +38,15 @@ export default function Register() {
     }
   };
 
+    const handleGoogleSignIn = async () => {
+    setError("");
+    const result = await signInWithGoogle();
+    // If redirect() fires, this won't run
+    if (result?.error) {
+      setError(result.error);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-2 overflow-hidden rounded-xl shadow-md bg-white">
@@ -66,14 +75,16 @@ export default function Register() {
 
             {/* Google Register */}
             <button
+              onClick={handleGoogleSignIn}
               type="button"
               className="w-full mt-8 bg-gray-500/10 flex items-center justify-center h-16 rounded-full"
             >
               <Image
                 src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/googleLogo.svg"
                 alt="googleLogo"
-                width={24}
-                height={24}
+                width={90}
+                height={90}
+                className="object-contain" // Ensures it keeps its aspect ratio
               />
             </button>
 

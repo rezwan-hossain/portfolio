@@ -24,5 +24,45 @@ export async function registerUser(formData: FormData) {
   }
 
   // Redirect to a confirmation page or dashboard
-  redirect("/register/confirm");
+  // redirect("/register/confirm");
+  redirect(`/register/confirm?email=${encodeURIComponent(email)}`);
+}
+
+// async function handleGoogleLogin() {
+//   const { error } = await supabase.auth.signInWithOAuth({
+//     provider: "google",
+//     options: {
+//       redirectTo: `${window.location.origin}/auth/callback`,
+//     },
+//   });
+
+//   if (error) {
+//     console.error("Google login error:", error.message);
+//     alert(error.message);
+//   }
+// }
+
+export async function signInWithGoogle() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: "http://localhost:3000/auth/callback",
+      queryParams: {
+        access_type: "offline",
+        prompt: "consent",
+      },
+    },
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  if (data.url) {
+    redirect(data.url);
+  }
+
+  return { error: "Something went wrong" };
 }
