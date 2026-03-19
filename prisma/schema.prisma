@@ -74,6 +74,7 @@ model Event {
   organizerId     Int
   organizer       Organizer @relation(fields: [organizerId], references: [id])
   description     String    @db.Text
+  shortDesc       String?   @db.VarChar(255)
   bannerImage     String
   thumbImage      String?
   minPackagePrice Float?

@@ -4,6 +4,13 @@ import { useState } from "react";
 import { ArrowRight, ChevronDown, Minus, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import type { EventPackage } from "@/types/event";
+
+type TicketSelectorProps = {
+  packages: EventPackage[];
+  eventSlug: string;
+  eventId: string;
+};
 
 const tickets = [
   { label: "Student", price: 159 },
@@ -11,13 +18,15 @@ const tickets = [
   { label: "VIP", price: 499 },
 ];
 
-const TicketSelector = () => {
+const TicketSelector = ({ packages, eventSlug, eventId }: TicketSelectorProps) => {
   const router = useRouter();
 
-  const [selectedTicket, setSelectedTicket] = useState(tickets[0]);
+  const [selectedPackage, setSelectedPackage] = useState(packages[0]);
   const [quantity, setQuantity] = useState(1);
 
-  const subtotal = selectedTicket.price * quantity;
+  const subtotal = selectedPackage.price * quantity;
+  const slotsLeft = selectedPackage.availableSlots - selectedPackage.usedSlots;
+
 
   const handleGetTicket = async () => {
     const supabase = createClient();
@@ -35,6 +44,20 @@ const TicketSelector = () => {
     router.push("/cart");
   };
 
+    // No packages available
+  if (packages.length === 0) {
+    return (
+      <div className="border border-gray-200 rounded-lg p-4">
+        <h3 className="font-display text-3xl lg:text-4xl tracking-wide mb-4">
+          TICKET
+        </h3>
+        <p className="text-muted-foreground text-sm">
+          No packages available for this event.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="border  border-gray-200 rounded-lg p-4">
       <h3 className="font-display text-3xl lg:text-4xl tracking-wide mb-4">
@@ -45,16 +68,16 @@ const TicketSelector = () => {
       <div className="border border-border rounded-lg mb-4 relative">
         <select
           className="w-full bg-gray-100 p-4 pr-10 text-gray-900 font-body text-sm lg:text-base rounded-lg appearance-none cursor-pointer focus:outline-none"
-          value={selectedTicket.label}
+          value={selectedPackage.id}
           onChange={(e) => {
-            const t = tickets.find((t) => t.label === e.target.value)!;
-            setSelectedTicket(t);
+            const pkg = packages.find((p) => p.id === Number(e.target.value))!;
+            setSelectedPackage(pkg);
             setQuantity(1);
           }}
         >
-          {tickets.map((t) => (
-            <option key={t.label} value={t.label}>
-              {t.label} - ${t.price.toFixed(2)}
+          {packages.map((pkg) => (
+            <option key={pkg.id} value={pkg.id}>
+              {pkg.name} ({pkg.distance}) - ৳{pkg.price}
             </option>
           ))}
         </select>
@@ -65,6 +88,36 @@ const TicketSelector = () => {
         />
       </div>
 
+       {/* Slots Left Info */}
+      <div className="mb-4 px-1">
+        <div className="flex justify-between text-xs text-muted-foreground mb-1">
+          <span>{slotsLeft} slots remaining</span>
+          <span>{selectedPackage.availableSlots} total</span>
+        </div>
+        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${
+              slotsLeft < 20
+                ? "bg-red-500"
+                : slotsLeft < 50
+                ? "bg-yellow-500"
+                : "bg-neon-lime"
+            }`}
+            style={{
+              width: `${
+                (selectedPackage.usedSlots / selectedPackage.availableSlots) *
+                100
+              }%`,
+            }}
+          />
+        </div>
+        {slotsLeft < 20 && slotsLeft > 0 && (
+          <p className="text-xs text-red-500 mt-1 font-medium">
+            ⚠️ Almost sold out!
+          </p>
+        )}
+      </div>
+
       {/* Price row */}
       <div className="bg-[#FDFD96] border border-gray-400 rounded-lg px-4 py-4 lg:px-6 lg:py-5 flex items-center justify-between mb-4">
         <div className="text-center">
@@ -72,7 +125,7 @@ const TicketSelector = () => {
             TICKET PRICE
           </p>
           <p className="font-display text-3xl lg:text-4xl text-primary-foreground">
-            ${selectedTicket.price}
+             ৳{selectedPackage.price}
           </p>
         </div>
         <div className="text-center">
@@ -90,7 +143,9 @@ const TicketSelector = () => {
               {quantity}
             </span>
             <button
-              onClick={() => setQuantity(quantity + 1)}
+              onClick={() =>
+                setQuantity(Math.min(quantity + 1, slotsLeft))
+              }
               className="w-7 h-7 rounded-full border border-primary-foreground flex items-center justify-center text-primary-foreground hover:bg-primary-foreground/10 transition"
             >
               <Plus size={14} />
@@ -102,7 +157,7 @@ const TicketSelector = () => {
             SUBTOTAL
           </p>
           <p className="font-display text-3xl lg:text-4xl text-primary-foreground">
-            ${subtotal}
+             ৳{subtotal}
           </p>
         </div>
       </div>
@@ -113,19 +168,26 @@ const TicketSelector = () => {
           QUANTITY: {quantity}
         </p>
         <p className="font-body text-sm text-foreground">
-          TOTAL: <span className="font-bold text-lg">${subtotal}</span>
+          TOTAL: <span className="font-bold text-lg">৳{subtotal}</span>
         </p>
       </div>
 
       {/* CTA */}
-      <button
+       <button
         onClick={handleGetTicket}
-        className="cursor-pointer w-full bg-neutral-900 text-white rounded-full py-4 flex items-center justify-center gap-3 font-body font-semibold text-sm tracking-wide hover:opacity-90 transition"
+        disabled={slotsLeft === 0}
+        className={`cursor-pointer w-full rounded-full py-4 flex items-center justify-center gap-3 font-body font-semibold text-sm tracking-wide transition ${
+          slotsLeft === 0
+            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+            : "bg-neutral-900 text-white hover:opacity-90"
+        }`}
       >
-        GET TICKET
-        <span className="w-8 h-8 rounded-full bg-[#FDFD96] flex items-center justify-center">
-          <ArrowRight size={16} className="text-black" />
-        </span>
+        {slotsLeft === 0 ? "SOLD OUT" : "GET TICKET"}
+        {slotsLeft > 0 && (
+          <span className="w-8 h-8 rounded-full bg-[#FDFD96] flex items-center justify-center">
+            <ArrowRight size={16} className="text-black" />
+          </span>
+        )}
       </button>
     </div>
   );
