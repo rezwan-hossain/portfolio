@@ -6,6 +6,7 @@ import { OrderSummary } from "../components/OrderSummary";
 import { HeroText } from "@/components/ui/HeroText";
 import { BillingFormData, CheckoutItem } from "@/types/checkout";
 import { useRouter } from "next/navigation";
+import { placeOrder } from "@/app/actions/checkout";
 
 type CheckoutPageProps = {
   item: CheckoutItem;
@@ -41,9 +42,80 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
   };
 
     const handlePlaceOrder = async () => {
+       setError("");
 
+    // Validation
+    const required: (keyof BillingFormData)[] = [
+      "fullName",
+      "phone",
+      "gender",
+      "birthDate",
+      "ageCategory",
+      "bloodGroup",
+      "tshirtSize",
+      "runnerCategory",
+    ];
 
+    for (const field of required) {
+      if (!formData[field]) {
+        setError(`Please fill in ${field.replace(/([A-Z])/g, " $1").toLowerCase()}`);
+        return;
+      }
     }
+
+    setLoading(true);
+
+    setLoading(true);
+
+    console.log("Placing order with data:", formData)
+    console.log("Selected payment method:", paymentMethod);
+    console.log("Checkout item:", {
+        packageId: item.packageId,
+      eventId: item.eventId,
+      qty: item.qty,
+      fullName: formData.fullName,
+      phone: formData.phone,
+      gender: formData.gender,
+      birthDate: formData.birthDate,
+      ageCategory: formData.ageCategory,
+      bloodGroup: formData.bloodGroup,
+      tshirtSize: formData.tshirtSize,
+      emergencyContactName: formData.emergencyContactName || undefined,
+      emergencyContactNumber: formData.emergencyContactNumber || undefined,
+      communityName: formData.communityName || undefined,
+      runnerCategory: formData.runnerCategory,
+      paymentMethod,});
+
+    const result = await placeOrder({
+      packageId: item.packageId,
+      eventId: item.eventId,
+      qty: item.qty,
+      fullName: formData.fullName,
+      phone: formData.phone,
+      gender: formData.gender,
+      birthDate: formData.birthDate,
+      ageCategory: formData.ageCategory,
+      bloodGroup: formData.bloodGroup,
+      tshirtSize: formData.tshirtSize,
+      emergencyContactName: formData.emergencyContactName || undefined,
+      emergencyContactNumber: formData.emergencyContactNumber || undefined,
+      communityName: formData.communityName || undefined,
+      runnerCategory: formData.runnerCategory,
+      paymentMethod,
+    });
+
+    if (result.error) {
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
+
+    if (result.success && result.orderId) {
+      router.push(`/order-confirmation?orderId=${result.orderId}`);
+    }
+
+
+  }
 
   return (
     <div className="min-h-screen bg-background">

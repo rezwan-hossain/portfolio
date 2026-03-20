@@ -33,13 +33,16 @@ export default async function page({ searchParams }: { searchParams: SearchParam
     redirect("/events");
   }
 
-    const checkoutItem = {
-    packageId: pkg.id,
-    eventId: pkg.event.id,
-    eventName: pkg.event.name,
-    packageName: pkg.name,
-    distance: pkg.distance,
-    price: pkg.price,
+  const safePkg = JSON.parse(JSON.stringify(pkg));
+
+
+  const checkoutItem = {
+    packageId: safePkg.id,
+    eventId: safePkg.event.id,
+    eventName: safePkg.event.name,
+    packageName: safePkg.name,
+    distance: safePkg.distance,
+    price: Number(safePkg.price),   // Ensure it's a plain number
     qty: quantity,
   };
 
