@@ -1,12 +1,34 @@
+import { CartItemType } from "@/types/cart";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface CartTotalsProps {
   subtotal: number;
+  items: CartItemType[];
+  disabled?: boolean;
 }
 
-const CartTotals = ({ subtotal }: CartTotalsProps) => {
+const CartTotals = ({ subtotal, items, disabled = false }: CartTotalsProps) => {
   const [agreed, setAgreed] = useState(false);
+
+  const router = useRouter();
+
+  const handleCheckout = () => {
+    if (items.length === 0 || !agreed) return;
+
+    // Pass first item info to checkout
+    // You can extend this for multiple items
+    const item = items[0];
+    const params = new URLSearchParams({
+      package: String(item.packageId),
+      event: item.eventId,
+      qty: String(item.qty),
+    });
+
+    router.push(`/checkout?${params.toString()}`);
+  };
+
 
   return (
     <div className="bg-cart-totals-bg rounded-sm p-6 lg:p-8">
@@ -14,7 +36,26 @@ const CartTotals = ({ subtotal }: CartTotalsProps) => {
         Cart Totals
       </h2>
 
-      <div className="flex justify-between items-center py-5 border-b border-gray-200">
+      {/* Items Summary */}
+      {items.length > 0 && (
+        <div className="space-y-2 mb-4">
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className="flex justify-between text-sm text-cart-muted"
+            >
+              <span className="truncate mr-2">
+                {item.packageName} ({item.distance}) × {item.qty}
+              </span>
+              <span className="flex-shrink-0">
+                ৳{(item.price * item.qty).toFixed(2)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex justify-between items-center py-5 border-b border-t border-gray-200">
         <span className="text-base text-cart-muted">Subtotal</span>
         <span className="text-base text-cart-foreground">
           ${subtotal.toFixed(2)}
@@ -51,7 +92,8 @@ const CartTotals = ({ subtotal }: CartTotalsProps) => {
       </label>
 
       <button
-        disabled={!agreed}
+        onClick={handleCheckout}
+        disabled={!agreed || disabled}
         className="w-full py-3.5 bg-neon-lime text-white text-base font-bold tracking-wide rounded-full hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Proceed To Checkout

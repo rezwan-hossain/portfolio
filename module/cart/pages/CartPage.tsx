@@ -6,6 +6,10 @@ import ticketIcon from "@/assets/ticket-icon.png";
 import CartItem from "../components/CartItem";
 import CartTotals from "../components/CartTotals";
 import { HeroText } from "@/components/ui/HeroText";
+import { CartItemType } from "@/types/cart";
+import Link from "next/link";
+
+
 
 const initialItems = [
   {
@@ -18,8 +22,12 @@ const initialItems = [
   },
 ];
 
-const CartPage = () => {
-  const [items, setItems] = useState(initialItems);
+type CartPageProps = {
+  items: CartItemType[];
+};
+
+const CartPage = ({ items: initialItems }: CartPageProps) => {
+  const [items, setItems] = useState<CartItemType[]>(initialItems);
 
   const updateQuantity = (id: number, qty: number) => {
     setItems((prev) =>
@@ -75,10 +83,12 @@ const CartPage = () => {
                     {items.map((item) => (
                       <CartItem
                         key={item.id}
-                        name={item.name}
+                        name={`${item.eventName} – ${item.packageName}`}
+                        distance={item.distance}
                         price={item.price}
                         initialQty={item.qty}
-                        imageUrl={item.image}
+                        maxQty={item.availableSlots}
+                        imageUrl={item.bannerImage}
                         onQuantityChange={(qty) => updateQuantity(item.id, qty)}
                         onRemove={() => removeItem(item.id)}
                       />
@@ -91,7 +101,7 @@ const CartPage = () => {
                     Event Tickets Subtotal:
                   </span>
                   <span className="text-base font-bold  text-cart-foreground">
-                    ${subtotal.toFixed(2)}
+                    ৳{subtotal.toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -100,13 +110,19 @@ const CartPage = () => {
                 <p className="text-3xl font-semibold text-cart-muted text-center">
                   Your cart is empty
                 </p>
+                <Link
+                  href="/events"
+                  className="text-indigo-500 hover:underline text-sm"
+                >
+                  ← Browse Events
+                </Link>
               </div>
             )}
           </div>
 
           {/* Right: Cart Totals */}
           <div className="w-full lg:w-94 flex-shrink-0 border border-gray-200 rounded-lg">
-            <CartTotals subtotal={subtotal} />
+            <CartTotals subtotal={subtotal} items={items} disabled={items.length === 0}/>
           </div>
         </div>
       </div>

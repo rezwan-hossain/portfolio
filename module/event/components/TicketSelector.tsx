@@ -36,12 +36,20 @@ const TicketSelector = ({ packages, eventSlug, eventId }: TicketSelectorProps) =
 
     if (!user) {
       // 👇 Not logged in — redirect to login
-      router.push("/login");
+      // router.push("/login");
+      const cartUrl = `/cart?package=${selectedPackage.id}&qty=${quantity}&event=${eventSlug}`;
+      router.push(`/login?redirect=${encodeURIComponent(cartUrl)}`);
+    
       return;
     }
 
     // ✅ Logged in — proceed with ticket purchase
-    router.push("/cart");
+    // router.push("/cart");
+    router.push(`/cart?package=${selectedPackage.id}&qty=${quantity}&event=${eventSlug}`);
+
+    // router.push(
+    //   `/events/${eventSlug}/register?package=${selectedPackage.id}&qty=${quantity}&event=${eventSlug}`
+    // );
   };
 
     // No packages available
