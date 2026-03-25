@@ -1,4 +1,5 @@
 import { CheckoutItem } from "@/types/checkout";
+import Link from "next/link";
 
 interface OrderSummaryProps {
   item: CheckoutItem;
@@ -118,9 +119,9 @@ export const OrderSummary = ({
         Your personal data will be used to process your order, support your
         experience throughout this website, and for other purposes described in
         our{" "}
-        <a href="#" className="underline text-foreground hover:text-primary">
+        <Link href="#" className="underline text-foreground hover:text-primary">
           privacy policy
-        </a>
+        </Link>
         .
       </p>
 
