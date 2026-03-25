@@ -119,7 +119,7 @@ export const OrderSummary = ({
         Your personal data will be used to process your order, support your
         experience throughout this website, and for other purposes described in
         our{" "}
-        <Link href="#" className="underline text-foreground hover:text-primary">
+        <Link href="/privacy-policy" className="underline text-foreground hover:text-primary">
           privacy policy
         </Link>
         .
