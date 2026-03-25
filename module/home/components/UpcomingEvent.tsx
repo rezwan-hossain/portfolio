@@ -20,15 +20,18 @@ export default function UpcomingEvent() {
         {/* Grid */}
         <div className="max-w-7xl mx-auto space-y-10 mt-12">
           <EventCard
-            title="RunRise Nation Noboborsho Run 1433"
-            description="A full-day summit featuring keynote speakers, interactive workshops, and networking."
-            time="9:31 PM - 12:31 AM"
-            date="JUL 25, 2026"
-            location="ADELAIDE, SOUTH AUSTRALIA"
-            pricing="General $99 / Student $159 / VIP $299"
-            image="https://plus.unsplash.com/premium_photo-1664537975122-9c598d85816e?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-            highlighted
-          />
+          event={{
+            slug: "my-event",
+            title: "My Event",
+            description: "Cool event",
+            time: "10:00 AM",
+            date: "2026-03-26",
+            location: "Dhaka",
+            pricing: "Free",
+            image: "/img.jpg",
+            highlighted: true,
+          }}
+        />
         </div>
       </div>
     </section>
