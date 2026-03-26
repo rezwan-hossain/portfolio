@@ -1,6 +1,7 @@
 // module/dashboard/components/UserProfileCard.tsx
 import type { DashboardUser } from "@/types/dashboard";
 import { Mail, Phone, Shield, Calendar } from "lucide-react";
+import Link from "next/link";
 
 type UserProfileCardProps = {
   user: DashboardUser;
@@ -72,12 +73,12 @@ export function UserProfileCard({ user }: UserProfileCardProps) {
         </div>
 
         {/* Edit Profile */}
-        <a
+        <Link
           href="/profile"
           className="px-4 py-2 text-sm font-medium border border-gray-200 rounded-full hover:bg-gray-50 transition-colors text-gray-700"
         >
           Edit Profile
-        </a>
+        </Link>
       </div>
     </div>
   );
