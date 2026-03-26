@@ -9,12 +9,13 @@ interface OrderSummaryProps {
   loading: boolean;
 }
 
+
 const paymentMethods = [
   {
-    id: "surjopay",
+    id: "shurjopay",
     label: "SurjoPay",
     description:
-      "Pay instantly and securely using SurjoPay. You'll be redirected to complete your transaction safely.",
+      "Pay securely via ShurjoPay. Supports bKash, Nagad, Rocket, Visa, Mastercard, and more. You will be redirected to complete your payment.",
   },
   {
     id: "bkash",
@@ -116,9 +117,8 @@ export const OrderSummary = ({
 
       {/* Privacy Notice */}
       <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-        Your personal data will be used to process your order, support your
-        experience throughout this website, and for other purposes described in
-        our{" "}
+        Your personal data will be used to process your order. By clicking below
+        you agree to our{" "}
         <Link href="/privacy-policy" className="underline text-foreground hover:text-primary">
           privacy policy
         </Link>
@@ -126,12 +126,25 @@ export const OrderSummary = ({
       </p>
 
       {/* Place Order Button */}
-      <button
+      {/* <button
         onClick={onPlaceOrder}
         disabled={loading}
         className="h-12 w-full rounded-full bg-neon-lime text-white hover:bg-foreground/90 text-base font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? "Processing..." : "Place Order"}
+      </button> */}
+
+
+       <button
+        onClick={onPlaceOrder}
+        disabled={loading}
+        className="h-12 w-full rounded-full bg-neon-lime text-white hover:opacity-90 text-base font-bold cursor-pointer transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {loading
+          ? "Processing..."
+          : paymentMethod === "shurjopay"
+          ? `Pay ৳${subtotal.toFixed(2)} with ShurjoPay`
+          : "Place Order"}
       </button>
     </div>
   );

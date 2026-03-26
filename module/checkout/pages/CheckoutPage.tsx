@@ -7,6 +7,7 @@ import { HeroText } from "@/components/ui/HeroText";
 import { BillingFormData, CheckoutItem } from "@/types/checkout";
 import { useRouter } from "next/navigation";
 import { placeOrder } from "@/app/actions/checkout";
+import { initiateShurjoPayPayment } from "@/app/actions/payment";
 
 type CheckoutPageProps = {
   item: CheckoutItem;
@@ -18,7 +19,7 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
   const router = useRouter();
 
 
-  const [paymentMethod, setPaymentMethod] = useState("surjopay");
+  const [paymentMethod, setPaymentMethod] = useState("shurjopay");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -65,54 +66,112 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
 
     setLoading(true);
 
-    setLoading(true);
+    try {
+      const safeArgs = JSON.parse(
+        JSON.stringify({
+          packageId: item.packageId,
+          eventId: item.eventId,
+          qty: item.qty,
+          fullName: formData.fullName,
+          phone: formData.phone,
+          gender: formData.gender,
+          birthDate: formData.birthDate,
+          ageCategory: formData.ageCategory,
+          bloodGroup: formData.bloodGroup,
+          tshirtSize: formData.tshirtSize,
+          emergencyContactName: formData.emergencyContactName || "",
+          emergencyContactNumber: formData.emergencyContactNumber || "",
+          communityName: formData.communityName || "",
+          runnerCategory: formData.runnerCategory,
+          paymentMethod,
+        })
+      );
 
-    console.log("Placing order with data:", formData)
-    console.log("Selected payment method:", paymentMethod);
-    console.log("Checkout item:", {
-        packageId: item.packageId,
-      eventId: item.eventId,
-      qty: item.qty,
-      fullName: formData.fullName,
-      phone: formData.phone,
-      gender: formData.gender,
-      birthDate: formData.birthDate,
-      ageCategory: formData.ageCategory,
-      bloodGroup: formData.bloodGroup,
-      tshirtSize: formData.tshirtSize,
-      emergencyContactName: formData.emergencyContactName || undefined,
-      emergencyContactNumber: formData.emergencyContactNumber || undefined,
-      communityName: formData.communityName || undefined,
-      runnerCategory: formData.runnerCategory,
-      paymentMethod,});
+      const orderResult = await placeOrder(safeArgs);
 
-    const result = await placeOrder({
-      packageId: item.packageId,
-      eventId: item.eventId,
-      qty: item.qty,
-      fullName: formData.fullName,
-      phone: formData.phone,
-      gender: formData.gender,
-      birthDate: formData.birthDate,
-      ageCategory: formData.ageCategory,
-      bloodGroup: formData.bloodGroup,
-      tshirtSize: formData.tshirtSize,
-      emergencyContactName: formData.emergencyContactName || undefined,
-      emergencyContactNumber: formData.emergencyContactNumber || undefined,
-      communityName: formData.communityName || undefined,
-      runnerCategory: formData.runnerCategory,
-      paymentMethod,
-    });
+      console.log("🛒 Place order result:", orderResult);
 
-    if (result.error) {
-      setError(result.error);
+      if (orderResult.error) {
+        setError(orderResult.error);
+        setLoading(false);
+        return;
+      }
+
+      if (!orderResult.orderId) {
+        setError("Failed to create order");
+        setLoading(false);
+        return;
+      }
+
+        // ✅ Step 2: If ShurjoPay → initiate payment & redirect
+      if (paymentMethod === "shurjopay") {
+        const paymentArgs = JSON.parse(
+          JSON.stringify({
+            orderId: orderResult.orderId,
+            customerName: formData.fullName,
+            customerEmail: formData.email || userEmail,
+            customerPhone: formData.phone,
+          })
+        );
+
+        const paymentResult = await initiateShurjoPayPayment(paymentArgs);
+
+        console.log("💳 ShurjoPay initiation result:", paymentResult);
+
+        if (paymentResult.error) {
+          setError(paymentResult.error);
+          setLoading(false);
+          return;
+        }
+
+        if (paymentResult.checkoutUrl) {
+          // ✅ Redirect to ShurjoPay checkout page
+          window.location.href = paymentResult.checkoutUrl;
+          return;
+        }
+
+        setError("Failed to get payment URL");
+        setLoading(false);
+        return;
+      }
+
+      // Non-ShurjoPay → go to confirmation directly
+      router.push(`/order-confirmation?orderId=${orderResult.orderId}`);
+
+
+    } catch (err) {
+      console.error("Error placing order:", err);
+      setError("An unexpected error occurred. Please try again.");
       setLoading(false);
-      return;
     }
 
-    if (result.success && result.orderId) {
-      router.push(`/order-confirmation?orderId=${result.orderId}`);
-    }
+    // const result = await placeOrder({
+    //   packageId: item.packageId,
+    //   eventId: item.eventId,
+    //   qty: item.qty,
+    //   fullName: formData.fullName,
+    //   phone: formData.phone,
+    //   gender: formData.gender,
+    //   birthDate: formData.birthDate,
+    //   ageCategory: formData.ageCategory,
+    //   bloodGroup: formData.bloodGroup,
+    //   tshirtSize: formData.tshirtSize,
+    //   emergencyContactName: formData.emergencyContactName || undefined,
+    //   emergencyContactNumber: formData.emergencyContactNumber || undefined,
+    //   communityName: formData.communityName || undefined,
+    //   runnerCategory: formData.runnerCategory,
+    //   paymentMethod,
+    // });
+
+    // if (result.error) {
+    //   setError(result.error);
+    //   setLoading(false);
+    //   return;
+    // }
+
+    // if (result.success && result.orderId) {
+    //   router.push(`/order-confirmation?orderId=${result.orderId}`);
+    // }
 
 
   }
