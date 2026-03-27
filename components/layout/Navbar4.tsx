@@ -129,21 +129,25 @@ export default function SiteHeader4() {
           </ul>
 
           {/* CONFERIO Style CTA Button */}
-          <motion.a
-            href="#register"
-            onClick={(e) => {
-              e.preventDefault();
-              handleNavClick("#register");
-            }}
+          <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="hidden lg:flex items-center gap-3 bg-gray-900 text-white font-bold uppercase tracking-wider text-xs rounded-lg px-5 py-3 hover:bg-gray-800 transition-colors"
+            className="hidden lg:block"
           >
-            <span>Buy Ticket</span>
-            <div className="w-8 h-8 rounded-md bg-white/20 flex items-center justify-center">
-              <ArrowRight size={16} />
-            </div>
-          </motion.a>
+            <Link
+              href="/register"
+              //   onClick={(e) => {
+              //     e.preventDefault();
+              //     handleNavClick("#register");
+              //   }}
+              className="flex items-center gap-3 bg-gray-900 text-white font-bold uppercase tracking-wider text-xs rounded-lg px-5 py-3 hover:bg-gray-800 transition-colors"
+            >
+              <span>Buy Ticket</span>
+              <div className="w-8 h-8 rounded-md bg-white/20 flex items-center justify-center">
+                <ArrowRight size={16} />
+              </div>
+            </Link>
+          </motion.div>
 
           {/* Mobile Menu Toggle */}
           <motion.button
