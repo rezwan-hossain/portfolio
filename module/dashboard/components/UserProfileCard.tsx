@@ -37,7 +37,7 @@ export function UserProfileCard({ user }: UserProfileCardProps) {
         {/* Info */}
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-4xl font-bold text-gray-900">
               Welcome back, {displayName}!
             </h1>
             {user.role === "ADMIN" && (

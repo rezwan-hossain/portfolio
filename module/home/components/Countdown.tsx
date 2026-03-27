@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 
 interface CountdownProps {
   countdown: {
@@ -12,6 +13,12 @@ interface CountdownProps {
 }
 
 const Countdown = ({ countdown }: CountdownProps) => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const timeUnits = [
     { value: countdown.days, label: "Days" },
     { value: countdown.hours, label: "Hours" },
@@ -26,7 +33,6 @@ const Countdown = ({ countdown }: CountdownProps) => {
       transition={{ duration: 0.8, delay: 0.5 }}
       className="absolute bottom-4 sm:bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-20 w-full flex justify-center px-3 sm:px-4"
     >
-      {/* Mobile: Compact Grid | Tablet+: Horizontal Row */}
       <div className="grid grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-5 w-full max-w-[320px] sm:max-w-none sm:w-auto">
         {timeUnits.map((item, index) => (
           <motion.div
@@ -51,8 +57,9 @@ const Countdown = ({ countdown }: CountdownProps) => {
                 min-w-0 sm:min-w-[70px] md:min-w-[85px] lg:min-w-[100px]
               "
             >
-              {/* Number */}
+              {/* Number - Only render actual value after mount */}
               <div
+                suppressHydrationWarning
                 className="
                   text-2xl sm:text-3xl md:text-4xl lg:text-5xl
                   font-bold 
@@ -60,10 +67,9 @@ const Countdown = ({ countdown }: CountdownProps) => {
                   text-gray-700 
                   leading-none 
                   mb-1 sm:mb-1.5
-                  
                 "
               >
-                {String(item.value).padStart(2, "0")}
+                {mounted ? String(item.value).padStart(2, "0") : "00"}
               </div>
 
               {/* Label */}
@@ -80,7 +86,6 @@ const Countdown = ({ countdown }: CountdownProps) => {
               </div>
             </div>
 
-            {/* Subtle glow effect on hover - hidden on mobile */}
             <div className="hidden sm:block absolute inset-0 bg-white/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10 blur-xl" />
           </motion.div>
         ))}

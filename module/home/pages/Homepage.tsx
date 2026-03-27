@@ -7,6 +7,7 @@ import HeroSlider from "../components/HeroSlider";
 import RegisterCTA from "../components/RegisterCTA";
 import Sponsors from "../components/Sponsors";
 import Testimonials from "../components/Testimonials";
+import UpcomingEvents from "../components/UpcomingEvent";
 import UpcomingEvent from "../components/UpcomingEvent";
 import { heroSlides } from "../data/heroSlides";
 
@@ -42,7 +43,7 @@ export default async function Homepage() {
       </section>
 
       <section aria-label="UpComing Event">
-        <UpcomingEvent />
+        <UpcomingEvents />
       </section>
 
       <section aria-label=" Event">
