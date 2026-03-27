@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import RetryPaymentClient from "@/module/payment/components/RetryPaymentClient";
 import { redirect } from "next/navigation";
 
-
 type SearchParams = Promise<{ orderId?: string }>;
 
 export default async function RetryPaymentPage({
@@ -48,7 +47,7 @@ export default async function RetryPaymentPage({
       data: {
         status: "PENDING",
         paymentId: null,
-        bkashTrxId: null,
+        transactionId: null,
       },
     });
   }
@@ -64,7 +63,7 @@ export default async function RetryPaymentPage({
       customerName: order.registration.fullName,
       customerEmail: user.email ?? "",
       customerPhone: order.registration.phone,
-    })
+    }),
   );
 
   return <RetryPaymentClient {...props} />;
