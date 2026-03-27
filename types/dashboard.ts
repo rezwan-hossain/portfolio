@@ -57,7 +57,8 @@ export type DashboardOrder = {
     amount: number;
     status: string;
     paymentMethod: string | null;
-    bkashTrxId: string | null;
+    transactionId: string | null;
+    paymentGateway: string | null;
     createdAt: string;
   } | null;
 };

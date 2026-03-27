@@ -10,15 +10,15 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 // ─── USER ───────────────────────────────────────────
 model User {
   id                  String    @id @default(uuid())
-  authId              String    @unique   // 👈 Supabase auth.users id
+  authId              String    @unique // 👈 Supabase auth.users id
   email               String    @unique
   firstName           String?
   lastName            String?
@@ -35,7 +35,7 @@ model User {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  orders              Order[]
+  orders Order[]
 
   @@map("users")
 }
@@ -45,6 +45,7 @@ enum Role {
   ADMIN
   ORGANIZER
 }
+
 // ─── ORGANIZER ───────────────────────────────────────────
 
 model Organizer {
@@ -57,7 +58,7 @@ model Organizer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  events    Event[]
+  events Event[]
 
   @@map("organizers")
 }
@@ -84,11 +85,12 @@ model Event {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  packages        Package[]
-  orders          Order[]
+  packages Package[]
+  orders   Order[]
 
   @@map("events")
 }
+
 enum EventType {
   LIVE
   VIRTUAL
@@ -115,63 +117,61 @@ model Package {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  eventId        String
-  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  orders         Order[]
+  eventId String
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  orders  Order[]
 
   @@map("packages")
 }
 
 // ─── ORDER ──────────────────────────────────────────
 model Order {
-  id          String      @id @default(uuid())
-  status      OrderStatus @default(PENDING)
-  isActive    Boolean     @default(true)
-  isArchived  Boolean     @default(false)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  qty         Int         @default(1)
-  userId      String
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String      @id @default(uuid())
+  status     OrderStatus @default(PENDING)
+  isActive   Boolean     @default(true)
+  isArchived Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  qty        Int         @default(1)
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  packageId   Int
-  package     Package     @relation(fields: [packageId], references: [id])
+  packageId Int
+  package   Package @relation(fields: [packageId], references: [id])
 
-  eventId     String
-  event       Event       @relation(fields: [eventId], references: [id])
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id])
 
   registration Registration?
 
-  payment     Payment?
-  
-
+  payment Payment?
 
   @@map("orders")
 }
 
 model Registration {
-  id                     String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  orderId                String   @unique
-  order                  Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  fullName               String
-  phone                  String
-  gender                 String
-  birthDate              DateTime
+  fullName  String
+  phone     String
+  gender    String
+  birthDate DateTime
 
-  ageCategory            String
-  bloodGroup             String
-  tshirtSize             String
+  ageCategory String
+  bloodGroup  String
+  tshirtSize  String
 
   emergencyContactName   String?
   emergencyContactNumber String?
 
-  communityName          String?
-  runnerCategory         String
+  communityName  String?
+  runnerCategory String
 
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("registrations")
 }
@@ -184,18 +184,20 @@ enum OrderStatus {
 
 // ─── PAYMENT ────────────────────────────────────────
 model Payment {
-  id            String        @id @default(uuid())
-  amount        Int
-  currency      String        @default("BDT")
-  status        PaymentStatus @default(PENDING)
-  bkashTrxId    String?       @unique
-  paymentId     String?       @unique  // bKash internal payment ID
-  paymentMethod String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id             String        @id @default(uuid())
+  amount         Int
+  currency       String        @default("BDT")
+  status         PaymentStatus @default(PENDING)
+  transactionId  String?       @unique
+  paymentId      String?       @unique // bKash internal payment ID
+  paymentMethod  String?
+  paymentGateway String?
 
-  orderId       String        @unique
-  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("payments")
 }

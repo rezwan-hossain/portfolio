@@ -146,9 +146,9 @@ function RegistrationCard({
               )}
 
               {/* Transaction ID */}
-              {order.payment?.bkashTrxId && (
+              {order.payment?.transactionId && (
                 <span className="text-xs text-gray-400 font-mono">
-                  TRX: {order.payment.bkashTrxId}
+                  TRX: {order.payment.transactionId}
                 </span>
               )}
 

@@ -77,11 +77,20 @@ export default async function PaymentSuccessPage({
             </span>
           </div>
 
-          {order.payment?.bkashTrxId && (
+          {order.payment?.transactionId && (
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">Transaction ID</span>
               <span className="text-sm font-mono font-medium text-gray-900">
-                {order.payment.bkashTrxId}
+                {order.payment.transactionId}
+              </span>
+            </div>
+          )}
+
+          {order.payment?.paymentGateway && (
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-500">Payment Gateway</span>
+              <span className="text-sm font-medium text-gray-900 capitalize">
+                {order.payment.paymentGateway}
               </span>
             </div>
           )}

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   if (!spOrderId) {
     console.error("❌ No order_id in callback");
     return NextResponse.redirect(
-      `${origin}/payment/failed?reason=missing_order`
+      `${origin}/payment/failed?reason=missing_order`,
     );
   }
 
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     if (!verifyData || verifyData.length === 0) {
       console.error("❌ Verification returned empty data");
       return NextResponse.redirect(
-        `${origin}/payment/failed?reason=verification_failed`
+        `${origin}/payment/failed?reason=verification_failed`,
       );
     }
 
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     if (!payment) {
       console.error("❌ Payment not found in DB for:", spOrderId);
       return NextResponse.redirect(
-        `${origin}/payment/failed?reason=payment_not_found`
+        `${origin}/payment/failed?reason=payment_not_found`,
       );
     }
 
@@ -86,8 +86,9 @@ export async function GET(request: NextRequest) {
           where: { id: payment.id },
           data: {
             status: "PAID",
-            bkashTrxId: paymentInfo.bank_trx_id || null,
+            transactionId: paymentInfo.bank_trx_id || null,
             paymentMethod: paymentInfo.method || "shurjopay",
+            paymentGateway: "shurjopay",
           },
         });
 
@@ -100,7 +101,7 @@ export async function GET(request: NextRequest) {
 
       console.log("✅ Order confirmed, redirecting to success page");
       return NextResponse.redirect(
-        `${origin}/payment/success?orderId=${payment.orderId}`
+        `${origin}/payment/success?orderId=${payment.orderId}`,
       );
     }
 
@@ -111,11 +112,12 @@ export async function GET(request: NextRequest) {
         data: {
           status: "FAILED",
           paymentMethod: paymentInfo.method || "shurjopay",
+          paymentGateway: "shurjopay",
         },
       });
 
       return NextResponse.redirect(
-        `${origin}/payment/failed?orderId=${payment.orderId}&reason=cancelled`
+        `${origin}/payment/failed?orderId=${payment.orderId}&reason=cancelled`,
       );
     }
 
@@ -130,7 +132,7 @@ export async function GET(request: NextRequest) {
       });
 
       return NextResponse.redirect(
-        `${origin}/payment/failed?orderId=${payment.orderId}&reason=payment_failed`
+        `${origin}/payment/failed?orderId=${payment.orderId}&reason=payment_failed`,
       );
     }
 
@@ -142,12 +144,12 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.redirect(
-      `${origin}/payment/failed?orderId=${payment.orderId}&reason=unknown`
+      `${origin}/payment/failed?orderId=${payment.orderId}&reason=unknown`,
     );
   } catch (error: any) {
     console.error("❌ Callback error:", error?.message);
     return NextResponse.redirect(
-      `${origin}/payment/failed?reason=server_error`
+      `${origin}/payment/failed?reason=server_error`,
     );
   }
 }

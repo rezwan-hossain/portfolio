@@ -17,7 +17,9 @@ export async function initiateShurjoPayPayment({
 }) {
   // Auth check
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return { success: false, error: "You must be logged in", checkoutUrl: "" };
@@ -39,11 +41,19 @@ export async function initiateShurjoPayPayment({
     }
 
     if (!order.payment) {
-      return { success: false, error: "Payment record not found", checkoutUrl: "" };
+      return {
+        success: false,
+        error: "Payment record not found",
+        checkoutUrl: "",
+      };
     }
 
     if (order.payment.status === "PAID") {
-      return { success: false, error: "Order is already paid", checkoutUrl: "" };
+      return {
+        success: false,
+        error: "Order is already paid",
+        checkoutUrl: "",
+      };
     }
 
     // Step 1: Get ShurjoPay token
@@ -84,6 +94,7 @@ export async function initiateShurjoPayPayment({
       data: {
         paymentId: String(paymentResponse.sp_order_id),
         paymentMethod: "shurjopay",
+        paymentGateway: "shurjopay",
       },
     });
 
