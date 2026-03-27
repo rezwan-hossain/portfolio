@@ -1,53 +1,148 @@
-import { ArrowRight } from "lucide-react";
+// components/sections/RegisterCTA.tsx
+import { ArrowRight, Clock, MapPin, Trophy, Users } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
-const RegisterCTA = () => (
-  <section id="register" className="py-20 md:py-24">
-    <div className="container mx-auto">
-      <div className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl bg-neon-lime p-10 text-center md:p-16">
-        {/* Decorative circles */}
-        <div className="absolute top-0 right-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10" />
-        <div className="absolute bottom-0 left-0 h-48 w-48 -translate-x-1/2 translate-y-1/2 rounded-full bg-white/10" />
+const RegisterCTA = () => {
+  return (
+    <section className="relative w-full overflow-hidden bg-gradient-to-br from-gray-900/95 to-gray-800/95 py-20 md:py-28">
+      {/* Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Glowing neon border */}
+        <div className="absolute inset-0 border-2 border-neon-lime/20 animate-pulse" />
 
-        <div className="relative z-10 mx-auto max-w-2xl">
-          <h2 className="mb-4 font-display text-4xl font-black uppercase leading-tight text-white md:text-6xl">
+        {/* Diagonal stripe pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <svg
+            viewBox="0 0 100 100"
+            className="absolute inset-0 w-full h-full"
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <pattern
+                id="stripe"
+                width="100"
+                height="100"
+                patternUnits="userSpaceOnUse"
+              >
+                <path
+                  d="M-1,1 l1,-1 M0,25 l25,-25 M75,25 l25,-25 M0,75 l25,25 M75,75 l25,25"
+                  stroke="currentColor"
+                  strokeWidth="0.5"
+                />
+              </pattern>
+            </defs>
+            <rect width="100" height="100" fill="url(#stripe)" />
+          </svg>
+        </div>
+
+        {/* Animated motion lines */}
+        <svg
+          className="absolute top-20 left-20 w-32 h-24 opacity-20 md:w-48 md:h-36"
+          viewBox="0 0 200 100"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+        >
+          <path d="M10 80 Q60 20 120 50 T190 30" />
+          <path d="M10 90 Q70 40 130 60 T190 45" />
+          <path d="M10 70 Q50 10 110 40 T190 15" />
+        </svg>
+
+        {/* Scattered dots */}
+        <div className="absolute top-16 left-1/4 w-3 h-3 rounded-full bg-neon-lime/20" />
+        <div className="absolute top-24 left-[38%] w-2 h-2 rounded-full bg-white/10" />
+        <div className="absolute bottom-20 right-1/3 w-3 h-3 rounded-full bg-neon-lime/15" />
+        <div className="absolute top-1/3 right-[15%] w-2 h-2 rounded-full bg-white/10" />
+
+        {/* Glowing neon circle */}
+        <div className="absolute -bottom-12 -right-12 w-[300px] h-[300px] bg-neon-lime/10 rounded-full blur-4xl" />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center ">
+          {/* Title */}
+          <h2 className="mb-6 text-3xl sm:text-4xl md:text-6xl font-black tracking-wide text-white uppercase leading-tight">
             Your Finish Line
             <br />
-            Starts Here
+            <span className="text-neon-lime">Starts Here</span>
           </h2>
 
-          <p className="mx-auto mb-8 max-w-xl text-lg text-white/80 md:text-xl">
+          {/* Description */}
+          <p className="mx-auto mb-8 max-w-3xl text-lg sm:text-xl text-white/80">
             Don't wait. Spots are limited. Secure your place in the most epic
             running event of the year.
           </p>
 
-          <div className="flex flex-wrap justify-center gap-4">
-            <a
-              href="#"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-md border-2 border-white px-10 py-6 font-display text-base font-bold uppercase tracking-wider text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2"
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/register"
+              className="group inline-flex items-center justify-center gap-3 rounded-lg px-8 py-4.5 text-lg font-black uppercase tracking-wider text-white bg-neon-lime border border-transparent hover:bg-neon-lime/90 transition-all duration-300"
             >
-              Register Now
-              <ArrowRight size={18} />
-            </a>
-          </div>
-          {/* <a href="#_" className="relative inline-block text-lg group">
-            <span className="relative z-10 block px-5 py-3 overflow-hidden font-medium leading-tight text-gray-800 transition-colors duration-300 ease-out border-2 border-gray-900 rounded-lg group-hover:text-white">
-              <span className="absolute inset-0 w-full h-full px-5 py-3 rounded-lg bg-gray-50"></span>
-              <span className="absolute left-0 w-48 h-48 -ml-2 transition-all duration-300 origin-top-right -rotate-90 -translate-x-full translate-y-12 bg-gray-900 group-hover:-rotate-180 ease"></span>
-              <span className="relative">Button Text</span>
-            </span>
-            <span
-              className="absolute bottom-0 right-0 w-full h-12 -mb-1 -mr-1 transition-all duration-200 ease-linear bg-gray-900 rounded-lg group-hover:mb-0 group-hover:mr-0"
-              data-rounded="rounded-lg"
-            ></span>
-          </a> */}
+              <span className="relative">
+                Register Now
+                {/* <span className="absolute -bottom-0.5 -right-2 w-7 h-7 rounded-md bg-white/20 flex items-center justify-center">
+                  <ArrowRight size={16} />
+                </span> */}
+              </span>
+            </Link>
 
-          <p className="mt-6 text-sm text-white/70">
+            <Link
+              href="/events"
+              className="inline-flex items-center justify-center gap-3 rounded-lg border border-white/30 bg-white/5 px-6 py-4 text-base font-black uppercase tracking-wider text-white hover:bg-white/10 transition-all"
+            >
+              <span className="relative">
+                View Events
+                {/* <span className="absolute -bottom-0.5 -right-2 w-7 h-7 rounded-md bg-white/20 flex items-center justify-center">
+                  <ArrowRight size={14} />
+                </span> */}
+              </span>
+            </Link>
+          </div>
+
+          {/* Stats Bar */}
+          <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6">
+            <div className="flex items-center gap-4 text-white/70">
+              <div className="flex items-center gap-2">
+                <Users size={20} className="text-neon-lime" />
+                <span className="text-sm font-bold uppercase tracking-wider">
+                  5,000+
+                </span>
+              </div>
+              <span className="text-xs text-white/30">Members</span>
+            </div>
+
+            <div className="flex items-center gap-4 text-white/70">
+              <div className="flex items-center gap-2">
+                <Trophy size={20} className="text-neon-lime" />
+                <span className="text-sm font-bold uppercase tracking-wider">
+                  120+
+                </span>
+              </div>
+              <span className="text-xs text-white/30">Events</span>
+            </div>
+
+            <div className="flex items-center gap-4 text-white/70">
+              <div className="flex items-center gap-2">
+                <MapPin size={20} className="text-neon-lime" />
+                <span className="text-sm font-bold uppercase tracking-wider">
+                  15+
+                </span>
+              </div>
+              <span className="text-xs text-white/30">Cities</span>
+            </div>
+          </div>
+
+          {/* Bottom Info */}
+          <p className="mt-8 text-sm text-white/60">
             Early bird pricing ends soon • Limited slots available
           </p>
         </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 export default RegisterCTA;

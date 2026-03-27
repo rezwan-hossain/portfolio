@@ -38,7 +38,7 @@ const RetryPaymentClient = ({
         customerName,
         customerEmail,
         customerPhone,
-      })
+      }),
     );
 
     const result = await initiateShurjoPayPayment(safeArgs);
@@ -56,7 +56,7 @@ const RetryPaymentClient = ({
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+      <div className="mt-32 max-w-md w-full bg-white rounded-xl shadow-sm border border-gray-200 p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
           Retry Payment
         </h1>

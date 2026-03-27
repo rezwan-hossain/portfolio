@@ -37,7 +37,7 @@ export default async function PaymentSuccessPage({
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="max-w-lg w-full bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+      <div className="mt-32 max-w-lg w-full bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
         {/* Success Icon */}
         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <span className="text-4xl">✅</span>

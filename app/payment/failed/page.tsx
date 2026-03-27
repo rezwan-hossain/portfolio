@@ -28,7 +28,7 @@ export default async function PaymentFailedPage({
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="max-w-lg w-full bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+      <div className="mt-32 max-w-lg w-full bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
         {/* Failed Icon */}
         <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <span className="text-4xl">❌</span>

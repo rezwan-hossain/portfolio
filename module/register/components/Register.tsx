@@ -1,17 +1,20 @@
+// app/(auth)/register/page.tsx
 "use client";
 
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { registerUser, signInWithGoogle } from "@/app/(auth)/register/actions";
+import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 
 export default function Register() {
-  // const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,160 +24,248 @@ export default function Register() {
       return;
     }
 
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
     setError("");
     setLoading(true);
 
-    // Build FormData to pass to the server action
     const formData = new FormData();
     formData.append("email", email);
     formData.append("password", password);
 
     const result = await registerUser(formData);
 
-    // If redirect() was called in the action, code below won't run on success
     if (result?.error) {
       setError(result.error);
       setLoading(false);
     }
   };
 
-    const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = async () => {
     setError("");
     const result = await signInWithGoogle();
-    // If redirect() fires, this won't run
     if (result?.error) {
       setError(result.error);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-2 overflow-hidden rounded-xl shadow-md bg-white">
-        {/* Left Image */}
-        <div className="hidden md:block relative">
-          <Image
-            src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/leftSideImage.png"
-            alt="leftSideImage"
-            fill
-            className="object-cover"
-            priority
-          />
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-20">
+      <div className="mt-12 w-full max-w-[480px]">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-block mb-6">
+            <Image
+              src="/MerchSports-small.png"
+              alt="MerchSports"
+              width={72}
+              height={72}
+              className="rounded-full object-cover mx-auto"
+              priority
+            />
+          </Link>
+          <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-wider text-gray-900">
+            Create Account
+          </h1>
+          <p className="text-sm text-gray-500 mt-2">
+            Join the community and start your journey
+          </p>
         </div>
 
-        {/* Register Form */}
-        <div className="flex flex-col items-center justify-center py-12 px-8">
-          <form
-            onSubmit={handleSubmit}
-            className="w-full max-w-sm flex flex-col items-center"
+        {/* Form Card */}
+        <div className="bg-white border border-gray-200 rounded-xl p-6 sm:p-8 shadow-sm">
+          {/* Google Sign Up */}
+          <button
+            onClick={handleGoogleSignIn}
+            type="button"
+            className="w-full flex items-center justify-center gap-3 h-12 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
           >
-            <h2 className="text-4xl text-gray-900 font-medium">Register</h2>
+            <Image
+              src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/googleLogo.svg"
+              alt="Google"
+              width={20}
+              height={20}
+            />
+            <span className="text-sm font-semibold text-gray-700">
+              Continue with Google
+            </span>
+          </button>
 
-            <p className="text-sm text-gray-500/90 mt-3 text-center">
-              Create your account to get started
-            </p>
+          {/* Divider */}
+          <div className="flex items-center gap-4 my-6">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+              or
+            </span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
 
-            {/* Google Register */}
-            <button
-              onClick={handleGoogleSignIn}
-              type="button"
-              className="w-full mt-8 bg-gray-500/10 flex items-center justify-center h-16 rounded-full"
-            >
-              <Image
-                src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/googleLogo.svg"
-                alt="googleLogo"
-                width={90}
-                height={90}
-                className="object-contain" // Ensures it keeps its aspect ratio
-              />
-            </button>
-
-            {/* Divider */}
-            <div className="flex items-center gap-4 w-full my-5">
-              <div className="w-full h-px bg-gray-300/90"></div>
-              <p className="text-nowrap text-sm text-gray-500/90">
-                or register with email
-              </p>
-              <div className="w-full h-px bg-gray-300/90"></div>
-            </div>
-
-            {/* name */}
-            {/* <div className="flex items-center mt-6 w-full border border-gray-300/60 h-12 rounded-full overflow-hidden pl-6">
-              <input
-                type="text"
-                placeholder="Full Name"
-                className="bg-transparent text-gray-500/80 outline-none text-sm w-full h-full"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div> */}
-
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
-            <div className="flex mt-6 items-center w-full border border-gray-300/60 h-12 rounded-full overflow-hidden pl-6">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                Email
+              </label>
               <input
                 type="email"
-                placeholder="Email id"
-                className="bg-transparent text-gray-500/80 outline-none text-sm w-full h-full"
+                placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError("");
+                }}
                 required
+                className="w-full h-11 px-4 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
               />
             </div>
 
             {/* Password */}
-            <div className="flex items-center mt-6 w-full border border-gray-300/60 h-12 rounded-full overflow-hidden pl-6">
-              <input
-                type="password"
-                placeholder="Password"
-                className="bg-transparent text-gray-500/80 outline-none text-sm w-full h-full"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Min. 6 characters"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError("");
+                  }}
+                  required
+                  className="w-full h-11 px-4 pr-11 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              {/* Password Strength */}
+              {password && (
+                <div className="mt-2">
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className={`h-1 flex-1 rounded-full transition-colors ${
+                          password.length >= i * 3
+                            ? password.length >= 12
+                              ? "bg-green-500"
+                              : password.length >= 8
+                                ? "bg-yellow-500"
+                                : "bg-red-400"
+                            : "bg-gray-200"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Confirm Password */}
-            <div className="flex items-center mt-6 w-full border border-gray-300/60 h-12 rounded-full overflow-hidden pl-6">
-              <input
-                type="password"
-                placeholder="Confirm Password"
-                className="bg-transparent text-gray-500/80 outline-none text-sm w-full h-full"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  placeholder="Re-enter password"
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setError("");
+                  }}
+                  required
+                  className={`w-full h-11 px-4 pr-11 rounded-lg border text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all ${
+                    confirmPassword && confirmPassword !== password
+                      ? "border-red-300 bg-red-50"
+                      : "border-gray-200 bg-gray-50"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {confirmPassword && confirmPassword !== password && (
+                <p className="text-xs text-red-500 mt-1">
+                  Passwords do not match
+                </p>
+              )}
             </div>
 
             {/* Error */}
             {error && (
-              <p className="text-red-500 text-sm mt-3 w-full text-left">
-                {error}
-              </p>
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
             )}
 
-            {/* Register Button */}
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="mt-8 w-full h-11 rounded-full text-white bg-indigo-500 hover:opacity-90 transition-opacity disabled:opacity-60"
+              className="w-full flex items-center justify-center gap-3 h-12 bg-gray-900 text-white font-bold uppercase tracking-wider text-sm rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {loading ? "Creating Account..." : "Create Account"}
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Creating Account...
+                </>
+              ) : (
+                <>
+                  Create Account
+                  <div className="w-7 h-7 rounded-md bg-white/20 flex items-center justify-center">
+                    <ArrowRight size={14} />
+                  </div>
+                </>
+              )}
             </button>
-            {/* <button
-              type="submit"
-              className="mt-8 w-full h-11 rounded-full text-white bg-indigo-500 hover:opacity-90 transition-opacity"
-            >
-              Create Account
-            </button> */}
-
-            <p className="text-gray-500/90 text-sm mt-4">
-              Already have an account?{" "}
-              <Link href="/login" className="text-indigo-400 hover:underline">
-                Login
-              </Link>
-            </p>
           </form>
+
+          {/* Terms */}
+          <p className="text-xs text-gray-400 text-center mt-4 leading-relaxed">
+            By creating an account, you agree to our{" "}
+            <Link
+              href="/terms"
+              className="text-gray-600 underline hover:text-gray-900"
+            >
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/privacy"
+              className="text-gray-600 underline hover:text-gray-900"
+            >
+              Privacy Policy
+            </Link>
+          </p>
         </div>
+
+        {/* Login Link */}
+        <p className="text-center text-sm text-gray-500 mt-6">
+          Already have an account?{" "}
+          <Link
+            href="/login"
+            className="font-bold text-gray-900 hover:underline uppercase tracking-wider text-xs"
+          >
+            Sign In
+          </Link>
+        </p>
       </div>
     </div>
   );

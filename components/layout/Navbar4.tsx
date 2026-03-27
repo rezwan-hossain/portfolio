@@ -1,10 +1,22 @@
+// components/layout/SiteHeader4.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Menu, X, Plus, ArrowRight } from "lucide-react";
+import {
+  Menu,
+  X,
+  Plus,
+  ArrowRight,
+  ChevronDown,
+  LayoutDashboard,
+  User,
+  LogOut,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const navItems = [
   { label: "Home", href: "/" },
@@ -13,20 +25,85 @@ const navItems = [
   { label: "Contact", href: "/contact" },
 ];
 
+type AuthUser = {
+  id: string;
+  email: string;
+  name: string;
+  image: string | null;
+} | null;
+
 export default function SiteHeader4() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [visible, setVisible] = useState(true);
+  const [user, setUser] = useState<AuthUser>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const lastScrollY = useRef(0);
   const mobileOpenRef = useRef(false);
+  const pathname = usePathname();
+  const router = useRouter();
 
-  // Keep ref in sync with state
+  // ✅ Check auth state
+  useEffect(() => {
+    const getUser = async () => {
+      const supabase = createClient();
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+
+      if (authUser) {
+        setUser({
+          id: authUser.id,
+          email: authUser.email || "",
+          name:
+            authUser.user_metadata?.full_name ||
+            authUser.user_metadata?.name ||
+            authUser.email?.split("@")[0] ||
+            "User",
+          image: authUser.user_metadata?.avatar_url || null,
+        });
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    };
+
+    getUser();
+  }, [pathname]);
+
+  // ✅ Listen for auth changes
+  useEffect(() => {
+    const supabase = createClient();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || "",
+          name:
+            session.user.user_metadata?.full_name ||
+            session.user.user_metadata?.name ||
+            session.user.email?.split("@")[0] ||
+            "User",
+          image: session.user.user_metadata?.avatar_url || null,
+        });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Keep ref in sync
   useEffect(() => {
     mobileOpenRef.current = mobileOpen;
   }, [mobileOpen]);
 
-  // Lock body scroll when mobile menu is open
+  // Lock body scroll
   useEffect(() => {
     if (mobileOpen) {
       document.body.style.overflow = "hidden";
@@ -38,11 +115,10 @@ export default function SiteHeader4() {
     };
   }, [mobileOpen]);
 
+  // Scroll handler
   useEffect(() => {
     const handleScroll = () => {
-      // Skip scroll handling entirely when mobile menu is open
       if (mobileOpenRef.current) return;
-
       const currentY = window.scrollY;
 
       if (currentY < lastScrollY.current) {
@@ -58,6 +134,26 @@ export default function SiteHeader4() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // ✅ Close user menu on outside click
+  useEffect(() => {
+    const handleClickOutside = () => setUserMenuOpen(false);
+    if (userMenuOpen) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
+  }, [userMenuOpen]);
+
+  // ✅ Logout handler
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setUser(null);
+    setUserMenuOpen(false);
+    setMobileOpen(false);
+    router.push("/");
+    router.refresh();
+  };
 
   const handleNavClick = (href: string) => {
     setMobileOpen(false);
@@ -83,7 +179,7 @@ export default function SiteHeader4() {
             scrolled ? "h-20" : "h-24"
           }`}
         >
-          {/* CONFERIO Style Logo */}
+          {/* Logo */}
           <a
             href="#home"
             className="relative z-10 group"
@@ -107,47 +203,139 @@ export default function SiteHeader4() {
             </motion.div>
           </a>
 
-          {/* Desktop Navigation - CONFERIO Style */}
+          {/* Desktop Navigation */}
           <ul className="hidden lg:flex items-center gap-10">
             {navItems.map((item) => (
               <li key={item.label}>
                 <Link
                   href={item.href}
-                  //   onClick={(e) => {
-                  //     e.preventDefault();
-                  //     handleNavClick(item.href);
-                  //   }}
-                  className={` flex items-center gap-1 text-base  font-bold uppercase tracking-wider transition-all duration-300 hover:opacity-70 ${
-                    scrolled ? "text-gray-800" : "text-gray-800/90 "
+                  className={`flex items-center gap-1 text-base font-bold uppercase tracking-wider transition-all duration-300 hover:opacity-70 ${
+                    scrolled ? "text-gray-800" : "text-gray-800/90"
                   }`}
                 >
                   {item.label}
-                  {/* <Plus size={12} className="opacity-60" /> */}
                 </Link>
               </li>
             ))}
           </ul>
 
-          {/* CONFERIO Style CTA Button */}
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="hidden lg:block"
-          >
-            <Link
-              href="/register"
-              //   onClick={(e) => {
-              //     e.preventDefault();
-              //     handleNavClick("#register");
-              //   }}
-              className="flex items-center gap-3 bg-gray-900 text-white font-bold uppercase tracking-wider text-xs rounded-lg px-5 py-3 hover:bg-gray-800 transition-colors"
-            >
-              <span>Buy Ticket</span>
-              <div className="w-8 h-8 rounded-md bg-white/20 flex items-center justify-center">
-                <ArrowRight size={16} />
+          {/* ✅ Desktop Right Section */}
+          <div className="hidden lg:block">
+            {loading ? (
+              // Loading skeleton — same size as button
+              <div className="w-36 h-12 bg-gray-100 rounded-lg animate-pulse" />
+            ) : user ? (
+              // ✅ LOGGED IN — User Button (matches Buy Ticket style)
+              <div className="relative">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUserMenuOpen(!userMenuOpen);
+                  }}
+                  className="flex items-center gap-3 bg-gray-900 text-white font-bold uppercase tracking-wider text-xs rounded-lg px-4 py-3 hover:bg-gray-800 transition-colors cursor-pointer"
+                >
+                  {/* Avatar */}
+                  <div className="w-8 h-8 rounded-md bg-white/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {user.image ? (
+                      <Image
+                        src={user.image}
+                        alt={user.name}
+                        width={32}
+                        height={32}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-sm font-bold text-white">
+                        {user.name.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+
+                  <span className="max-w-[100px] truncate">{user.name}</span>
+
+                  <ChevronDown
+                    size={14}
+                    className={`transition-transform duration-200 ${
+                      userMenuOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </motion.button>
+
+                {/* ✅ Dropdown Menu */}
+                <AnimatePresence>
+                  {userMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* User Info */}
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <p className="text-sm font-bold text-gray-900 truncate">
+                          {user.name}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {user.email}
+                        </p>
+                      </div>
+
+                      {/* Links */}
+                      <div className="py-1">
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <LayoutDashboard className="w-4 h-4 text-gray-400" />
+                          Dashboard
+                        </Link>
+                        <Link
+                          href="/profile"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <User className="w-4 h-4 text-gray-400" />
+                          Profile
+                        </Link>
+                      </div>
+
+                      {/* Logout */}
+                      <div className="border-t border-gray-100 py-1">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </Link>
-          </motion.div>
+            ) : (
+              // ✅ NOT LOGGED IN — Buy Ticket Button (original design)
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Link
+                  href="/register"
+                  className="flex items-center gap-3 bg-gray-900 text-white font-bold uppercase tracking-wider text-xs rounded-lg px-5 py-3 hover:bg-gray-800 transition-colors"
+                >
+                  <span>Buy Ticket</span>
+                  <div className="w-8 h-8 rounded-md bg-white/20 flex items-center justify-center">
+                    <ArrowRight size={16} />
+                  </div>
+                </Link>
+              </motion.div>
+            )}
+          </div>
 
           {/* Mobile Menu Toggle */}
           <motion.button
@@ -158,7 +346,7 @@ export default function SiteHeader4() {
                 ? "text-gray-900 hover:bg-gray-900/10"
                 : scrolled
                   ? "text-gray-900 hover:bg-gray-100"
-                  : "text-white hover:bg-white/10"
+                  : "text-gray-900 hover:bg-white/10"
             }`}
             aria-label="Toggle menu"
           >
@@ -189,7 +377,7 @@ export default function SiteHeader4() {
         </div>
       </motion.nav>
 
-      {/* Mobile Menu Overlay */}
+      {/* ✅ Mobile Menu Overlay */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -223,35 +411,114 @@ export default function SiteHeader4() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 }}
                       >
-                        <a
+                        <Link
                           href={item.href}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleNavClick(item.href);
-                          }}
+                          onClick={() => setMobileOpen(false)}
                           className="flex items-center justify-between py-4 text-2xl font-black text-gray-900 uppercase hover:opacity-70 transition-colors border-b border-gray-900/10"
                         >
                           {item.label}
                           <Plus size={20} />
-                        </a>
+                        </Link>
                       </motion.li>
                     ))}
+
+                    {/* ✅ Mobile: Dashboard & Profile links (when logged in) */}
+                    {user && (
+                      <>
+                        <motion.li
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: navItems.length * 0.1 }}
+                        >
+                          <Link
+                            href="/dashboard"
+                            onClick={() => setMobileOpen(false)}
+                            className="flex items-center justify-between py-4 text-2xl font-black text-gray-900 uppercase hover:opacity-70 transition-colors border-b border-gray-900/10"
+                          >
+                            Dashboard
+                            <LayoutDashboard size={20} />
+                          </Link>
+                        </motion.li>
+                        <motion.li
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{
+                            delay: (navItems.length + 1) * 0.1,
+                          }}
+                        >
+                          <Link
+                            href="/profile"
+                            onClick={() => setMobileOpen(false)}
+                            className="flex items-center justify-between py-4 text-2xl font-black text-gray-900 uppercase hover:opacity-70 transition-colors border-b border-gray-900/10"
+                          >
+                            Profile
+                            <User size={20} />
+                          </Link>
+                        </motion.li>
+                      </>
+                    )}
                   </ul>
                 </nav>
-                <motion.a
+
+                {/* ✅ Mobile Bottom Section */}
+                <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  href="#register"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleNavClick("#register");
-                  }}
-                  className="flex items-center justify-center gap-3 bg-gray-900 text-white font-bold uppercase tracking-wider text-sm rounded-lg px-6 py-4 hover:bg-gray-800 transition-colors"
+                  className="space-y-3"
                 >
-                  Buy Ticket
-                  <ArrowRight size={16} />
-                </motion.a>
+                  {loading ? (
+                    <div className="w-full h-14 bg-gray-900/20 rounded-lg animate-pulse" />
+                  ) : user ? (
+                    <>
+                      {/* User Info Card */}
+                      <div className="flex items-center gap-3 bg-gray-900/10 rounded-lg px-4 py-3">
+                        <div className="w-10 h-10 rounded-md bg-gray-900 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {user.image ? (
+                            <Image
+                              src={user.image}
+                              alt={user.name}
+                              width={40}
+                              height={40}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-lg font-bold text-white">
+                              {user.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-black text-gray-900 truncate uppercase">
+                            {user.name}
+                          </p>
+                          <p className="text-xs text-gray-900/60 truncate">
+                            {user.email}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Sign Out Button */}
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center justify-center gap-3 bg-gray-900 text-white font-bold uppercase tracking-wider text-sm rounded-lg px-6 py-4 hover:bg-gray-800 transition-colors cursor-pointer"
+                      >
+                        <LogOut size={16} />
+                        Sign Out
+                      </button>
+                    </>
+                  ) : (
+                    // Not logged in — original Buy Ticket
+                    <Link
+                      href="/register"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center justify-center gap-3 bg-gray-900 text-white font-bold uppercase tracking-wider text-sm rounded-lg px-6 py-4 hover:bg-gray-800 transition-colors"
+                    >
+                      Buy Ticket
+                      <ArrowRight size={16} />
+                    </Link>
+                  )}
+                </motion.div>
               </div>
             </motion.div>
           </motion.div>

@@ -1,3 +1,4 @@
+// app/(auth)/login/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -5,12 +6,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { loginUser } from "@/app/(auth)/login/actions";
 import { signInWithGoogle } from "@/app/(auth)/register/actions";
+import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,115 +41,149 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-2 overflow-hidden rounded-xl shadow-md bg-white">
-        {/* Left Image */}
-        <div className="hidden md:block relative">
-          <Image
-            src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/leftSideImage.png"
-            alt="leftSideImage"
-            fill
-            className="object-cover"
-            priority
-          />
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-20">
+      <div className="mt-12 w-full max-w-[480px]">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-block mb-6">
+            <Image
+              src="/MerchSports-small.png"
+              alt="MerchSports"
+              width={72}
+              height={72}
+              className="rounded-full object-cover mx-auto"
+              priority
+            />
+          </Link>
+          <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-wider text-gray-900">
+            Welcome Back
+          </h1>
+          <p className="text-sm text-gray-500 mt-2">Sign in to your account</p>
         </div>
 
-        {/* Login Form */}
-        <div className="flex flex-col items-center justify-center py-12 px-8">
-          <form
-            onSubmit={handleSubmit}
-            className="w-full max-w-sm flex flex-col items-center"
+        {/* Form Card */}
+        <div className="bg-white border border-gray-200 rounded-xl p-6 sm:p-8 shadow-sm">
+          {/* Google Sign In */}
+          <button
+            onClick={handleGoogleSignIn}
+            type="button"
+            className="w-full flex items-center justify-center gap-3 h-12 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
           >
-            <h2 className="text-4xl text-gray-900 font-medium">Login</h2>
-            <p className="text-sm text-gray-500/90 mt-3 text-center">
-              Welcome back! Please sign in to continue
-            </p>
+            <Image
+              src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/googleLogo.svg"
+              alt="Google"
+              width={20}
+              height={20}
+            />
+            <span className="text-sm font-semibold text-gray-700">
+              Continue with Google
+            </span>
+          </button>
 
-            {/* Google Login */}
-            <button
-              onClick={handleGoogleSignIn}
-              type="button"
-              className="cursor-pointer w-full mt-8 bg-gray-500/10 flex items-center justify-center h-16 rounded-full"
-            >
-              <Image
-                src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/googleLogo.svg"
-                alt="googleLogo"
-                width={90}
-                height={90}
-                className="object-contain" // Ensures it keeps its aspect ratio
-              />
-            </button>
+          {/* Divider */}
+          <div className="flex items-center gap-4 my-6">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+              or
+            </span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
 
-            {/* Divider */}
-            <div className="flex items-center gap-4 w-full my-5">
-              <div className="w-full h-px bg-gray-300/90"></div>
-              <p className="text-nowrap text-sm text-gray-500/90">
-                or login with email
-              </p>
-              <div className="w-full h-px bg-gray-300/90"></div>
-            </div>
-
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
-            <div className="flex items-center w-full border border-gray-300/60 h-12 rounded-full overflow-hidden pl-6">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                Email
+              </label>
               <input
                 type="email"
-                placeholder="Email id"
-                className="bg-transparent text-gray-500/80 outline-none text-sm w-full h-full"
+                placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError("");
+                }}
                 required
+                className="w-full h-11 px-4 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
               />
             </div>
 
             {/* Password */}
-            <div className="flex items-center mt-6 w-full border border-gray-300/60 h-12 rounded-full overflow-hidden pl-6">
-              <input
-                type="password"
-                placeholder="Password"
-                className="bg-transparent text-gray-500/80 outline-none text-sm w-full h-full"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            {/* Forgot Password */}
-            <div className="w-full text-right mt-2">
-              <Link
-                href="/forgot-password"
-                className="text-sm text-indigo-400 hover:underline"
-              >
-                Forgot password?
-              </Link>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Password
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-gray-500 hover:text-gray-900 transition-colors"
+                >
+                  Forgot?
+                </Link>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError("");
+                  }}
+                  required
+                  className="w-full h-11 px-4 pr-11 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             {/* Error */}
             {error && (
-              <p className="text-red-500 text-sm mt-3 w-full text-left">
-                {error}
-              </p>
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
             )}
 
-            {/* Login Button */}
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="mt-8 w-full h-11 rounded-full text-white bg-indigo-500 hover:opacity-90 transition-opacity disabled:opacity-60"
+              className="w-full flex items-center justify-center gap-3 h-12 bg-gray-900 text-white font-bold uppercase tracking-wider text-sm rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {loading ? "Signing in..." : "Login"}
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Signing In...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <div className="w-7 h-7 rounded-md bg-white/20 flex items-center justify-center">
+                    <ArrowRight size={14} />
+                  </div>
+                </>
+              )}
             </button>
-
-            <p className="text-gray-500/90 text-sm mt-4">
-              Don't have an account?{" "}
-              <Link
-                href="/register"
-                className="text-indigo-400 hover:underline"
-              >
-                Register
-              </Link>
-            </p>
           </form>
         </div>
+
+        {/* Register Link */}
+        <p className="text-center text-sm text-gray-500 mt-6">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/register"
+            className="font-bold text-gray-900 hover:underline uppercase tracking-wider text-xs"
+          >
+            Create Account
+          </Link>
+        </p>
       </div>
     </div>
   );
