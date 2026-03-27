@@ -14,14 +14,34 @@ const TARGET_DATE = new Date("2026-10-15T06:00:00");
 const HeroSection = () => {
   const countdown = useCountdown(TARGET_DATE);
 
+  //https://images.unsplash.com/photo-1571008887538-b36bb32f4571?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
+      {/* <div className="absolute inset-0">
+        
+        <div
+          className="block md:hidden absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url("https://i.ibb.co.com/60qs3s0k/mobile-version.png")`,
+          }}
+        />
+
+        
+        <div
+          className="hidden md:block absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url("https://i.ibb.co.com/60qs3s0k/desktop-version.png")`,
+          }}
+        />
+      </div>
+       */}
       <div
-        className="absolute inset-0 bg-cover bg-center"
+        className="absolute inset-0 bg-cover bg-center "
         style={{
-          backgroundImage: `url("https://images.unsplash.com/photo-1571008887538-b36bb32f4571?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D")`,
+          backgroundImage: `url("https://i.ibb.co.com/60qs3s0k/gemini-3-1-flash-image-preview-nano-banana-2-a-make-this-image-in-t.png")`,
         }}
       />
+
       <div className="absolute inset-0 bg-hero-gradient" />
 
       {/* content */}
@@ -91,7 +111,7 @@ const HeroSection = () => {
         NEW: Centered CTA Button at the very bottom of the page,
         directly on top of the Countdown component 
       */}
-      <div className="absolute bottom-40 sm:bottom-50 left-1/2 -translate-x-1/2 z-20 flex w-full justify-center px-4">
+      <div className="absolute bottom-40 left-1/2 z-20 flex w-full -translate-x-1/2 justify-center px-4 sm:bottom-50">
         <motion.div
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -99,18 +119,12 @@ const HeroSection = () => {
         >
           <Link
             href="/register"
-            className="group flex items-center gap-2 rounded-full bg-neon-lime text-white
-      px-6 py-3 sm:px-10 sm:py-5
-      text-sm sm:text-lg font-bold
-  
-      transition-all duration-300
-      hover:scale-[1.03] active:scale-95
-      hover:shadow-[0_0_40px_rgba(255,255,255,0.4)]"
+            className="group flex items-center gap-3 rounded-lg bg-white px-8 py-4 text-sm font-bold uppercase tracking-wider text-black transition-all duration-300 hover:bg-white/90 active:scale-95 sm:px-14 sm:py-5 sm:text-base "
           >
             <span>Register Now</span>
-
             <ArrowRight
               size={18}
+              strokeWidth={2.5}
               className="transition-transform duration-300 group-hover:translate-x-1"
             />
           </Link>

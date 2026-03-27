@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
         hostname: "lh3.googleusercontent.com",
         pathname: "/**", // allow all paths
       },
+      {
+        protocol: "https",
+        hostname: "i.ibb.co.com",
+        pathname: "/**",
+      },
       { protocol: "https", hostname: "images.unsplash.com" },
     ],
   },
