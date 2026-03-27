@@ -113,10 +113,10 @@ export default function SiteHeader4() {
               <li key={item.label}>
                 <Link
                   href={item.href}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleNavClick(item.href);
-                  }}
+                  //   onClick={(e) => {
+                  //     e.preventDefault();
+                  //     handleNavClick(item.href);
+                  //   }}
                   className={` flex items-center gap-1 text-base  font-bold uppercase tracking-wider transition-all duration-300 hover:opacity-70 ${
                     scrolled ? "text-gray-800" : "text-gray-800/90 "
                   }`}
