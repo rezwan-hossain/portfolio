@@ -6,6 +6,9 @@ import type { AdminEvent, AdminOrganizer } from "@/types/profile";
 import { EventForm } from "./EventForm";
 import { Plus, ArrowLeft } from "lucide-react";
 import { EventsList } from "./EventsList";
+import { EventStatsBar } from "./EventStatsBar";
+import { EventFilters } from "./EventFilters";
+import { EventOrdersModal } from "./EventOrdersModal";
 
 type AdminEventsPanelProps = {
   initialEvents: AdminEvent[];
@@ -21,6 +24,10 @@ export function AdminEventsPanel({
   const [view, setView] = useState<View>("list");
   const [events, setEvents] = useState(initialEvents);
   const [editingEvent, setEditingEvent] = useState<AdminEvent | null>(null);
+  const [filteredEvents, setFilteredEvents] = useState(initialEvents);
+  const [viewOrdersEvent, setViewOrdersEvent] = useState<AdminEvent | null>(
+    null,
+  );
 
   const handleCreate = () => {
     setEditingEvent(null);
@@ -41,6 +48,7 @@ export function AdminEventsPanel({
     setEvents(updatedEvents);
     setView("list");
     setEditingEvent(null);
+    setFilteredEvents(updatedEvents);
   };
 
   return (
@@ -76,11 +84,21 @@ export function AdminEventsPanel({
 
       {/* Content */}
       {view === "list" && (
-        <EventsList
-          events={events}
-          onEdit={handleEdit}
-          onRefresh={handleSuccess}
-        />
+        <>
+          {/* Stats */}
+          <EventStatsBar events={events} />
+
+          {/* Filters */}
+          <EventFilters events={events} onFilter={setFilteredEvents} />
+
+          <EventsList
+            // events={events}
+            events={filteredEvents}
+            onEdit={handleEdit}
+            onViewOrders={setViewOrdersEvent}
+            onRefresh={handleSuccess}
+          />
+        </>
       )}
 
       {(view === "create" || view === "edit") && (
@@ -89,6 +107,14 @@ export function AdminEventsPanel({
           organizers={initialOrganizers}
           onSuccess={handleSuccess}
           onCancel={handleBack}
+        />
+      )}
+
+      {/* Orders Modal */}
+      {viewOrdersEvent && (
+        <EventOrdersModal
+          event={viewOrdersEvent}
+          onClose={() => setViewOrdersEvent(null)}
         />
       )}
     </div>

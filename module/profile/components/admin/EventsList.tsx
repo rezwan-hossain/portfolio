@@ -25,18 +25,21 @@ import {
 type EventsListProps = {
   events: AdminEvent[];
   onEdit: (event: AdminEvent) => void;
+  onViewOrders: (event: AdminEvent) => void; // ← NEW
   onRefresh: (events: AdminEvent[]) => void;
 };
 
-export function EventsList({ events, onEdit, onRefresh }: EventsListProps) {
+export function EventsList({
+  events,
+  onEdit,
+  onViewOrders, // ← NEW
+  onRefresh,
+}: EventsListProps) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const handleToggle = async (eventId: string, currentActive: boolean) => {
     setLoadingId(eventId);
-    const args = JSON.parse(
-      JSON.stringify({ eventId, isActive: !currentActive }),
-    );
-    await toggleEventActive(args.eventId, args.isActive);
+    await toggleEventActive(eventId, !currentActive);
     const { events: updated } = await getAdminEvents();
     onRefresh(updated);
     setLoadingId(null);
@@ -45,10 +48,8 @@ export function EventsList({ events, onEdit, onRefresh }: EventsListProps) {
   const handleDelete = async (eventId: string, eventName: string) => {
     if (!confirm(`Delete "${eventName}"? This action cannot be undone.`))
       return;
-
     setLoadingId(eventId);
-    const args = JSON.parse(JSON.stringify({ eventId }));
-    await deleteEvent(args.eventId);
+    await deleteEvent(eventId);
     const { events: updated } = await getAdminEvents();
     onRefresh(updated);
     setLoadingId(null);
@@ -123,6 +124,21 @@ export function EventsList({ events, onEdit, onRefresh }: EventsListProps) {
                       >
                         <Eye size={15} />
                       </Link>
+
+                      {/* ← NEW: View Orders Button */}
+                      <button
+                        onClick={() => onViewOrders(event)}
+                        className="relative p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                        title="View Orders"
+                      >
+                        <Users size={15} />
+                        {event._count.orders > 0 && (
+                          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center px-1 text-[9px] font-bold bg-blue-600 text-white rounded-full">
+                            {event._count.orders}
+                          </span>
+                        )}
+                      </button>
+
                       <button
                         onClick={() => onEdit(event)}
                         className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"

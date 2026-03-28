@@ -96,3 +96,63 @@ export type PackageFormData = {
   price: string;
   availableSlots: string;
 };
+
+export type EventOrder = {
+  id: string;
+  status: string;
+  qty: number;
+  createdAt: string;
+  user: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string;
+    phone: string | null;
+    image: string | null;
+  };
+  package: {
+    id: number;
+    name: string;
+    distance: string;
+    price: number;
+  };
+  registration: {
+    id: string;
+    fullName: string;
+    phone: string;
+    gender: string;
+    tshirtSize: string;
+    ageCategory: string;
+    bloodGroup: string;
+    communityName: string | null;
+    runnerCategory: string;
+    emergencyContactName: string | null;
+    emergencyContactNumber: string | null;
+  } | null;
+  payment: {
+    id: string;
+    amount: number;
+    currency: string;
+    status: string;
+    transactionId: string | null;
+    paymentId: string | null;
+    paymentMethod: string | null;
+    paymentGateway: string | null;
+  } | null;
+};
+
+export type OrderFilterState = {
+  search: string;
+  paymentStatus: string;
+  orderStatus: string;
+  sortBy: "newest" | "oldest" | "amount_high" | "amount_low";
+};
+
+export type OrderStats = {
+  total: number;
+  confirmed: number;
+  pending: number;
+  cancelled: number;
+  totalRevenue: number;
+  paidRevenue: number;
+};

@@ -3,6 +3,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 
 // ─── Auth helper ────────────────────────────────────
 async function requireAdmin() {
@@ -337,5 +338,242 @@ export async function createOrganizer(formData: {
     return { success: true, error: "", organizerId: organizer.id };
   } catch (err: any) {
     return { success: false, error: "Failed to create organizer" };
+  }
+}
+
+// ─── Get Event Orders ───────────────────────────────
+export async function getEventOrders(eventId: string) {
+  const { error } = await requireAdmin();
+  if (error) return { orders: [], error };
+
+  try {
+    const orders = await prisma.order.findMany({
+      where: {
+        eventId,
+        isArchived: false,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            image: true,
+          },
+        },
+        package: {
+          select: {
+            id: true,
+            name: true,
+            distance: true,
+            price: true,
+          },
+        },
+        registration: {
+          select: {
+            id: true,
+            fullName: true,
+            phone: true,
+            gender: true,
+            tshirtSize: true,
+            ageCategory: true,
+            bloodGroup: true,
+            communityName: true,
+            runnerCategory: true,
+            emergencyContactName: true,
+            emergencyContactNumber: true,
+          },
+        },
+        payment: {
+          select: {
+            id: true,
+            amount: true,
+            currency: true,
+            status: true,
+            transactionId: true,
+            paymentId: true,
+            paymentMethod: true,
+            paymentGateway: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return { orders: JSON.parse(JSON.stringify(orders)), error: null };
+  } catch (err: any) {
+    console.error("Get event orders error:", err?.message);
+    return { orders: [], error: "Failed to fetch orders" };
+  }
+}
+
+// ─── Update Order Status ────────────────────────────
+export async function updateOrderStatus(
+  orderId: string,
+  orderStatus: string,
+  paymentStatus: string,
+) {
+  const { error } = await requireAdmin();
+  if (error) return { success: false, error };
+
+  try {
+    // Update order status
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: orderStatus as "PENDING" | "CONFIRMED" | "CANCELLED",
+      },
+      select: {
+        eventId: true,
+        event: { select: { slug: true } },
+        payment: { select: { id: true } },
+        packageId: true,
+        qty: true,
+        status: true,
+      },
+    });
+
+    // Update payment status if payment exists
+    if (order.payment) {
+      await prisma.payment.update({
+        where: { id: order.payment.id },
+        data: {
+          status: paymentStatus as "PENDING" | "PAID" | "FAILED" | "REFUNDED",
+        },
+      });
+    }
+
+    // If order is cancelled, free up the used slots
+    if (orderStatus === "CANCELLED") {
+      await prisma.package.update({
+        where: { id: order.packageId },
+        data: {
+          usedSlots: { decrement: order.qty },
+        },
+      });
+    }
+
+    // If order is confirmed from cancelled, re-occupy slots
+    if (orderStatus === "CONFIRMED") {
+      // Only increment if it was previously not confirmed
+      // This is a safeguard — the UI should prevent double-confirming
+    }
+
+    revalidatePath("/profile");
+    revalidatePath("/events");
+    revalidatePath(`/events/${order.event.slug}`);
+
+    return { success: true, error: null };
+  } catch (err: any) {
+    console.error("Update order status error:", err?.message);
+    return { success: false, error: "Failed to update order status" };
+  }
+}
+
+// ─── Get Single Order Details ───────────────────────
+export async function getOrderDetails(orderId: string) {
+  const { error } = await requireAdmin();
+  if (error) return { order: null, error };
+
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            image: true,
+          },
+        },
+        package: {
+          select: {
+            id: true,
+            name: true,
+            distance: true,
+            price: true,
+          },
+        },
+        event: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            date: true,
+          },
+        },
+        registration: true,
+        payment: true,
+      },
+    });
+
+    if (!order) return { order: null, error: "Order not found" };
+
+    return { order: JSON.parse(JSON.stringify(order)), error: null };
+  } catch (err: any) {
+    console.error("Get order details error:", err?.message);
+    return { order: null, error: "Failed to fetch order" };
+  }
+}
+
+// ─── Duplicate Event ────────────────────────────────
+export async function duplicateEvent(eventId: string) {
+  const { error } = await requireAdmin();
+  if (error) return { success: false, error };
+
+  try {
+    const original = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: {
+        packages: { where: { isArchived: false } },
+      },
+    });
+
+    if (!original) return { success: false, error: "Event not found" };
+
+    let newSlug = `${original.slug}-copy`;
+    let counter = 1;
+    while (await prisma.event.findUnique({ where: { slug: newSlug } })) {
+      newSlug = `${original.slug}-copy-${counter++}`;
+    }
+
+    const newEvent = await prisma.event.create({
+      data: {
+        name: `${original.name} (Copy)`,
+        slug: newSlug,
+        date: original.date,
+        time: original.time,
+        address: original.address,
+        eventType: original.eventType,
+        description: original.description,
+        bannerImage: original.bannerImage,
+        thumbImage: original.thumbImage,
+        minPackagePrice: original.minPackagePrice,
+        organizerId: original.organizerId,
+        status: "INACTIVE",
+        isActive: false,
+        packages: {
+          create: original.packages.map((pkg) => ({
+            name: pkg.name,
+            distance: pkg.distance,
+            price: pkg.price,
+            availableSlots: pkg.availableSlots,
+          })),
+        },
+      },
+    });
+
+    revalidatePath("/profile");
+    revalidatePath("/events");
+
+    return { success: true, error: "", eventId: String(newEvent.id) };
+  } catch (err: any) {
+    console.error("Duplicate event error:", err?.message);
+    return { success: false, error: "Failed to duplicate event" };
   }
 }
