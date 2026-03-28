@@ -26,6 +26,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Check, Loader2, Plus, Save, X } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const RichTextEditor = dynamic(
+  () =>
+    import("./RichTextEditor").then((mod) => ({
+      default: mod.RichTextEditor,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="border border-gray-200 rounded-xl overflow-hidden">
+        <div className="h-10 bg-gray-50 border-b border-gray-200 animate-pulse" />
+        <div className="h-[200px] bg-white animate-pulse" />
+      </div>
+    ),
+  },
+);
 
 type EventFormProps = {
   event: AdminEvent | null;
@@ -401,7 +418,7 @@ export function EventForm({
         </div>
 
         {/* Description */}
-        <div>
+        {/* <div>
           <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
             Description <span className="text-red-500">*</span>
           </label>
@@ -411,6 +428,16 @@ export function EventForm({
             rows={4}
             placeholder="Describe your event..."
             className="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 resize-none"
+          />
+        </div> */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+            Description <span className="text-red-500">*</span>
+          </label>
+          <RichTextEditor
+            value={form.description}
+            onChange={(html) => updateField("description", html)}
+            placeholder="Write your full event description..."
           />
         </div>
 
