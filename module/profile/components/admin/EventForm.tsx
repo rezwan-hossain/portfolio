@@ -12,12 +12,11 @@ import {
   createEvent,
   updateEvent,
   addPackage,
-  updatePackage,
-  deletePackage,
   getAdminEvents,
   createOrganizer,
 } from "@/app/actions/admin";
 import { ImageUpload } from "./ImageUpload";
+import { EditablePackageRow } from "./EditablePackageRow";
 import Input from "@/components/ui/input";
 import {
   Select,
@@ -26,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Check, Loader2, Plus, Trash2, Save, X } from "lucide-react";
+import { Check, Loader2, Plus, Save, X } from "lucide-react";
 
 type EventFormProps = {
   event: AdminEvent | null;
@@ -93,7 +92,6 @@ export function EventForm({
     setError("");
     setSuccess(false);
 
-    // Auto-generate slug
     if (field === "name") {
       const slug = value
         .toLowerCase()
@@ -105,12 +103,21 @@ export function EventForm({
     }
   };
 
+  // ─── Refresh packages from server ─────────────────
+  const refreshPackages = async () => {
+    if (!event) return;
+    const { events } = await getAdminEvents();
+    const updated = events.find((e: any) => e.id === event.id);
+    if (updated) {
+      setPackages(updated.packages);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess(false);
 
-    // Validation
     const required: (keyof EventFormData)[] = [
       "name",
       "slug",
@@ -163,26 +170,17 @@ export function EventForm({
     }
 
     setPkgLoading(-1);
+    setError("");
     const safeArgs = JSON.parse(JSON.stringify(newPackage));
     const result = await addPackage(event.id, safeArgs);
 
     if (result.error) {
       setError(result.error);
     } else {
-      const { events } = await getAdminEvents();
-      const updated = events.find((e: any) => e.id === event.id);
-      if (updated) setPackages(updated.packages);
+      await refreshPackages();
       setNewPackage({ name: "", distance: "", price: "", availableSlots: "" });
       setShowAddPackage(false);
     }
-    setPkgLoading(null);
-  };
-
-  const handleDeletePackage = async (pkgId: number) => {
-    if (!confirm("Remove this package?")) return;
-    setPkgLoading(pkgId);
-    await deletePackage(pkgId);
-    setPackages((prev) => prev.filter((p) => p.id !== pkgId));
     setPkgLoading(null);
   };
 
@@ -383,9 +381,8 @@ export function EventForm({
           />
         </div>
 
-        {/* ─── Images Section (Upload) ─── */}
+        {/* Images */}
         <div className="space-y-5">
-          {/* Banner Image */}
           <div>
             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
               Banner Image <span className="text-red-500">*</span>
@@ -401,7 +398,6 @@ export function EventForm({
             />
           </div>
 
-          {/* Thumbnail Image */}
           <div>
             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
               Thumbnail Image{" "}
@@ -460,9 +456,14 @@ export function EventForm({
         {isEditing && (
           <div className="border-t border-gray-200 pt-6 mt-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-                Packages ({packages.length})
-              </h3>
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                  Packages ({packages.length})
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Click the edit icon to modify a package inline
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowAddPackage(!showAddPackage)}
@@ -483,6 +484,9 @@ export function EventForm({
             {/* Add Package Form */}
             {showAddPackage && (
               <div className="border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+                  New Package
+                </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <Input
                     value={newPackage.name}
@@ -539,42 +543,70 @@ export function EventForm({
               </div>
             )}
 
-            {/* Existing Packages */}
-            <div className="space-y-2">
-              {packages.map((pkg) => (
-                <div
-                  key={pkg.id}
-                  className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-white"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="px-2 py-0.5 text-xs bg-indigo-50 text-indigo-600 rounded-full font-bold">
-                      {pkg.distance}
-                    </span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {pkg.name}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      ৳{Number(pkg.price)}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {pkg.usedSlots}/{pkg.availableSlots} slots
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleDeletePackage(pkg.id)}
-                    disabled={pkgLoading === pkg.id}
-                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    {pkgLoading === pkg.id ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <Trash2 size={14} />
-                    )}
-                  </button>
+            {/* ─── Editable Package Rows ─── */}
+            {packages.length === 0 ? (
+              <div className="border border-dashed border-gray-200 rounded-lg p-8 text-center">
+                <p className="text-sm text-gray-400">No packages yet</p>
+                <p className="text-xs text-gray-300 mt-1">
+                  Add a package to get started
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {packages.map((pkg) => (
+                  <EditablePackageRow
+                    key={pkg.id}
+                    pkg={pkg}
+                    onUpdate={refreshPackages}
+                    onDelete={() =>
+                      setPackages((prev) => prev.filter((p) => p.id !== pkg.id))
+                    }
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Packages Summary */}
+            {packages.length > 0 && (
+              <div className="mt-4 flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg border border-gray-100">
+                <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <span>
+                    <span className="font-bold text-gray-700">
+                      {packages.length}
+                    </span>{" "}
+                    packages
+                  </span>
+                  <span>
+                    <span className="font-bold text-gray-700">
+                      {packages.reduce((sum, p) => sum + p.availableSlots, 0)}
+                    </span>{" "}
+                    total slots
+                  </span>
+                  <span>
+                    <span className="font-bold text-gray-700">
+                      {packages.reduce((sum, p) => sum + p.usedSlots, 0)}
+                    </span>{" "}
+                    used
+                  </span>
                 </div>
-              ))}
-            </div>
+                <div className="text-xs text-gray-500">
+                  Price range:{" "}
+                  <span className="font-bold text-gray-700">
+                    ৳
+                    {Math.min(
+                      ...packages.map((p) => Number(p.price)),
+                    ).toLocaleString()}
+                  </span>
+                  {" – "}
+                  <span className="font-bold text-gray-700">
+                    ৳
+                    {Math.max(
+                      ...packages.map((p) => Number(p.price)),
+                    ).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
