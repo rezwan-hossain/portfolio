@@ -1,6 +1,7 @@
 // app/profile/page.tsx
 import ProfilePage from "@/module/profile/pages/ProfilePage";
 import { getUserProfile } from "@/app/actions/profile";
+import { getAdminEvents, getOrganizers } from "@/app/actions/admin";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -22,8 +23,28 @@ export default async function Page() {
     );
   }
 
-  // Check if user signed in with Google (no password change)
   const isOAuthUser = user.app_metadata?.provider === "google";
+  const isAdmin = data.profile.role === "ADMIN";
 
-  return <ProfilePage profile={data.profile} isOAuthUser={isOAuthUser} />;
+  // Fetch admin data only for admins
+  let adminEvents: any[] = [];
+  let organizers: any[] = [];
+
+  if (isAdmin) {
+    const [eventsData, orgData] = await Promise.all([
+      getAdminEvents(),
+      getOrganizers(),
+    ]);
+    adminEvents = eventsData.events;
+    organizers = orgData.organizers;
+  }
+
+  return (
+    <ProfilePage
+      profile={data.profile}
+      isOAuthUser={isOAuthUser}
+      adminEvents={adminEvents}
+      organizers={organizers}
+    />
+  );
 }
