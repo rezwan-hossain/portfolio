@@ -1,4 +1,5 @@
 // app/api/payment/shurjopay/callback/route.ts
+import { autoAssignBibNumber, getEventBibPrefix } from "@/lib/bib";
 import { prisma } from "@/lib/prisma";
 import { verifyShurjoPayPayment } from "@/lib/shurjopay";
 import { NextResponse, type NextRequest } from "next/server";
@@ -98,6 +99,51 @@ export async function GET(request: NextRequest) {
           data: { status: "CONFIRMED" },
         });
       });
+
+      // ──────────────────────────────────────────────────────
+      // ✨ AUTO-ASSIGN BIB NUMBER AFTER PAYMENT CONFIRMED
+      // ──────────────────────────────────────────────────────
+      try {
+        const order = await prisma.order.findUnique({
+          where: { id: payment.orderId },
+          include: {
+            registration: true,
+            event: true,
+          },
+        });
+
+        if (order?.registration && order.event) {
+          const prefix = getEventBibPrefix(order.eventId);
+          const bibNumber = await autoAssignBibNumber(
+            order.registration.id,
+            order.eventId,
+            prefix,
+          );
+
+          // ✅ Send BIB email to runner TODO: Implement sendBibEmail function and uncomment
+          // if (bibNumber && order.user?.email) {
+          //   await sendBibEmail({
+          //     to: order.user.email,
+          //     bibNumber,
+          //     eventName: order.event.name,
+          //     runnerName: order.registration.fullName,
+          //   });
+          // }
+
+          if (bibNumber) {
+            console.log(`✅ BIB ${bibNumber} assigned to order ${order.id}`);
+          } else {
+            console.warn(`⚠️ Failed to auto-assign BIB for order ${order.id}`);
+          }
+        }
+      } catch (bibError: any) {
+        // Don't fail the payment if BIB assignment fails
+        console.error(
+          "⚠️ BIB assignment error (non-critical):",
+          bibError?.message,
+        );
+      }
+      // ──────────────────────────────────────────────────────
 
       console.log("✅ Order confirmed, redirecting to success page");
       return NextResponse.redirect(

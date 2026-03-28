@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Hash } from "lucide-react";
 
 type SearchParams = Promise<{ orderId?: string }>;
 
@@ -76,6 +77,19 @@ export default async function PaymentSuccessPage({
               {order.registration?.fullName}
             </span>
           </div>
+          {order.registration?.bibNumber && (
+            <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Hash className="w-5 h-5 text-emerald-600" />
+                <span className="text-sm font-medium text-emerald-700">
+                  BIB Number Assigned
+                </span>
+              </div>
+              <span className="px-3 py-1 bg-emerald-100 text-emerald-900 rounded-full font-bold text-lg">
+                {order.registration.bibNumber}
+              </span>
+            </div>
+          )}
 
           {order.payment?.transactionId && (
             <div className="flex justify-between">

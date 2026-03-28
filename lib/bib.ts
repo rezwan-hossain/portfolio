@@ -1,152 +1,94 @@
-// lib/bib.ts
+// lib/utils/bib.ts — NEW FILE
 import { prisma } from "@/lib/prisma";
 
 /**
- * Auto-assigns the next sequential BIB number for a registration within an event.
- * Uses a Prisma transaction with row-level checks to prevent race conditions.
- *
- * The @@unique([eventId, bibNumber]) constraint in your schema is the final
- * safety net — if two requests somehow compute the same BIB, the second
- * INSERT will fail at the DB level rather than creating a duplicate.
+ * Auto-assign next available BIB number for a registration
+ * @param registrationId - The registration ID
+ * @param eventId - The event ID
+ * @param prefix - Optional prefix (e.g., "RUN-")
+ * @returns The assigned BIB number or null if failed
  */
-export async function assignNextBib(
-  eventId: string,
+export async function autoAssignBibNumber(
   registrationId: string,
-): Promise<{
-  success: boolean;
-  bibNumber: string | null;
-  error: string | null;
-}> {
+  eventId: string,
+  prefix: string = "",
+): Promise<string | null> {
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. Fetch the registration, confirm it exists and belongs to this event
-      const registration = await tx.registration.findUnique({
-        where: { id: registrationId },
-        select: { bibNumber: true, eventId: true },
-      });
-
-      if (!registration) {
-        throw new Error("Registration not found");
-      }
-
-      if (registration.eventId !== eventId) {
-        throw new Error("Registration does not belong to this event");
-      }
-
-      // 2. Already has a BIB — return it, don't reassign
-      if (registration.bibNumber) {
-        return { bibNumber: registration.bibNumber, skipped: true };
-      }
-
-      // 3. Find the highest numeric BIB in this event
-      const lastBib = await tx.registration.findFirst({
-        where: {
-          eventId,
-          bibNumber: { not: null },
-        },
-        orderBy: { bibNumber: "desc" },
-        select: { bibNumber: true },
-      });
-
-      // 4. Calculate the next BIB
-      let nextNumber = 1;
-      if (lastBib?.bibNumber) {
-        const numericPart = lastBib.bibNumber.replace(/\D/g, "");
-        nextNumber = (parseInt(numericPart, 10) || 0) + 1;
-      }
-
-      const bibNumber = String(nextNumber).padStart(4, "0");
-
-      // 5. Write it — the @@unique([eventId, bibNumber]) constraint
-      //    guarantees no duplicates even under concurrent requests
-      await tx.registration.update({
-        where: { id: registrationId },
-        data: { bibNumber },
-      });
-
-      return { bibNumber, skipped: false };
+    // Check if already has a BIB
+    const existing = await prisma.registration.findUnique({
+      where: { id: registrationId },
+      select: { bibNumber: true },
     });
 
-    return {
-      success: true,
-      bibNumber: result.bibNumber,
-      error: null,
-    };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to assign BIB";
-    console.error(`[assignNextBib] error for reg=${registrationId}:`, message);
-    return { success: false, bibNumber: null, error: message };
+    if (existing?.bibNumber) {
+      console.log(
+        `✓ Registration ${registrationId} already has BIB: ${existing.bibNumber}`,
+      );
+      return existing.bibNumber;
+    }
+
+    // Find the highest BIB in this event
+    const lastBib = await prisma.registration.findFirst({
+      where: {
+        eventId,
+        bibNumber: { not: null },
+      },
+      orderBy: { bibNumber: "desc" },
+    });
+
+    let nextNumber: string;
+
+    if (lastBib?.bibNumber) {
+      // Extract numeric part (handles prefixed BIBs like "RUN-0042")
+      const numericPart = lastBib.bibNumber.replace(/\D/g, "");
+      const next = parseInt(numericPart || "0") + 1;
+      const padded = String(next).padStart(4, "0");
+      nextNumber = prefix ? `${prefix}${padded}` : padded;
+    } else {
+      // First BIB for this event
+      nextNumber = prefix ? `${prefix}0001` : "0001";
+    }
+
+    // Check for collision (race condition safety)
+    const collision = await prisma.registration.findFirst({
+      where: {
+        eventId,
+        bibNumber: nextNumber,
+      },
+    });
+
+    if (collision) {
+      console.warn(`⚠️ BIB collision detected: ${nextNumber}, retrying...`);
+      // Retry with incremented number
+      const retryNum = parseInt(nextNumber.replace(/\D/g, "")) + 1;
+      const retryPadded = String(retryNum).padStart(4, "0");
+      nextNumber = prefix ? `${prefix}${retryPadded}` : retryPadded;
+    }
+
+    // Assign the BIB
+    await prisma.registration.update({
+      where: { id: registrationId },
+      data: { bibNumber: nextNumber },
+    });
+
+    console.log(
+      `✅ Assigned BIB ${nextNumber} to registration ${registrationId}`,
+    );
+    return nextNumber;
+  } catch (error: any) {
+    console.error("❌ Auto-assign BIB error:", error?.message);
+    return null;
   }
 }
 
 /**
- * High-level helper: given an orderId, checks every precondition
- * (order CONFIRMED, payment PAID, registration exists, no BIB yet)
- * and assigns a BIB if everything is met.
- *
- * Safe to call repeatedly — it's idempotent.
+ * Get event-specific BIB prefix from event metadata or config
+ * You can extend this to fetch from a DB table if needed
  */
-export async function tryAssignBibForOrder(orderId: string): Promise<{
-  success: boolean;
-  bibNumber: string | null;
-  error: string | null;
-}> {
-  try {
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      select: {
-        id: true,
-        status: true,
-        eventId: true,
-        registration: {
-          select: { id: true, bibNumber: true },
-        },
-        payment: {
-          select: { status: true },
-        },
-      },
-    });
-
-    if (!order) {
-      return { success: false, bibNumber: null, error: "Order not found" };
-    }
-
-    if (!order.registration) {
-      return {
-        success: false,
-        bibNumber: null,
-        error: "No registration linked to this order",
-      };
-    }
-
-    // Already assigned — return the existing BIB
-    if (order.registration.bibNumber) {
-      return {
-        success: true,
-        bibNumber: order.registration.bibNumber,
-        error: null,
-      };
-    }
-
-    // Gate: both conditions must be true
-    const isConfirmed = order.status === "CONFIRMED";
-    const isPaid = order.payment?.status === "PAID";
-
-    if (!isConfirmed || !isPaid) {
-      return {
-        success: false,
-        bibNumber: null,
-        error: `Not ready: order=${order.status}, payment=${order.payment?.status ?? "NO_PAYMENT"}`,
-      };
-    }
-
-    return await assignNextBib(order.eventId, order.registration.id);
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to assign BIB";
-    console.error(
-      `[tryAssignBibForOrder] error for order=${orderId}:`,
-      message,
-    );
-    return { success: false, bibNumber: null, error: message };
-  }
+export function getEventBibPrefix(eventId: string): string {
+  // Default: no prefix
+  // You can customize per event:
+  // if (eventId === "some-marathon-id") return "MAR-";
+  // if (eventId === "some-5k-id") return "5K-";
+  return "";
 }
