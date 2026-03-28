@@ -17,7 +17,7 @@ export async function getAllEvents() {
         },
       },
       orderBy: {
-        date: "asc",
+        date: "desc",
       },
     });
 
@@ -65,7 +65,7 @@ export async function getUpcomingEvents(limit: number = 3) {
           orderBy: { price: "asc" },
         },
       },
-      orderBy: { date: "asc" },
+      orderBy: { date: "desc" },
       take: limit,
     });
 

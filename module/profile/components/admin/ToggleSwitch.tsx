@@ -1,4 +1,3 @@
-// module/profile/components/admin/ToggleSwitch.tsx
 "use client";
 
 type Props = {
