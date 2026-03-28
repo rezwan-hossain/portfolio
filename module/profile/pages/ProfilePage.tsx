@@ -59,7 +59,7 @@ const ProfilePage = ({
 
   return (
     <div className="min-h-screen bg-background font-body">
-      <div className="mt-32">
+      <div className="mt-42">
         <HeroText title="Profile" />
       </div>
 

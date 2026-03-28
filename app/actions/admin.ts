@@ -98,6 +98,7 @@ export async function createEvent(formData: {
   address: string;
   eventType: string;
   description: string;
+  shortDesc: string;
   bannerImage: string;
   thumbImage: string;
   minPackagePrice: string;
@@ -129,6 +130,7 @@ export async function createEvent(formData: {
         address: formData.address,
         eventType: formData.eventType as "LIVE" | "VIRTUAL",
         description: formData.description,
+        shortDesc: formData.shortDesc || null,
         bannerImage: formData.bannerImage,
         thumbImage: formData.thumbImage || null,
         minPackagePrice: formData.minPackagePrice
@@ -157,6 +159,7 @@ export async function updateEvent(
     address: string;
     eventType: string;
     description: string;
+    shortDesc: string;
     bannerImage: string;
     thumbImage: string;
     minPackagePrice: string;
@@ -187,6 +190,7 @@ export async function updateEvent(
         address: formData.address,
         eventType: formData.eventType as "LIVE" | "VIRTUAL",
         description: formData.description,
+        shortDesc: formData.shortDesc || null,
         bannerImage: formData.bannerImage,
         thumbImage: formData.thumbImage || null,
         minPackagePrice: formData.minPackagePrice

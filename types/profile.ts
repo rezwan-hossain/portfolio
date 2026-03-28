@@ -40,6 +40,7 @@ export type AdminEvent = {
   address: string;
   eventType: string;
   description: string;
+  shortDesc: string | null;
   bannerImage: string;
   thumbImage: string | null;
   minPackagePrice: number | null;
@@ -83,6 +84,7 @@ export type EventFormData = {
   address: string;
   eventType: string;
   description: string;
+  shortDesc: string;
   bannerImage: string;
   thumbImage: string;
   minPackagePrice: string;

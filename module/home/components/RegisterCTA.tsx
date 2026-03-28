@@ -137,7 +137,7 @@ const RegisterCTA = () => {
 
           {/* Bottom Info */}
           <p className="mt-8 text-sm text-white/60">
-            Early bird pricing ends soon • Limited slots available
+            • Limited slots available
           </p>
         </div>
       </div>

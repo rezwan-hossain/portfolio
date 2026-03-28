@@ -59,6 +59,7 @@ export function EventForm({
     address: event?.address || "",
     eventType: event?.eventType || "LIVE",
     description: event?.description || "",
+    shortDesc: event?.shortDesc || "",
     bannerImage: event?.bannerImage || "",
     thumbImage: event?.thumbImage || "",
     minPackagePrice: event?.minPackagePrice?.toString() || "",
@@ -365,6 +366,38 @@ export function EventForm({
               </SelectContent>
             </Select>
           )}
+        </div>
+        {/* Short Description */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+              Short Description{" "}
+              <span className="text-gray-400 font-normal normal-case">
+                (optional)
+              </span>
+            </label>
+            <span
+              className={`text-[10px] font-medium ${
+                form.shortDesc.length > 255
+                  ? "text-red-500"
+                  : form.shortDesc.length > 200
+                    ? "text-yellow-500"
+                    : "text-gray-400"
+              }`}
+            >
+              {form.shortDesc.length}/255
+            </span>
+          </div>
+          <input
+            value={form.shortDesc}
+            onChange={(e) => {
+              if (e.target.value.length <= 255) {
+                updateField("shortDesc", e.target.value);
+              }
+            }}
+            placeholder="Brief one-liner for cards and previews..."
+            className="w-full h-11 px-3 border border-gray-200 bg-gray-50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 transition-all"
+          />
         </div>
 
         {/* Description */}
