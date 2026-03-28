@@ -7,23 +7,27 @@ import { ProfileForm } from "../components/ProfileForm";
 import { PasswordForm } from "../components/PasswordForm";
 import { ProfileSidebar } from "../components/ProfileSidebar";
 import { AdminEventsPanel } from "../components/admin/AdminEventsPanel";
+import { ManageHomepagePanel } from "../components/admin/ManageHomepagePanel";
 import type { UserProfile, AdminEvent, AdminOrganizer } from "@/types/profile";
-import { User, Lock, CalendarPlus } from "lucide-react";
+import { User, Lock, CalendarPlus, Layout } from "lucide-react";
+import { HeroSectionData } from "@/types/homepage";
 
 type ProfilePageProps = {
   profile: UserProfile;
   isOAuthUser: boolean;
   adminEvents?: AdminEvent[];
   organizers?: AdminOrganizer[];
+  heroSections?: HeroSectionData[];
 };
 
-type Tab = "profile" | "password" | "events";
+type Tab = "profile" | "password" | "events" | "homepage";
 
 const ProfilePage = ({
   profile,
   isOAuthUser,
   adminEvents = [],
   organizers = [],
+  heroSections = [],
 }: ProfilePageProps) => {
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const isAdmin = profile.role === "ADMIN";
@@ -52,6 +56,12 @@ const ProfilePage = ({
             label: "Manage Events",
             icon: CalendarPlus,
             description: "Create and manage events",
+          },
+          {
+            id: "homepage" as Tab,
+            label: "Manage Homepage",
+            icon: Layout,
+            description: "Hero section & content",
           },
         ]
       : []),
@@ -96,8 +106,7 @@ const ProfilePage = ({
                     </p>
                   </div>
 
-                  {/* Admin badge */}
-                  {tab.id === "events" && (
+                  {(tab.id === "events" || tab.id === "homepage") && (
                     <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-neon-lime text-gray-900 px-1.5 py-0.5 rounded">
                       Admin
                     </span>
@@ -116,6 +125,9 @@ const ProfilePage = ({
                 initialEvents={adminEvents}
                 initialOrganizers={organizers}
               />
+            )}
+            {activeTab === "homepage" && isAdmin && (
+              <ManageHomepagePanel initialHeroes={heroSections} />
             )}
           </div>
         </div>

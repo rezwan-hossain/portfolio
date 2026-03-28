@@ -1,3 +1,4 @@
+import { getActiveHero } from "@/app/actions/homepage";
 import Categories from "../components/Category";
 import CTASection from "../components/CTASection";
 import EventSchedule from "../components/EventSchedule";
@@ -25,6 +26,8 @@ import { heroSlides } from "../data/heroSlides";
  * - Each async section can fail independently without affecting others
  */
 export default async function Homepage() {
+  const { hero } = await getActiveHero();
+
   return (
     <main role="main" aria-label="Homepage">
       {/* SEO: Main H1 heading - visually hidden but accessible */}
@@ -32,14 +35,14 @@ export default async function Homepage() {
 				Gloria Elegance - Premium Beauty & Cosmetics from UK & USA in Bangladesh
 			</h1> */}
 
-      <section aria-label="Testimonials">
+      <section aria-label="Hero">
         {/* <HeroSlider
           slides={heroSlides}
           autoPlay={true}
           interval={5000}
           height="h-[85vh]"
         /> */}
-        <HeroSection />
+        <HeroSection hero={hero} />
       </section>
 
       <section aria-label="UpComing Event">

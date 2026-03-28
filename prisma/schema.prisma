@@ -208,3 +208,19 @@ enum PaymentStatus {
   FAILED
   REFUNDED
 }
+
+model HeroSection {
+  id             String    @id @default(uuid())
+  title          String    @default("Run Beyond")
+  desktopImage   String
+  mobileImage    String?
+  slug           String?
+  eventDate      DateTime?
+  showCountdown  Boolean   @default(true)
+  showSlugButton Boolean   @default(true)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("hero_sections")
+}

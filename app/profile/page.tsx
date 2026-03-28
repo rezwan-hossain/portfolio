@@ -2,6 +2,7 @@
 import ProfilePage from "@/module/profile/pages/ProfilePage";
 import { getUserProfile } from "@/app/actions/profile";
 import { getAdminEvents, getOrganizers } from "@/app/actions/admin";
+import { getAllHeroes } from "@/app/actions/homepage";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -26,17 +27,19 @@ export default async function Page() {
   const isOAuthUser = user.app_metadata?.provider === "google";
   const isAdmin = data.profile.role === "ADMIN";
 
-  // Fetch admin data only for admins
   let adminEvents: any[] = [];
   let organizers: any[] = [];
+  let heroSections: any[] = [];
 
   if (isAdmin) {
-    const [eventsData, orgData] = await Promise.all([
+    const [eventsData, orgData, heroData] = await Promise.all([
       getAdminEvents(),
       getOrganizers(),
+      getAllHeroes(),
     ]);
     adminEvents = eventsData.events;
     organizers = orgData.organizers;
+    heroSections = heroData.heroes;
   }
 
   return (
@@ -45,6 +48,7 @@ export default async function Page() {
       isOAuthUser={isOAuthUser}
       adminEvents={adminEvents}
       organizers={organizers}
+      heroSections={heroSections}
     />
   );
 }
