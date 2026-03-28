@@ -577,3 +577,35 @@ export async function duplicateEvent(eventId: string) {
     return { success: false, error: "Failed to duplicate event" };
   }
 }
+
+export async function deleteStorageImage(imageUrl: string) {
+  const { error } = await requireAdmin();
+  if (error) return { success: false, error };
+
+  try {
+    const supabase = await createClient();
+    const bucket = "event-images";
+
+    // Extract path from URL
+    const bucketPrefix = `/storage/v1/object/public/${bucket}/`;
+    const urlObj = new URL(imageUrl);
+    const pathIndex = urlObj.pathname.indexOf(bucketPrefix);
+
+    if (pathIndex === -1) {
+      return { success: false, error: "Not a Supabase storage URL" };
+    }
+
+    const filePath = urlObj.pathname.slice(pathIndex + bucketPrefix.length);
+
+    const { error: deleteError } = await supabase.storage
+      .from(bucket)
+      .remove([filePath]);
+
+    if (deleteError) throw deleteError;
+
+    return { success: true, error: null };
+  } catch (err: any) {
+    console.error("Delete storage image error:", err?.message);
+    return { success: false, error: "Failed to delete image" };
+  }
+}

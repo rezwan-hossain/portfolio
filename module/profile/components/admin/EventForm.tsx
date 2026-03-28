@@ -17,6 +17,7 @@ import {
   getAdminEvents,
   createOrganizer,
 } from "@/app/actions/admin";
+import { ImageUpload } from "./ImageUpload";
 import Input from "@/components/ui/input";
 import {
   Select,
@@ -202,7 +203,10 @@ export function EventForm({
           logo: newOrg.logo,
         },
       ]);
-      setForm((prev) => ({ ...prev, organizerId: String(result.organizerId) }));
+      setForm((prev) => ({
+        ...prev,
+        organizerId: String(result.organizerId),
+      }));
       setShowNewOrg(false);
       setNewOrg({ name: "", email: "", phone: "", logo: "" });
     }
@@ -379,19 +383,46 @@ export function EventForm({
           />
         </div>
 
-        {/* Images & Price */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        {/* ─── Images Section (Upload) ─── */}
+        <div className="space-y-5">
+          {/* Banner Image */}
           <div>
             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-              Banner Image URL <span className="text-red-500">*</span>
+              Banner Image <span className="text-red-500">*</span>
             </label>
-            <Input
+            <ImageUpload
               value={form.bannerImage}
-              onChange={(e) => updateField("bannerImage", e.target.value)}
-              placeholder="https://..."
-              className="h-11 border border-gray-200 bg-gray-50 rounded-lg"
+              onChange={(url) => updateField("bannerImage", url)}
+              bucket="event-images"
+              folder="banners"
+              label="Upload Banner Image"
+              aspectRatio="aspect-[16/7]"
+              maxSizeMB={5}
             />
           </div>
+
+          {/* Thumbnail Image */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+              Thumbnail Image{" "}
+              <span className="text-gray-400 font-normal normal-case">
+                (optional)
+              </span>
+            </label>
+            <ImageUpload
+              value={form.thumbImage}
+              onChange={(url) => updateField("thumbImage", url)}
+              bucket="event-images"
+              folder="thumbnails"
+              label="Upload Thumbnail"
+              aspectRatio="aspect-square"
+              maxSizeMB={2}
+            />
+          </div>
+        </div>
+
+        {/* Min Package Price & Status */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
               Min Package Price
@@ -404,27 +435,25 @@ export function EventForm({
               className="h-11 border border-gray-200 bg-gray-50 rounded-lg"
             />
           </div>
-        </div>
-
-        {/* Status */}
-        <div className="w-full sm:w-48">
-          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-            Status
-          </label>
-          <Select
-            value={form.status}
-            onValueChange={(val) => updateField("status", val)}
-          >
-            <SelectTrigger className="h-11 rounded-lg border border-gray-200 bg-gray-50">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-white border border-gray-200">
-              <SelectItem value="ACTIVE">Active</SelectItem>
-              <SelectItem value="INACTIVE">Inactive</SelectItem>
-              <SelectItem value="CANCELLED">Cancelled</SelectItem>
-              <SelectItem value="COMPLETED">Completed</SelectItem>
-            </SelectContent>
-          </Select>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+              Status
+            </label>
+            <Select
+              value={form.status}
+              onValueChange={(val) => updateField("status", val)}
+            >
+              <SelectTrigger className="h-11 rounded-lg border border-gray-200 bg-gray-50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-white border border-gray-200">
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="INACTIVE">Inactive</SelectItem>
+                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* ─── Packages Section (Edit Mode Only) ─── */}
@@ -466,7 +495,10 @@ export function EventForm({
                   <Input
                     value={newPackage.distance}
                     onChange={(e) =>
-                      setNewPackage({ ...newPackage, distance: e.target.value })
+                      setNewPackage({
+                        ...newPackage,
+                        distance: e.target.value,
+                      })
                     }
                     placeholder="Distance (e.g. 5K)"
                     className="h-10 border border-gray-200 bg-white rounded-lg"
