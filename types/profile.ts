@@ -156,3 +156,46 @@ export type OrderStats = {
   totalRevenue: number;
   paidRevenue: number;
 };
+
+export type ActivityItem = {
+  id: string;
+  type: "registration" | "payment" | "cancellation" | "confirmation";
+  message: string;
+  description: string;
+  user: {
+    name: string;
+    email: string;
+    image: string | null;
+  };
+  meta: {
+    packageName: string;
+    distance: string;
+    amount: number;
+    qty: number;
+    orderStatus: string;
+    paymentStatus: string | null;
+    paymentMethod: string | null;
+    transactionId: string | null;
+    registrationName: string | null;
+    tshirtSize: string | null;
+    runnerCategory: string | null;
+    eventName?: string; // ← ADD (optional — only in global view)
+    eventSlug?: string; // ← ADD (optional — only in global view)
+  };
+  timestamp: string;
+};
+
+export type ActivityFilterState = {
+  type: "all" | "registration" | "payment" | "cancellation" | "confirmation";
+  search: string;
+};
+
+export type ActivityStats = {
+  total: number;
+  registrations: number;
+  payments: number;
+  cancellations: number;
+  confirmations: number;
+  todayCount: number;
+  weekCount: number;
+};

@@ -14,6 +14,7 @@ import {
   Trash2,
   Eye,
   Loader2,
+  Activity,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -26,6 +27,7 @@ type EventsListProps = {
   events: AdminEvent[];
   onEdit: (event: AdminEvent) => void;
   onViewOrders: (event: AdminEvent) => void; // ← NEW
+  onViewActivity: (event: AdminEvent) => void;
   onRefresh: (events: AdminEvent[]) => void;
 };
 
@@ -33,6 +35,7 @@ export function EventsList({
   events,
   onEdit,
   onViewOrders, // ← NEW
+  onViewActivity,
   onRefresh,
 }: EventsListProps) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -137,6 +140,14 @@ export function EventsList({
                             {event._count.orders}
                           </span>
                         )}
+                      </button>
+
+                      <button
+                        onClick={() => onViewActivity(event)}
+                        className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                        title="Activity Log"
+                      >
+                        <Activity size={15} />
                       </button>
 
                       <button

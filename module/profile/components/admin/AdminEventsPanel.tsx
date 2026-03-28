@@ -9,6 +9,7 @@ import { EventsList } from "./EventsList";
 import { EventStatsBar } from "./EventStatsBar";
 import { EventFilters } from "./EventFilters";
 import { EventOrdersModal } from "./EventOrdersModal";
+import { EventActivityModal } from "./EventActivityModal";
 
 type AdminEventsPanelProps = {
   initialEvents: AdminEvent[];
@@ -26,6 +27,9 @@ export function AdminEventsPanel({
   const [editingEvent, setEditingEvent] = useState<AdminEvent | null>(null);
   const [filteredEvents, setFilteredEvents] = useState(initialEvents);
   const [viewOrdersEvent, setViewOrdersEvent] = useState<AdminEvent | null>(
+    null,
+  );
+  const [viewActivityEvent, setViewActivityEvent] = useState<AdminEvent | null>(
     null,
   );
 
@@ -96,6 +100,7 @@ export function AdminEventsPanel({
             events={filteredEvents}
             onEdit={handleEdit}
             onViewOrders={setViewOrdersEvent}
+            onViewActivity={setViewActivityEvent}
             onRefresh={handleSuccess}
           />
         </>
@@ -115,6 +120,14 @@ export function AdminEventsPanel({
         <EventOrdersModal
           event={viewOrdersEvent}
           onClose={() => setViewOrdersEvent(null)}
+        />
+      )}
+
+      {/* Activity Modal */}
+      {viewActivityEvent && (
+        <EventActivityModal
+          event={viewActivityEvent}
+          onClose={() => setViewActivityEvent(null)}
         />
       )}
     </div>

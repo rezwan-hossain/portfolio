@@ -609,3 +609,270 @@ export async function deleteStorageImage(imageUrl: string) {
     return { success: false, error: "Failed to delete image" };
   }
 }
+
+// ─── Get Event Activity ─────────────────────────────
+export async function getEventActivity(eventId: string) {
+  const { error } = await requireAdmin();
+  if (error) return { activities: [], error };
+
+  try {
+    const orders = await prisma.order.findMany({
+      where: { eventId },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            image: true,
+          },
+        },
+        package: {
+          select: { name: true, distance: true, price: true },
+        },
+        registration: {
+          select: {
+            fullName: true,
+            tshirtSize: true,
+            runnerCategory: true,
+          },
+        },
+        payment: {
+          select: {
+            amount: true,
+            status: true,
+            paymentMethod: true,
+            transactionId: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
+
+    const activities: any[] = [];
+
+    for (const order of orders) {
+      const userName =
+        order.registration?.fullName ||
+        [order.user.firstName, order.user.lastName].filter(Boolean).join(" ") ||
+        order.user.email.split("@")[0];
+
+      const userInfo = {
+        name: userName,
+        email: order.user.email,
+        image: order.user.image,
+      };
+
+      const meta = {
+        packageName: order.package.name,
+        distance: order.package.distance,
+        amount: order.payment?.amount || order.package.price * order.qty,
+        qty: order.qty,
+        orderStatus: order.status,
+        paymentStatus: order.payment?.status || null,
+        paymentMethod: order.payment?.paymentMethod || null,
+        transactionId: order.payment?.transactionId || null,
+        registrationName: order.registration?.fullName || null,
+        tshirtSize: order.registration?.tshirtSize || null,
+        runnerCategory: order.registration?.runnerCategory || null,
+      };
+
+      // 1. Registration activity (order creation)
+      activities.push({
+        id: `reg-${order.id}`,
+        type: "registration",
+        message: `${userName} registered for ${order.package.name}`,
+        description: `${order.package.distance} package · Qty: ${order.qty}`,
+        user: userInfo,
+        meta,
+        timestamp: order.createdAt,
+      });
+
+      // 2. Payment activity
+      if (order.payment && order.payment.status === "PAID") {
+        activities.push({
+          id: `pay-${order.id}`,
+          type: "payment",
+          message: `Payment received from ${userName}`,
+          description: `৳${Number(order.payment.amount).toLocaleString()} via ${
+            order.payment.paymentMethod || "Unknown"
+          }`,
+          user: userInfo,
+          meta,
+          timestamp: order.payment.updatedAt || order.payment.createdAt,
+        });
+      }
+
+      // 3. Confirmation activity
+      if (order.status === "CONFIRMED") {
+        activities.push({
+          id: `conf-${order.id}`,
+          type: "confirmation",
+          message: `${userName}'s order confirmed`,
+          description: `${order.package.name} — ${order.package.distance}`,
+          user: userInfo,
+          meta,
+          timestamp: order.updatedAt,
+        });
+      }
+
+      // 4. Cancellation activity
+      if (order.status === "CANCELLED") {
+        activities.push({
+          id: `cancel-${order.id}`,
+          type: "cancellation",
+          message: `${userName}'s order was cancelled`,
+          description: `${order.package.name} — ৳${(
+            order.package.price * order.qty
+          ).toLocaleString()}`,
+          user: userInfo,
+          meta,
+          timestamp: order.updatedAt,
+        });
+      }
+    }
+
+    // Sort all activities by timestamp (newest first)
+    activities.sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
+
+    return {
+      activities: JSON.parse(JSON.stringify(activities)),
+      error: null,
+    };
+  } catch (err: any) {
+    console.error("Get event activity error:", err?.message);
+    return { activities: [], error: "Failed to fetch activity" };
+  }
+}
+
+// ─── Get Global Activity (All Events) ───────────────
+export async function getGlobalActivity() {
+  const { error } = await requireAdmin();
+  if (error) return { activities: [], error };
+
+  try {
+    const orders = await prisma.order.findMany({
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            image: true,
+          },
+        },
+        package: {
+          select: { name: true, distance: true, price: true },
+        },
+        event: {
+          select: { name: true, slug: true },
+        },
+        registration: {
+          select: {
+            fullName: true,
+            tshirtSize: true,
+            runnerCategory: true,
+          },
+        },
+        payment: {
+          select: {
+            amount: true,
+            status: true,
+            paymentMethod: true,
+            transactionId: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+    });
+
+    const activities: any[] = [];
+
+    for (const order of orders) {
+      const userName =
+        order.registration?.fullName ||
+        [order.user.firstName, order.user.lastName].filter(Boolean).join(" ") ||
+        order.user.email.split("@")[0];
+
+      const userInfo = {
+        name: userName,
+        email: order.user.email,
+        image: order.user.image,
+      };
+
+      const meta = {
+        packageName: order.package.name,
+        distance: order.package.distance,
+        amount: order.payment?.amount || order.package.price * order.qty,
+        qty: order.qty,
+        orderStatus: order.status,
+        paymentStatus: order.payment?.status || null,
+        paymentMethod: order.payment?.paymentMethod || null,
+        transactionId: order.payment?.transactionId || null,
+        registrationName: order.registration?.fullName || null,
+        tshirtSize: order.registration?.tshirtSize || null,
+        runnerCategory: order.registration?.runnerCategory || null,
+        eventName: order.event.name,
+        eventSlug: order.event.slug,
+      };
+
+      activities.push({
+        id: `reg-${order.id}`,
+        type: "registration",
+        message: `${userName} registered for ${order.package.name}`,
+        description: `${order.event.name} · ${order.package.distance}`,
+        user: userInfo,
+        meta,
+        timestamp: order.createdAt,
+      });
+
+      if (order.payment && order.payment.status === "PAID") {
+        activities.push({
+          id: `pay-${order.id}`,
+          type: "payment",
+          message: `Payment received from ${userName}`,
+          description: `৳${Number(
+            order.payment.amount,
+          ).toLocaleString()} · ${order.event.name}`,
+          user: userInfo,
+          meta,
+          timestamp: order.payment.updatedAt || order.payment.createdAt,
+        });
+      }
+
+      if (order.status === "CANCELLED") {
+        activities.push({
+          id: `cancel-${order.id}`,
+          type: "cancellation",
+          message: `${userName}'s order cancelled`,
+          description: `${order.event.name} · ${order.package.name}`,
+          user: userInfo,
+          meta,
+          timestamp: order.updatedAt,
+        });
+      }
+    }
+
+    activities.sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
+
+    return {
+      activities: JSON.parse(JSON.stringify(activities)),
+      error: null,
+    };
+  } catch (err: any) {
+    console.error("Get global activity error:", err?.message);
+    return { activities: [], error: "Failed to fetch activity" };
+  }
+}
