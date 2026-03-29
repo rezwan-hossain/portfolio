@@ -2,9 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation"
-
-
+import { redirect } from "next/navigation";
 
 export async function getCheckoutData(packageId: number) {
   try {
@@ -18,12 +16,9 @@ export async function getCheckoutData(packageId: number) {
         },
       },
     });
-if (!pkg) return { package: null, error: "Package not found" };
-
-  
+    if (!pkg) return { package: null, error: "Package not found" };
 
     return { package: JSON.parse(JSON.stringify(pkg)) };
-
   } catch (error) {
     console.error("Failed to fetch checkout data:", error);
     return { package: null, error: "Failed to fetch checkout data" };
@@ -65,8 +60,7 @@ export async function placeOrder(formData: {
   runnerCategory: string;
   paymentMethod: string;
 }) {
-
-    console.log("Step 1: Creating supabase client...");
+  console.log("Step 1: Creating supabase client...");
   const supabase = await createClient();
   console.log("Step 2: Getting user...");
 
@@ -75,7 +69,6 @@ export async function placeOrder(formData: {
   } = await supabase.auth.getUser();
 
   console.log("Step 2 done, user:", user?.id);
-
 
   if (!user) {
     return { error: "You must be logged in to place an order" };
@@ -90,7 +83,6 @@ export async function placeOrder(formData: {
     });
 
     console.log("Step 3 done, dbUser:", dbUser?.id);
-
 
     if (!dbUser) {
       return { error: "User not found" };
@@ -126,6 +118,7 @@ export async function placeOrder(formData: {
       // Create registration
       await tx.registration.create({
         data: {
+          eventId: formData.eventId,
           orderId: newOrder.id,
           fullName: formData.fullName,
           phone: formData.phone.trim(),
@@ -163,7 +156,11 @@ export async function placeOrder(formData: {
       return newOrder;
     });
 
-    return { success: true, orderId: order.id, amount: Number(pkg.price) * formData.qty };
+    return {
+      success: true,
+      orderId: order.id,
+      amount: Number(pkg.price) * formData.qty,
+    };
   } catch (error) {
     console.error("Failed to place order:", error);
     return { error: "Failed to place order. Please try again." };
