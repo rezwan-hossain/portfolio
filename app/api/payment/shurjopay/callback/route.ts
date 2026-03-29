@@ -1,5 +1,6 @@
 // app/api/payment/shurjopay/callback/route.ts
 import { autoAssignBibNumber, getEventBibPrefix } from "@/lib/bib";
+import { sendPaymentConfirmationEmail } from "@/lib/email/send-payment-confirmation";
 import { prisma } from "@/lib/prisma";
 import { verifyShurjoPayPayment } from "@/lib/shurjopay";
 import { NextResponse, type NextRequest } from "next/server";
@@ -129,6 +130,30 @@ export async function GET(request: NextRequest) {
           //     runnerName: order.registration.fullName,
           //   });
           // }
+
+          // ──────────────────────────────────────────────────────
+          // ✨ SEND CONFIRMATION EMAIL
+          // ──────────────────────────────────────────────────────
+          try {
+            const emailResult = await sendPaymentConfirmationEmail(
+              payment.orderId,
+            );
+            if (emailResult.success) {
+              console.log("✅ Confirmation email sent");
+            } else {
+              console.error(
+                "⚠️ Email failed (non-critical):",
+                emailResult.error,
+              );
+            }
+          } catch (emailError: any) {
+            // Don't fail payment if email fails
+            console.error(
+              "⚠️ Email error (non-critical):",
+              emailError?.message,
+            );
+          }
+          // ──────────────────────────────────────────────────────
 
           if (bibNumber) {
             console.log(`✅ BIB ${bibNumber} assigned to order ${order.id}`);
