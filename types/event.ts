@@ -35,7 +35,7 @@ export type EventData = {
   bannerImage: string;
   thumbImage: string | null;
   minPackagePrice: number | null;
-  status: string;
+  status: "ACTIVE" | "INACTIVE" | "CANCELLED" | "COMPLETED";
   organizer: Organizer;
   packages: EventPackage[];
 };
