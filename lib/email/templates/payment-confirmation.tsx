@@ -199,7 +199,7 @@ export function getPaymentConfirmationEmailHTML({
                         <td width="50%" style="vertical-align: top; padding-left: 12px;">
                           <table role="presentation" cellspacing="0" cellpadding="0">
                             <tr>
-                              <td style="width: 32px; height: 32px; background-color: #f3f4f6; border-radius: 8px; text-align: center; vertical-align: middle;">
+                              <td style="width: 32px; height: 32px;  border-radius: 8px; text-align: center; vertical-align: middle;">
                                 <span style="font-size: 14px;">📦</span>
                               </td>
                               <td style="padding-left: 10px; vertical-align: top;">

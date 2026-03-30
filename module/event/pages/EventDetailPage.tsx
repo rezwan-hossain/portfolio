@@ -15,6 +15,7 @@ import { HeroText } from "@/components/ui/HeroText";
 import type { EventData } from "@/types/event";
 import EventInfoCard from "../components/EventInfoCard";
 import CountdownTimer from "../components/CountdownTimer";
+import EventDescription from "../components/EventDescription";
 
 const highlights = [
   {
@@ -136,53 +137,18 @@ const EventDetailPage = ({ event }: EventDetailPageProps) => {
               </div>
             </div>
 
-            {/* Overview */}
-            <section className="mt-9 lg:mt-14">
-              <h2 className="font-display text-3xl lg:text-4xl tracking-wide mb-4">
-                OVER VIEW
-              </h2>
-              <p className="font-body text-sm lg:text-base leading-relaxed text-muted-foreground max-w-2xl">
-                Innovation Summit 2025 is a premier global event focused on
-                technology, entrepreneurship, digital transformation, and the
-                future of emerging industries. The summit brings together top
-                innovators, researchers, investors, startups, and industry
-                leaders to explore groundbreaking ideas, futuristic solutions,
-                and transformative technologies shaping tomorrow.
-              </p>
-            </section>
-
-            {/* Key Highlights */}
-            <section className="mt-10 lg:mt-14">
-              <h2 className="font-display text-3xl lg:text-4xl tracking-wide mb-6">
-                KEY HIGHLIGHTS
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {highlights.map((h) => (
-                  <div
-                    key={h.title}
-                    className="border border-border rounded-xl p-5 flex gap-4 items-start hover:border-event-gold transition"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-event-gold/10 flex items-center justify-center flex-shrink-0">
-                      <h.icon size={20} className="text-event-gold" />
-                    </div>
-                    <div>
-                      <h4 className="font-display text-lg tracking-wide mb-1">
-                        {h.title}
-                      </h4>
-                      <p className="font-body text-xs lg:text-sm text-muted-foreground leading-relaxed">
-                        {h.desc}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
             <section className="mt-10 lg:mt-14">
               <div
                 className="prose mt-14 prose-slate [&>h2]:mt-12 [&>h2]:flex [&>h2]:items-center [&>h2]:font-mono [&>h2]:text-sm/7 [&>h2]:font-medium [&>h2]:text-slate-900 [&>h2]:before:mr-3 [&>h2]:before:h-3 [&>h2]:before:w-1.5 [&>h2]:before:rounded-r-full [&>h2]:before:bg-cyan-200 [&>h2:nth-of-type(3n)]:before:bg-violet-200 [&>h2:nth-of-type(3n+2)]:before:bg-indigo-200 [&>ul]:mt-6 [&>ul]:list-['\2013\20'] [&>ul]:pl-5"
                 dangerouslySetInnerHTML={{ __html: event.description }}
               />
+            </section>
+
+            <section className="mt-10 lg:mt-14">
+              <h2 className="font-display text-3xl lg:text-4xl tracking-wide mb-6">
+                EVENT DETAILS
+              </h2>
+              <EventDescription description={event.description} />
             </section>
           </div>
 
