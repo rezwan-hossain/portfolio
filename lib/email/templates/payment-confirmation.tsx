@@ -335,24 +335,6 @@ export function getPaymentConfirmationEmailHTML({
             </td>
           </tr>
 
-          <!-- ═══ Email Confirmation Note ═══ -->
-          <tr>
-            <td style="padding-top: 20px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px 20px;">
-                <tr>
-                  <td style="width: 40px; vertical-align: top;">
-                    <div style="width: 36px; height: 36px; background-color: #dbeafe; border-radius: 10px; text-align: center; line-height: 36px;">
-                      <span style="font-size: 18px;">📧</span>
-                    </div>
-                  </td>
-                  <td style="padding-left: 12px; vertical-align: top;">
-                    <p style="margin: 0; font-size: 14px; font-weight: 600; color: #1e40af;">Confirmation sent to your email</p>
-                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #3b82f6;">A copy of your registration details has been sent to your registered email address.</p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
 
           <!-- ═══ Next Steps ═══ -->
           <tr>
@@ -360,7 +342,6 @@ export function getPaymentConfirmationEmailHTML({
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #fefce8; border: 1px solid #fef08a; border-radius: 12px; padding: 16px 20px;">
                 <tr>
                   <td>
-                    <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #a16207;">📋 What's Next?</p>
                     <table role="presentation" cellspacing="0" cellpadding="0">
                       <tr>
                         <td style="padding: 4px 0; font-size: 13px; color: #854d0e;">✓ Save this email for your records</td>

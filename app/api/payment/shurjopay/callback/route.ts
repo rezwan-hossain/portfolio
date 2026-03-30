@@ -110,6 +110,9 @@ export async function GET(request: NextRequest) {
           include: {
             registration: true,
             event: true,
+            user: true,
+            package: true,
+            payment: true,
           },
         });
 
@@ -134,10 +137,32 @@ export async function GET(request: NextRequest) {
           // ──────────────────────────────────────────────────────
           // ✨ SEND CONFIRMATION EMAIL
           // ──────────────────────────────────────────────────────
+          console.log("📧 Sending payment confirmation email...");
           try {
-            const emailResult = await sendPaymentConfirmationEmail(
-              payment.orderId,
-            );
+            // const emailResult = await sendPaymentConfirmationEmail({
+            //   to: order.user.email,
+            //   runnerName: order.registration?.fullName || order.user.firstName || "Runner",
+            // });
+            const emailResult = await sendPaymentConfirmationEmail({
+              to: order.user.email,
+              runnerName:
+                order.registration?.fullName ||
+                order.user.firstName ||
+                "Runner",
+              eventName: order.event.name,
+              eventDate: order.event.date,
+              eventAddress: order.event.address,
+              packageName: order.package.name,
+              distance: order.package.distance,
+              amount: order.payment?.amount || 0,
+              orderId: order.id,
+              orderDate: order.createdAt,
+              orderStatus: order.status,
+              paymentStatus: order.payment?.status || "PENDING",
+              transactionId: order.payment?.transactionId ?? undefined,
+              paymentMethod: order.payment?.paymentMethod ?? undefined,
+              bibNumber: bibNumber ?? undefined,
+            });
             if (emailResult.success) {
               console.log("✅ Confirmation email sent");
             } else {
