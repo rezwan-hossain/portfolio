@@ -11,7 +11,7 @@ const leadership: TeamMember[] = [
     name: "Sarah Rahman",
     role: "Founder & CEO",
     bio: "Former marathon champion turned entrepreneur. Sarah founded the platform to make running events accessible to everyone across Bangladesh.",
-    image: "/team/sarah.jpg",
+    image: "https://i.pravatar.cc/400?img=12",
     socials: {
       linkedin: "https://linkedin.com/in/sarah",
       twitter: "https://twitter.com/sarah",
@@ -22,7 +22,7 @@ const leadership: TeamMember[] = [
     name: "Kamal Hossain",
     role: "Co-Founder & CTO",
     bio: "Full-stack engineer with 10+ years of experience building scalable platforms. Passionate about using tech to connect communities.",
-    image: "/team/kamal.jpg",
+    image: "https://i.pravatar.cc/400?img=32",
     socials: {
       linkedin: "https://linkedin.com/in/kamal",
       github: "https://github.com/kamal",
@@ -33,7 +33,7 @@ const leadership: TeamMember[] = [
     name: "Nadia Islam",
     role: "Head of Operations",
     bio: "Expert in event logistics and operations. Nadia ensures every race runs smoothly from registration to finish line.",
-    image: "/team/nadia.jpg",
+    image: "https://i.pravatar.cc/400?img=45",
     socials: {
       linkedin: "https://linkedin.com/in/nadia",
       instagram: "https://instagram.com/nadia",
@@ -44,7 +44,7 @@ const leadership: TeamMember[] = [
     name: "Arif Khan",
     role: "Creative Director",
     bio: "Award-winning designer who brings every event to life through stunning visuals and unforgettable brand experiences.",
-    image: "/team/arif.jpg",
+    image: "https://i.pravatar.cc/400?img=60",
     socials: {
       linkedin: "https://linkedin.com/in/arif",
       twitter: "https://twitter.com/arif",
@@ -59,7 +59,7 @@ const team: TeamMember[] = [
     name: "Tamim Iqbal",
     role: "Lead Developer",
     bio: "Builds the core platform features. React enthusiast and open-source contributor.",
-    image: "/team/tamim.jpg",
+    image: "https://i.pravatar.cc/400?img=21",
     socials: {
       github: "https://github.com/tamim",
       linkedin: "https://linkedin.com/in/tamim",
@@ -70,7 +70,7 @@ const team: TeamMember[] = [
     name: "Fatima Begum",
     role: "Marketing Lead",
     bio: "Drives growth and community engagement through creative campaigns and partnerships.",
-    image: "/team/fatima.jpg",
+    image: "https://i.pravatar.cc/400?img=47",
     socials: {
       linkedin: "https://linkedin.com/in/fatima",
       instagram: "https://instagram.com/fatima",
@@ -81,7 +81,7 @@ const team: TeamMember[] = [
     name: "Rezwan Ahmed",
     role: "Event Coordinator",
     bio: "On-ground operations specialist who has coordinated 50+ running events nationwide.",
-    image: "/team/rezwan.jpg",
+    image: "https://i.pravatar.cc/400?img=33",
     socials: {
       linkedin: "https://linkedin.com/in/rezwan",
     },
@@ -91,7 +91,7 @@ const team: TeamMember[] = [
     name: "Priya Das",
     role: "Community Manager",
     bio: "Connects with runners, builds partnerships, and grows the community one race at a time.",
-    image: "/team/priya.jpg",
+    image: "https://i.pravatar.cc/400?img=5",
     socials: {
       twitter: "https://twitter.com/priya",
       instagram: "https://instagram.com/priya",
@@ -102,7 +102,7 @@ const team: TeamMember[] = [
     name: "Sohel Rana",
     role: "Backend Engineer",
     bio: "Database architect and API specialist. Keeps the platform fast and reliable at scale.",
-    image: "/team/sohel.jpg",
+    image: "https://i.pravatar.cc/400?img=14",
     socials: {
       github: "https://github.com/sohel",
     },
@@ -112,7 +112,7 @@ const team: TeamMember[] = [
     name: "Mithila Chowdhury",
     role: "UI/UX Designer",
     bio: "Creates intuitive, beautiful interfaces that make event discovery and registration a breeze.",
-    image: "/team/mithila.jpg",
+    image: "https://i.pravatar.cc/400?img=48",
     socials: {
       linkedin: "https://linkedin.com/in/mithila",
       instagram: "https://instagram.com/mithila",
@@ -123,7 +123,7 @@ const team: TeamMember[] = [
     name: "Rafiq Uddin",
     role: "Finance & Admin",
     bio: "Manages budgets, sponsorships, and ensures financial sustainability across all operations.",
-    image: "/team/rafiq.jpg",
+    image: "https://i.pravatar.cc/400?img=52",
     socials: {
       linkedin: "https://linkedin.com/in/rafiq",
     },
@@ -133,7 +133,7 @@ const team: TeamMember[] = [
     name: "Anika Sultana",
     role: "Content Writer",
     bio: "Tells the stories behind every race. From blog posts to social media, Anika captures the spirit of running.",
-    image: "/team/anika.jpg",
+    image: "https://i.pravatar.cc/400?img=49",
     socials: {
       twitter: "https://twitter.com/anika",
       instagram: "https://instagram.com/anika",
@@ -188,7 +188,7 @@ const TeamPage = () => {
         </div>
 
         {/* Join CTA */}
-        <JoinTeamCTA />
+        {/* <JoinTeamCTA /> */}
       </div>
     </div>
   );

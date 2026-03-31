@@ -16,7 +16,7 @@ const TeamGrid = ({ members, title, subtitle }: Props) => {
       {(title || subtitle) && (
         <div className="mb-10 text-center">
           {title && (
-            <h2 className="font-display text-2xl sm:text-3xl tracking-wide text-foreground">
+            <h2 className="font-display text-3xl sm:text-3xl tracking-wide text-foreground">
               {title}
             </h2>
           )}

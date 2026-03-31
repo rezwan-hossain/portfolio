@@ -24,6 +24,11 @@ const nextConfig: NextConfig = {
         hostname: "i.ibb.co.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "i.pravatar.cc",
+        pathname: "/**",
+      },
       { protocol: "https", hostname: "images.unsplash.com" },
     ],
   },

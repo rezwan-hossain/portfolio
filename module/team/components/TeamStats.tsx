@@ -3,7 +3,7 @@ import { Users, Globe, Trophy, Heart } from "lucide-react";
 
 const stats = [
   { icon: Users, value: "20+", label: "Team Members" },
-  { icon: Globe, value: "5+", label: "Countries" },
+  { icon: Globe, value: "5+", label: "City" },
   { icon: Trophy, value: "100+", label: "Events Hosted" },
   { icon: Heart, value: "50K+", label: "Happy Runners" },
 ];

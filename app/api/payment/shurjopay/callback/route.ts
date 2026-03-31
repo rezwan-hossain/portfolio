@@ -3,6 +3,7 @@ import { autoAssignBibNumber, getEventBibPrefix } from "@/lib/bib";
 import { sendPaymentConfirmationEmail } from "@/lib/email/send-payment-confirmation";
 import { prisma } from "@/lib/prisma";
 import { verifyShurjoPayPayment } from "@/lib/shurjopay";
+import { formatBDPhone, getPaymentConfirmationSMS, sendSMS } from "@/lib/sms";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -177,6 +178,47 @@ export async function GET(request: NextRequest) {
               "⚠️ Email error (non-critical):",
               emailError?.message,
             );
+          }
+          // ──────────────────────────────────────────────────────
+
+          // ──────────────────────────────────────────────────────
+          // ✨ SEND CONFIRMATION SMS
+          // ──────────────────────────────────────────────────────
+          console.log("📱 Sending payment confirmation SMS...");
+          try {
+            // Check if user has phone number
+            if (order.registration?.phone || order.user?.phone) {
+              const phoneNumber =
+                order.registration?.phone || order.user?.phone || "";
+              const formattedPhone = formatBDPhone(phoneNumber);
+
+              const smsMessage = getPaymentConfirmationSMS({
+                runnerName:
+                  order.registration?.fullName ||
+                  order.user.firstName ||
+                  "Runner",
+                eventName: order.event.name,
+                bibNumber: bibNumber ?? undefined,
+                amount: order.payment?.amount || 0,
+                orderId: order.id,
+              });
+
+              const smsResult = await sendSMS({
+                number: formattedPhone,
+                message: smsMessage,
+              });
+
+              if (smsResult.success) {
+                console.log("✅ Confirmation SMS sent to:", formattedPhone);
+              } else {
+                console.error("⚠️ SMS failed (non-critical):", smsResult.error);
+              }
+            } else {
+              console.warn("⚠️ No phone number found for user");
+            }
+          } catch (smsError: any) {
+            // Don't fail payment if SMS fails
+            console.error("⚠️ SMS error (non-critical):", smsError?.message);
           }
           // ──────────────────────────────────────────────────────
 
