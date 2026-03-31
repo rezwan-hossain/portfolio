@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 export async function registerUser(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const firstName = formData.get("firstName") as string;
 
   const supabase = await createClient();
 
@@ -16,6 +17,9 @@ export async function registerUser(formData: FormData) {
       // 👇 This tells Supabase where to redirect after email click
       //   emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
       emailRedirectTo: `http://localhost:3000/auth/callback`,
+      data: {
+        full_name: firstName,
+      },
     },
   });
 

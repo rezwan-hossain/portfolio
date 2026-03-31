@@ -8,6 +8,7 @@ import { registerUser, signInWithGoogle } from "@/app/(auth)/register/actions";
 import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 
 export default function Register() {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -35,6 +36,7 @@ export default function Register() {
     const formData = new FormData();
     formData.append("email", email);
     formData.append("password", password);
+    formData.append("firstName", fullName);
 
     const result = await registerUser(formData);
 
@@ -86,8 +88,8 @@ export default function Register() {
             <Image
               src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/googleLogo.svg"
               alt="Google"
-              width={20}
-              height={20}
+              width={80}
+              height={80}
             />
             <span className="text-sm font-semibold text-gray-700">
               Continue with Google
@@ -105,6 +107,24 @@ export default function Register() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                Full Name
+              </label>
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={fullName}
+                onChange={(e) => {
+                  setFullName(e.target.value);
+                  setError("");
+                }}
+                required
+                className="w-full h-11 px-4 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+              />
+            </div>
+
             {/* Email */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
