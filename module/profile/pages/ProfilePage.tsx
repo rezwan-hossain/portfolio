@@ -9,8 +9,10 @@ import { ProfileSidebar } from "../components/ProfileSidebar";
 import { AdminEventsPanel } from "../components/admin/AdminEventsPanel";
 import { ManageHomepagePanel } from "../components/admin/ManageHomepagePanel";
 import type { UserProfile, AdminEvent, AdminOrganizer } from "@/types/profile";
-import { User, Lock, CalendarPlus, Layout } from "lucide-react";
+import { User, Lock, CalendarPlus, Layout, ImageIcon } from "lucide-react";
 import { HeroSectionData } from "@/types/homepage";
+import { GalleryImage } from "@/types/gallery";
+import { AdminGalleryPanel } from "../components/admin/AdminGalleryPanel";
 
 type ProfilePageProps = {
   profile: UserProfile;
@@ -18,9 +20,10 @@ type ProfilePageProps = {
   adminEvents?: AdminEvent[];
   organizers?: AdminOrganizer[];
   heroSections?: HeroSectionData[];
+  galleryImages?: GalleryImage[];
 };
 
-type Tab = "profile" | "password" | "events" | "homepage";
+type Tab = "profile" | "password" | "events" | "homepage" | "gallery";
 
 const ProfilePage = ({
   profile,
@@ -28,6 +31,7 @@ const ProfilePage = ({
   adminEvents = [],
   organizers = [],
   heroSections = [],
+  galleryImages = [],
 }: ProfilePageProps) => {
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const isAdmin = profile.role === "ADMIN";
@@ -62,6 +66,12 @@ const ProfilePage = ({
             label: "Manage Homepage",
             icon: Layout,
             description: "Hero section & content",
+          },
+          {
+            id: "gallery" as Tab,
+            label: "Manage Gallery",
+            icon: ImageIcon,
+            description: "Add, edit & remove photos",
           },
         ]
       : []),
@@ -128,6 +138,9 @@ const ProfilePage = ({
             )}
             {activeTab === "homepage" && isAdmin && (
               <ManageHomepagePanel initialHeroes={heroSections} />
+            )}
+            {activeTab === "gallery" && isAdmin && (
+              <AdminGalleryPanel initialImages={galleryImages} />
             )}
           </div>
         </div>

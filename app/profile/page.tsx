@@ -5,6 +5,7 @@ import { getAdminEvents, getOrganizers } from "@/app/actions/admin";
 import { getAllHeroes } from "@/app/actions/homepage";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getGalleryImages } from "../actions/gallery";
 
 export default async function Page() {
   const supabase = await createClient();
@@ -30,16 +31,19 @@ export default async function Page() {
   let adminEvents: any[] = [];
   let organizers: any[] = [];
   let heroSections: any[] = [];
+  let galleryImages: any[] = [];
 
   if (isAdmin) {
-    const [eventsData, orgData, heroData] = await Promise.all([
+    const [eventsData, orgData, heroData, galleryData] = await Promise.all([
       getAdminEvents(),
       getOrganizers(),
       getAllHeroes(),
+      getGalleryImages(),
     ]);
     adminEvents = eventsData.events;
     organizers = orgData.organizers;
     heroSections = heroData.heroes;
+    galleryImages = galleryData;
   }
 
   return (
@@ -49,6 +53,7 @@ export default async function Page() {
       adminEvents={adminEvents}
       organizers={organizers}
       heroSections={heroSections}
+      galleryImages={galleryImages}
     />
   );
 }

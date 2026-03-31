@@ -39,6 +39,7 @@ export async function sendSMS({
     }
 
     const data = await response.json();
+
     return { success: true, data };
   } catch (error: any) {
     console.error("❌ SMS sending failed:", error?.message);
