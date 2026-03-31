@@ -48,20 +48,26 @@ export async function sendSMS({
 
 // Helper to format phone number for Bangladesh
 export function formatBDPhone(phone: string): string {
-  // Remove all non-digits
+  // Remove all non-digit characters
   let cleaned = phone.replace(/\D/g, "");
 
-  // If starts with +88, remove it
+  // 1. Local format: 01XXXXXXXXX → 8801XXXXXXXXX
+  if (cleaned.startsWith("0")) {
+    return "880" + cleaned.slice(1);
+  }
+
+  // 2. Already correct: 8801XXXXXXXXX
+  if (cleaned.startsWith("880")) {
+    return cleaned;
+  }
+
+  // 3. Country code without 0: 881XXXXXXXXX → 8801XXXXXXXXX
   if (cleaned.startsWith("88")) {
-    cleaned = cleaned.substring(2);
+    return "880" + cleaned.slice(2);
   }
 
-  // Add 880 prefix if not present
-  if (!cleaned.startsWith("880")) {
-    cleaned = "880" + cleaned;
-  }
-
-  return cleaned;
+  // 4. Fallback: assume local number without leading 0
+  return "880" + cleaned;
 }
 
 // Template for payment confirmation SMS
