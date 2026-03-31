@@ -116,7 +116,9 @@ const ProfilePage = ({
                     </p>
                   </div>
 
-                  {(tab.id === "events" || tab.id === "homepage") && (
+                  {(tab.id === "events" ||
+                    tab.id === "homepage" ||
+                    tab.id === "gallery") && (
                     <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-neon-lime text-gray-900 px-1.5 py-0.5 rounded">
                       Admin
                     </span>

@@ -50,6 +50,7 @@ export type DashboardOrder = {
     phone: string;
     gender: string;
     tshirtSize: string;
+    bibNumber: string;
     runnerCategory: string;
   } | null;
   payment: {

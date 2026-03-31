@@ -75,13 +75,13 @@ const TeamMemberCard = ({ member, index }: Props) => {
           </div>
 
           {/* Corner accent */}
-          <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden">
+          {/* <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden">
             <div
               className={`absolute rotate-45 bg-neon-lime w-24 h-6 -right-6 top-4 transition-all duration-500 ${
                 isHovered ? "opacity-100 scale-100" : "opacity-0 scale-75"
               }`}
             />
-          </div>
+          </div> */}
         </div>
 
         {/* Info */}
