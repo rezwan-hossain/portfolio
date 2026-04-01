@@ -25,6 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     month: "long",
     day: "numeric",
   });
+  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/events/${slug}`;
 
   return {
     title: event.name,
@@ -36,6 +37,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description:
         event.shortDesc || `Join us for ${event.name} on ${formattedDate}`,
       type: "article",
+      url,
+      siteName: "merchsports.com", // ✅ added
+      locale: "en_US", // ✅ added
       ...(eventImage && {
         images: [
           {
@@ -55,7 +59,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
 
     alternates: {
-      canonical: `/events/${slug}`,
+      canonical: url,
     },
   };
 }
