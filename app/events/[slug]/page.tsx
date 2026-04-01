@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { getEventBySlug } from "@/app/actions/event";
 import EventDetailPage from "@/module/event/pages/EventDetailPage";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import EventDetailSkeleton from "@/module/event/components/EventDetailSkeleton";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -67,5 +69,9 @@ export default async function Page({ params }: Props) {
     notFound();
   }
 
-  return <EventDetailPage event={event} />;
+  return (
+    <Suspense fallback={<EventDetailSkeleton />}>
+      <EventDetailPage event={event} />
+    </Suspense>
+  );
 }
