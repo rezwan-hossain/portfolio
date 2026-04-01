@@ -3,7 +3,6 @@ import { ImageResponse } from "next/og";
 import { loadGoogleFont } from "@/lib/og-fonts";
 import { prisma } from "@/lib/prisma";
 
-// ⚠️ Use 'nodejs' runtime since Prisma doesn't work on Edge
 export const runtime = "nodejs";
 
 export const alt = "Event";
@@ -17,8 +16,6 @@ export default async function EventOGImage({
 }) {
   const { slug } = await params;
 
-  // ── Fetch event + fonts in parallel ─────────
-  // Using "Noto Sans Bengali" for Bangla support
   const [event, titleFont, bodyFont] = await Promise.all([
     prisma.event.findUnique({
       where: { slug },
@@ -40,13 +37,12 @@ export default async function EventOGImage({
     loadGoogleFont("Inter", 400),
   ]);
 
-  // ── Fallback if event not found ─────────────
   if (!event) {
     return new ImageResponse(
       <div
         style={{
-          width: "100%",
-          height: "100%",
+          width: 1200,
+          height: 630,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -59,11 +55,12 @@ export default async function EventOGImage({
         Event Not Found
       </div>,
       {
-        ...size,
+        width: 1200,
+        height: 630,
         fonts: [
           {
             name: "Bebas Neue",
-            data: bodyFont,
+            data: titleFont,
             weight: 400,
             style: "normal",
           },
@@ -72,18 +69,8 @@ export default async function EventOGImage({
     );
   }
 
-  // ── Pick best available image ───────────────
   const eventImage = event.thumbImage || event.bannerImage || null;
 
-  // ── Format date ─────────────────────────────
-  const formattedDate = new Date(event.date).toLocaleDateString("bn-BD", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
-  // English date as fallback
   const formattedDateEn = new Date(event.date).toLocaleDateString("en-US", {
     weekday: "short",
     year: "numeric",
@@ -91,87 +78,88 @@ export default async function EventOGImage({
     day: "numeric",
   });
 
+  // Truncate address to prevent overflow
+  const truncatedAddress = event.address
+    ? event.address.length > 45
+      ? event.address.substring(0, 45) + "..."
+      : event.address
+    : "";
+
   return new ImageResponse(
     <div
       style={{
-        width: "100%",
-        height: "100%",
+        width: 1200,
+        height: 630,
         display: "flex",
         position: "relative",
         background: "#1a1a1a",
       }}
     >
-      {/* ── Full Width Background Image ─────── */}
+      {/* Background Image */}
       {eventImage ? (
         <img
           src={eventImage}
           width={1200}
           height={630}
-          alt={event.name}
+          alt=""
           style={{
             position: "absolute",
             top: 0,
             left: 0,
-            width: "100%",
-            height: "100%",
+            width: 1200,
+            height: 630,
             objectFit: "cover",
           }}
         />
       ) : (
-        // Fallback gradient if no image
         <div
           style={{
             position: "absolute",
             top: 0,
             left: 0,
-            width: "100%",
-            height: "100%",
-            background:
-              "linear-gradient(135deg, #99cd43 0%, #7ab532 50%, #5a9a1e 100%)",
+            width: 1200,
+            height: 630,
+            background: "linear-gradient(135deg, #99cd43 0%, #5a9a1e 100%)",
             display: "flex",
           }}
         />
       )}
 
-      {/* ── Dark Gradient Overlay ───────────── */}
+      {/* Simplified Gradient Overlay */}
       <div
         style={{
           position: "absolute",
           bottom: 0,
           left: 0,
-          right: 0,
-          height: "40%",
+          width: 1200,
+          height: 280,
           background:
-            "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0.4) 70%, transparent 100%)",
+            "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)",
           display: "flex",
         }}
       />
 
-      {/* ── Event Type Badge (Top Right) ────── */}
-
-      {/* ── Bottom Content ──────────────────── */}
+      {/* Bottom Content */}
       <div
         style={{
           position: "absolute",
           bottom: 0,
           left: 0,
-          right: 0,
+          width: 1200,
           padding: "40px 50px",
           display: "flex",
           flexDirection: "column",
           gap: 16,
         }}
       >
-        {/* Event Name */}
+        {/* Event Name - using loaded font "Inter" */}
         <div
           style={{
             fontSize: 52,
-            fontFamily: "Noto Sans Bengali",
+            fontFamily: "Inter",
             fontWeight: 700,
             color: "#ffffff",
             lineHeight: 1.2,
-            maxWidth: "100%",
-            textShadow: "0 4px 20px rgba(0,0,0,0.5)",
             display: "flex",
             flexWrap: "wrap",
           }}
@@ -179,14 +167,13 @@ export default async function EventOGImage({
           {event.name}
         </div>
 
-        {/* Accent Line */}
+        {/* Accent Line - removed boxShadow */}
         <div
           style={{
             width: 100,
             height: 4,
             background: "#99cd43",
             borderRadius: 2,
-            boxShadow: "0 0 20px rgba(153,205,67,0.6)",
             display: "flex",
           }}
         />
@@ -208,7 +195,6 @@ export default async function EventOGImage({
               gap: 12,
             }}
           >
-            {/* Calendar Icon */}
             <svg
               width="24"
               height="24"
@@ -232,7 +218,7 @@ export default async function EventOGImage({
             <div
               style={{
                 fontSize: 22,
-                fontFamily: "Noto Sans Bengali",
+                fontFamily: "Inter",
                 color: "rgba(255,255,255,0.9)",
                 fontWeight: 400,
                 display: "flex",
@@ -258,10 +244,8 @@ export default async function EventOGImage({
               display: "flex",
               alignItems: "center",
               gap: 12,
-              flex: 1,
             }}
           >
-            {/* Location Icon */}
             <svg
               width="24"
               height="24"
@@ -279,35 +263,28 @@ export default async function EventOGImage({
             <div
               style={{
                 fontSize: 20,
-                fontFamily: "Noto Sans Bengali",
+                fontFamily: "Inter",
                 color: "rgba(255,255,255,0.8)",
                 fontWeight: 400,
-                maxWidth: 700,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
                 display: "flex",
               }}
             >
-              {event.address}
+              {truncatedAddress}
             </div>
           </div>
         </div>
-
-        {/* Price Badge (Optional) */}
       </div>
 
-      {/* ── Corner Accents ──────────────────── */}
+      {/* Brand watermark */}
       <div
         style={{
           position: "absolute",
           bottom: 30,
           right: 40,
           fontSize: 14,
-          fontFamily: "Noto Sans Bengali",
+          fontFamily: "Inter",
           color: "rgba(255,255,255,0.4)",
-          letterSpacing: "2px",
-          textTransform: "uppercase",
+          letterSpacing: 2,
           display: "flex",
         }}
       >
@@ -315,7 +292,8 @@ export default async function EventOGImage({
       </div>
     </div>,
     {
-      ...size,
+      width: 1200,
+      height: 630,
       fonts: [
         { name: "Bebas Neue", data: titleFont, weight: 400, style: "normal" },
         { name: "Inter", data: bodyFont, weight: 400, style: "normal" },
