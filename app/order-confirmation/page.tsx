@@ -1,4 +1,5 @@
 // app/order-confirmation/page.tsx
+import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -6,7 +7,30 @@ import Link from "next/link";
 
 type SearchParams = Promise<{ orderId?: string }>;
 
-export default async function OrderConfirmationPage({
+// ✅ Loading fallback shown while dynamic data is fetched
+function OrderConfirmationSkeleton() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="max-w-lg w-full bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+        <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-6 animate-pulse" />
+        <div className="h-8 bg-gray-100 rounded w-48 mx-auto mb-2 animate-pulse" />
+        <div className="h-4 bg-gray-100 rounded w-64 mx-auto mb-8 animate-pulse" />
+        <div className="space-y-4 bg-gray-50 rounded-lg p-6 mb-6">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="flex justify-between">
+              <div className="h-4 bg-gray-200 rounded w-20 animate-pulse" />
+              <div className="h-4 bg-gray-200 rounded w-32 animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="h-12 bg-gray-200 rounded-full animate-pulse" />
+      </div>
+    </div>
+  );
+}
+
+// ✅ All dynamic data access isolated in this async component
+async function OrderConfirmationContent({
   searchParams,
 }: {
   searchParams: SearchParams;
@@ -43,9 +67,7 @@ export default async function OrderConfirmationPage({
           <span className="text-3xl">✅</span>
         </div>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Order Placed!
-        </h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Order Placed!</h1>
         <p className="text-gray-500 mb-8">
           Your registration has been submitted successfully
         </p>
@@ -113,5 +135,18 @@ export default async function OrderConfirmationPage({
         </div>
       </div>
     </div>
+  );
+}
+
+// ✅ Page component wraps dynamic content in Suspense
+export default function OrderConfirmationPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  return (
+    <Suspense fallback={<OrderConfirmationSkeleton />}>
+      <OrderConfirmationContent searchParams={searchParams} />
+    </Suspense>
   );
 }

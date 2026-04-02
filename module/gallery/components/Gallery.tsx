@@ -14,26 +14,33 @@ interface GalleryProps {
   images: { src: string; alt: string }[];
 }
 
-const getRandomSize = () => {
+// Deterministic pseudo-random based on seed (index)
+// Same input always produces the same output — safe during prerender
+const seededRandom = (seed: number) => {
+  const x = Math.sin(seed + 1) * 10000;
+  return x - Math.floor(x);
+};
+
+const getSize = (index: number) => {
   const widths = [200, 220, 240, 260, 280, 300];
   const heights = [150, 180, 200, 250, 280, 320, 350];
   return {
-    width: widths[Math.floor(Math.random() * widths.length)],
-    height: heights[Math.floor(Math.random() * heights.length)],
+    width: widths[Math.floor(seededRandom(index) * widths.length)],
+    height: heights[Math.floor(seededRandom(index + 100) * heights.length)],
   };
 };
 
 const Gallery = ({ images }: GalleryProps) => {
   const [selectedImage, setSelectedImage] = useState<GalleryItem | null>(null);
 
-  // Add random size to each image
-  const imagesWithSize: GalleryItem[] = images.map((img) => ({
+  // Assign deterministic sizes based on index — no Math.random(), no useEffect needed
+  const imagesWithSize: GalleryItem[] = images.map((img, index) => ({
     ...img,
-    ...getRandomSize(),
+    ...getSize(index),
   }));
 
   return (
-    <div className="relative min-h-screen flex flex-col justify-center  overflow-hidden">
+    <div className="relative min-h-screen flex flex-col justify-center overflow-hidden">
       <div className="w-full max-w-7xl mx-auto px-4 md:px-6 py-24">
         <div className="space-y-20">
           {/* Masonry Grid */}

@@ -1,4 +1,5 @@
 // app/payment/success/page.tsx
+import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -15,12 +16,75 @@ import {
   ArrowRight,
   Ticket,
   Shield,
-  Copy,
 } from "lucide-react";
 
 type SearchParams = Promise<{ orderId?: string }>;
 
-export default async function PaymentSuccessPage({
+// ✅ Skeleton shown instantly while data streams in
+function PaymentSuccessSkeleton() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50/60 via-white to-gray-50 flex items-start justify-center px-4 py-12 sm:py-20">
+      <div className="mt-20 max-w-xl w-full">
+        {/* Header skeleton */}
+        <div className="text-center mb-8">
+          <div className="w-24 h-24 bg-emerald-100 rounded-full mx-auto mb-6 animate-pulse" />
+          <div className="h-9 bg-gray-200 rounded-lg w-56 mx-auto mb-2 animate-pulse" />
+          <div className="h-4 bg-gray-100 rounded w-72 mx-auto animate-pulse" />
+        </div>
+
+        {/* Card skeleton */}
+        <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/60 border border-gray-100 overflow-hidden">
+          {/* BIB section */}
+          <div className="bg-emerald-500/20 px-6 py-7 animate-pulse">
+            <div className="flex items-center justify-between">
+              <div className="h-10 bg-emerald-200 rounded-xl w-36" />
+              <div className="h-14 bg-emerald-200 rounded-2xl w-32" />
+            </div>
+          </div>
+
+          {/* Event bar */}
+          <div className="px-6 py-4 bg-gray-50/80 border-b border-gray-100">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-gray-200 rounded-xl animate-pulse" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-48 animate-pulse" />
+                <div className="h-3 bg-gray-100 rounded w-64 animate-pulse" />
+              </div>
+            </div>
+          </div>
+
+          {/* Details */}
+          <div className="px-6 py-5 space-y-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex items-start gap-2.5">
+                <div className="w-8 h-8 bg-gray-100 rounded-lg animate-pulse" />
+                <div className="space-y-1.5 flex-1">
+                  <div className="h-3 bg-gray-100 rounded w-16 animate-pulse" />
+                  <div className="h-4 bg-gray-200 rounded w-32 animate-pulse" />
+                </div>
+              </div>
+            ))}
+
+            {/* Total */}
+            <div className="flex items-center justify-between bg-gray-50 -mx-6 px-6 py-4 mt-4">
+              <div className="h-5 bg-gray-200 rounded w-24 animate-pulse" />
+              <div className="h-8 bg-emerald-100 rounded w-20 animate-pulse" />
+            </div>
+          </div>
+        </div>
+
+        {/* Buttons skeleton */}
+        <div className="mt-6 flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 h-12 bg-gray-200 rounded-xl animate-pulse" />
+          <div className="flex-1 h-12 bg-gray-100 rounded-xl animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ✅ All dynamic data access isolated here
+async function PaymentSuccessContent({
   searchParams,
 }: {
   searchParams: SearchParams;
@@ -69,7 +133,6 @@ export default async function PaymentSuccessPage({
       <div className="mt-20 max-w-xl w-full">
         {/* ── Animated Success Header ── */}
         <div className="text-center mb-8">
-          {/* Layered glow rings */}
           <div className="relative w-24 h-24 mx-auto mb-6">
             <div className="absolute inset-0 bg-emerald-200/40 rounded-full animate-ping" />
             <div className="absolute inset-1 bg-emerald-100/60 rounded-full animate-pulse" />
@@ -88,10 +151,9 @@ export default async function PaymentSuccessPage({
 
         {/* ── Main Card ── */}
         <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/60 border border-gray-100 overflow-hidden">
-          {/* BIB Number — Hero Section */}
+          {/* BIB Number */}
           {order.registration?.bibNumber && (
             <div className="relative bg-gradient-to-r from-emerald-600 to-emerald-500 px-6 py-7 text-white overflow-hidden">
-              {/* Background pattern */}
               <div className="absolute inset-0 opacity-10">
                 <div className="absolute top-2 left-4 text-[120px] font-black leading-none select-none">
                   #
@@ -144,8 +206,7 @@ export default async function PaymentSuccessPage({
 
           {/* Details Grid */}
           <div className="px-6 py-5 space-y-0 divide-y divide-gray-100">
-            {/* Runner & Package */}
-            <div className="grid grid-cols-1  sm:grid-cols-2 gap-4 pb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4">
               <DetailItem
                 icon={<User className="w-4 h-4" />}
                 label="Runner"
@@ -159,8 +220,7 @@ export default async function PaymentSuccessPage({
               />
             </div>
 
-            {/* Order & Transaction */}
-            <div className="grid grid-cols-1  sm:grid-cols-2  gap-4 py-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
               <DetailItem
                 icon={<Receipt className="w-4 h-4" />}
                 label="Order ID"
@@ -181,8 +241,7 @@ export default async function PaymentSuccessPage({
               )}
             </div>
 
-            {/* Payment Info */}
-            <div className="grid grid-cols-1  sm:grid-cols-2 gap-4 py-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
               {order.payment?.paymentMethod && (
                 <DetailItem
                   icon={<CreditCard className="w-4 h-4" />}
@@ -198,9 +257,7 @@ export default async function PaymentSuccessPage({
               />
             </div>
 
-            {/* Total + Statuses */}
             <div className="pt-4 space-y-3">
-              {/* Status Badges */}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Status</span>
                 <div className="flex items-center gap-2">
@@ -219,7 +276,6 @@ export default async function PaymentSuccessPage({
                 </div>
               </div>
 
-              {/* Total */}
               <div className="flex items-center justify-between bg-gray-50 -mx-6 px-6 py-4 -mb-5 rounded-b-2xl">
                 <span className="text-base font-semibold text-gray-900">
                   Total Paid
@@ -292,6 +348,19 @@ export default async function PaymentSuccessPage({
         </p>
       </div>
     </div>
+  );
+}
+
+// ✅ Page component — sync wrapper with Suspense boundary
+export default function PaymentSuccessPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  return (
+    <Suspense fallback={<PaymentSuccessSkeleton />}>
+      <PaymentSuccessContent searchParams={searchParams} />
+    </Suspense>
   );
 }
 

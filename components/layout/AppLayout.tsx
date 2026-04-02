@@ -9,7 +9,7 @@ interface AppLayoutProps {
   readonly children: React.ReactNode;
 }
 
-export default async function AppLayout({ children }: AppLayoutProps) {
+export default function AppLayout({ children }: AppLayoutProps) {
   return (
     <>
       <div className="">
@@ -21,7 +21,17 @@ export default async function AppLayout({ children }: AppLayoutProps) {
           <SiteHeader4 />
         </Suspense>
 
-        <main className="min-h-screen">{children}</main>
+        <main className="min-h-screen">
+          <Suspense
+            fallback={
+              <div className="min-h-screen flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
+              </div>
+            }
+          >
+            {children}
+          </Suspense>
+        </main>
 
         {/* Site Footer */}
         <Suspense fallback={<div className="h-48 bg-black" />}>
