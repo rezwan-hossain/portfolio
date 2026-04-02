@@ -3,7 +3,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 // ─── Auth helper ────────────────────────────────────
 async function requireAdmin() {
@@ -171,6 +171,12 @@ export async function updateEvent(
   if (error) return { success: false, error };
 
   try {
+    // 1. Fetch current event before updating to know if the slug changed
+    const currentEvent = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { slug: true },
+    });
+
     // Check slug uniqueness (exclude current event)
     const existing = await prisma.event.findFirst({
       where: { slug: formData.slug, NOT: { id: eventId } },
@@ -200,6 +206,18 @@ export async function updateEvent(
         status: formData.status as any,
       },
     });
+
+    // Purge the cache for the NEW slug (Updates the Detail Page & Metadata)
+    revalidateTag(`event-${formData.slug}`, "max");
+
+    // If the admin changed the slug, purge the OLD slug's cache too!
+    if (currentEvent && currentEvent.slug !== formData.slug) {
+      revalidateTag(`event-${currentEvent.slug}`, "max");
+    }
+
+    // Purge global lists so the new details (name/date/image) update on the Homepage
+    revalidateTag("events", "max");
+    revalidateTag("upcoming-events", "max");
 
     return { success: true, error: "" };
   } catch (err: any) {

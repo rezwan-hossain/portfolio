@@ -38,8 +38,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         event.shortDesc || `Join us for ${event.name} on ${formattedDate}`,
       type: "article",
       url,
-      siteName: "merchsports.com", // ✅ added
-      locale: "en_US", // ✅ added
+      siteName: "merchsports.com",
+      locale: "en_US",
       ...(eventImage && {
         images: [
           {
@@ -66,16 +66,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 // ── Page Component ───────────────────────────
 export default async function Page({ params }: Props) {
-  const { slug } = await params;
+  // Move data fetching into a suspended component
+  return (
+    <Suspense fallback={<EventDetailSkeleton />}>
+      <EventPageContent paramsPromise={params} />
+    </Suspense>
+  );
+}
+
+// This component handles the data fetching and will be suspended
+async function EventPageContent({
+  paramsPromise,
+}: {
+  paramsPromise: Promise<{ slug: string }>;
+}) {
+  const { slug } = await paramsPromise;
   const { event, error } = await getEventBySlug(slug);
 
   if (!event || error) {
     notFound();
   }
 
-  return (
-    <Suspense fallback={<EventDetailSkeleton />}>
-      <EventDetailPage event={event} />
-    </Suspense>
-  );
+  return <EventDetailPage event={event} />;
 }

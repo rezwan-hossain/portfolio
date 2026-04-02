@@ -1,8 +1,13 @@
-"use server";
+// "use server";
 
 import { prisma } from "@/lib/prisma";
+import { cacheLife, cacheTag } from "next/cache";
 
 export async function getAllEvents() {
+  "use cache"; // ✅ Opt into data-level caching
+  cacheLife("hours"); // ✅ Cache duration
+  cacheTag("events"); // ✅ Tag for global invalidation
+
   try {
     const events = await prisma.event.findMany({
       where: {
@@ -29,6 +34,10 @@ export async function getAllEvents() {
 }
 
 export async function getEventBySlug(slug: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("events", `event-${slug}`); // ✅ Specific tag for this event
+
   try {
     const event = await prisma.event.findUnique({
       where: { slug },
@@ -49,6 +58,9 @@ export async function getEventBySlug(slug: string) {
 }
 
 export async function getUpcomingEvents(limit: number = 3) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("events", "upcoming-events");
   try {
     const events = await prisma.event.findMany({
       where: {
