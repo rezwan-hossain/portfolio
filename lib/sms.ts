@@ -1,6 +1,6 @@
 // lib/sms.ts
 interface SendSMSParams {
-  number: string; // Single number or comma-separated
+  number: string;
   message: string;
   senderid?: string;
 }
@@ -49,25 +49,20 @@ export async function sendSMS({
 
 // Helper to format phone number for Bangladesh
 export function formatBDPhone(phone: string): string {
-  // Remove all non-digit characters
   let cleaned = phone.replace(/\D/g, "");
 
-  // 1. Local format: 01XXXXXXXXX → 8801XXXXXXXXX
   if (cleaned.startsWith("0")) {
     return "880" + cleaned.slice(1);
   }
 
-  // 2. Already correct: 8801XXXXXXXXX
   if (cleaned.startsWith("880")) {
     return cleaned;
   }
 
-  // 3. Country code without 0: 881XXXXXXXXX → 8801XXXXXXXXX
   if (cleaned.startsWith("88")) {
     return "880" + cleaned.slice(2);
   }
 
-  // 4. Fallback: assume local number without leading 0
   return "880" + cleaned;
 }
 
@@ -76,15 +71,24 @@ export function getPaymentConfirmationSMS({
   runnerName,
   eventName,
   bibNumber,
-  amount,
-  orderId,
+  tshirtSize,
 }: {
   runnerName: string;
   eventName: string;
   bibNumber?: string;
-  amount: number;
-  orderId: string;
+  tshirtSize?: string;
 }): string {
-  const bibText = bibNumber ? ` BIB: ${bibNumber}.` : "";
-  return `Hi ${runnerName}! Payment confirmed for ${eventName}.${bibText} Amount: BDT ${amount}. Order: ${orderId}. See you at the race!`;
+  const bibText = bibNumber ? `Your BIB is : ${bibNumber}.` : "";
+  const tshirtText = tshirtSize ? `T-shirt size: ${tshirtSize}.` : "";
+
+  return [
+    `Hi ${runnerName}!`,
+    `Welcome to ${eventName}.`,
+    bibText,
+    tshirtText,
+    ``,
+    `Thanks from Merch Sports`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }

@@ -22,6 +22,8 @@ interface PaymentConfirmationEmailProps {
   transactionId?: string;
   paymentMethod?: string;
   bibNumber?: string;
+  tshirtSize?: string;
+  bloodGroup?: string;
 }
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -85,6 +87,8 @@ export async function sendPaymentConfirmationEmail(
       paymentMethod: params.paymentMethod || undefined,
       bibNumber: params.bibNumber || undefined,
       appUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+      tshirtSize: params.tshirtSize || undefined,
+      bloodGroup: params.bloodGroup || undefined,
     });
 
     // Send email

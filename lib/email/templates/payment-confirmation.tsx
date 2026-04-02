@@ -16,6 +16,8 @@ interface PaymentConfirmationEmailProps {
   paymentMethod?: string;
   bibNumber?: string;
   appUrl?: string;
+  tshirtSize?: string;
+  bloodGroup?: string;
 }
 
 export function getPaymentConfirmationEmailHTML({
@@ -33,6 +35,8 @@ export function getPaymentConfirmationEmailHTML({
   transactionId,
   paymentMethod,
   bibNumber,
+  tshirtSize,
+  bloodGroup,
   appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
 }: PaymentConfirmationEmailProps): string {
   const shortOrderId = orderId.slice(0, 8).toUpperCase();
@@ -282,6 +286,44 @@ export function getPaymentConfirmationEmailHTML({
                               <td style="padding-left: 10px; vertical-align: top;">
                                 <p style="margin: 0; font-size: 10px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px;">Date</p>
                                 <p style="margin: 4px 0 0 0; font-size: 14px; font-weight: 600; color: #111827;">${orderDate}</p>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Payment Method & Date Row -->
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f3f4f6;">
+                      <tr>
+                        ${
+                          tshirtSize
+                            ? `
+                        <td width="50%" style="vertical-align: top; padding-right: 12px;">
+                          <table role="presentation" cellspacing="0" cellpadding="0">
+                            <tr>
+                              <td style="width: 32px; height: 32px; background-color: #f3f4f6; border-radius: 8px; text-align: center; vertical-align: middle;">
+                                <span style="font-size: 14px;">👕</span>
+                              </td>
+                              <td style="padding-left: 10px; vertical-align: top;">
+                                <p style="margin: 0; font-size: 10px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px;">T-Shirt Size</p>
+                                <p style="margin: 4px 0 0 0; font-size: 14px; font-weight: 600; color: #111827; text-transform: capitalize;">${tshirtSize}</p>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                        `
+                            : ""
+                        }
+                        <td width="${paymentMethod ? "50%" : "100%"}" style="vertical-align: top; ${paymentMethod ? "padding-left: 12px;" : ""}">
+                          <table role="presentation" cellspacing="0" cellpadding="0">
+                            <tr>
+                              <td style="width: 32px; height: 32px; background-color: #f3f4f6; border-radius: 8px; text-align: center; vertical-align: middle;">
+                                <span style="font-size: 14px;">🩸</span>
+                              </td>
+                              <td style="padding-left: 10px; vertical-align: top;">
+                                <p style="margin: 0; font-size: 10px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px;">Blood Group</p>
+                                <p style="margin: 4px 0 0 0; font-size: 14px; font-weight: 600; color: #111827;">${bloodGroup}</p>
                               </td>
                             </tr>
                           </table>

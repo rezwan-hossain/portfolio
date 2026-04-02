@@ -1,5 +1,6 @@
 // app/api/payment/shurjopay/callback/route.ts
-import { autoAssignBibNumber, getEventBibPrefix } from "@/lib/bib";
+// import { autoAssignBibNumber, getEventBibPrefix } from "@/lib/bib";
+import { autoAssignBibNumber } from "@/lib/bib-package-prefix";
 import { sendPaymentConfirmationEmail } from "@/lib/email/send-payment-confirmation";
 import { prisma } from "@/lib/prisma";
 import { verifyShurjoPayPayment } from "@/lib/shurjopay";
@@ -117,12 +118,18 @@ export async function GET(request: NextRequest) {
           },
         });
 
-        if (order?.registration && order.event) {
-          const prefix = getEventBibPrefix(order.eventId);
+        if (order?.registration && order.event && order.package) {
+          // const prefix = getEventBibPrefix(order.eventId);
+          // const bibNumber = await autoAssignBibNumber(
+          //   order.registration.id,
+          //   order.eventId,
+          //   prefix,
+          // );
+
           const bibNumber = await autoAssignBibNumber(
             order.registration.id,
             order.eventId,
-            prefix,
+            order.packageId, // ← just pass packageId, prefix resolved internally
           );
 
           // ✅ Send BIB email to runner TODO: Implement sendBibEmail function and uncomment
@@ -163,6 +170,8 @@ export async function GET(request: NextRequest) {
               transactionId: order.payment?.transactionId ?? undefined,
               paymentMethod: order.payment?.paymentMethod ?? undefined,
               bibNumber: bibNumber ?? undefined,
+              tshirtSize: order.registration?.tshirtSize ?? undefined,
+              bloodGroup: order.registration?.bloodGroup ?? undefined,
             });
             if (emailResult.success) {
               console.log("✅ Confirmation email sent");
@@ -199,8 +208,7 @@ export async function GET(request: NextRequest) {
                   "Runner",
                 eventName: order.event.name,
                 bibNumber: bibNumber ?? undefined,
-                amount: order.payment?.amount || 0,
-                orderId: order.id,
+                tshirtSize: order.registration?.tshirtSize ?? undefined,
               });
 
               const smsResult = await sendSMS({

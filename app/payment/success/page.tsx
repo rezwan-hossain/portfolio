@@ -16,6 +16,8 @@ import {
   ArrowRight,
   Ticket,
   Shield,
+  Shirt,
+  Heart,
 } from "lucide-react";
 
 type SearchParams = Promise<{ orderId?: string }>;
@@ -254,6 +256,23 @@ async function PaymentSuccessContent({
                 icon={<Calendar className="w-4 h-4" />}
                 label="Date"
                 value={orderDate}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+              {order.registration?.tshirtSize && (
+                <DetailItem
+                  icon={<Shirt className="w-4 h-4" />}
+                  label="T-Shirt Size"
+                  value={order.registration?.tshirtSize || "—"}
+                  capitalize
+                />
+              )}
+              <DetailItem
+                icon={<Heart className="w-4 h-4" />}
+                label="Blood Group"
+                value={order.registration?.bloodGroup || "—"}
+                capitalize
               />
             </div>
 
