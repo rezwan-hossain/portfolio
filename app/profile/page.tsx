@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getGalleryImages } from "../actions/gallery";
 import { getAllCoupons } from "../actions/coupon";
+import { getAllTeamMembers } from "../actions/team";
 import { prisma } from "@/lib/prisma";
 
 export default async function Page() {
@@ -36,21 +37,24 @@ export default async function Page() {
   let galleryImages: any[] = [];
   let coupons: any[] = [];
   let couponEvents: any[] = [];
+  let teamMembers: any[] = [];
 
   if (isAdmin) {
-    const [eventsData, orgData, heroData, galleryData, couponData] =
+    const [eventsData, orgData, heroData, galleryData, couponData, teamData] =
       await Promise.all([
         getAdminEvents(),
         getOrganizers(),
         getAllHeroes(),
         getGalleryImages(),
         getAllCoupons(),
+        getAllTeamMembers(),
       ]);
     adminEvents = eventsData.events;
     organizers = orgData.organizers;
     heroSections = heroData.heroes;
     galleryImages = galleryData;
     coupons = couponData.coupons;
+    teamMembers = teamData.members;
 
     // Get simple event list for coupon dropdown
     const allEvents = await prisma.event.findMany({
@@ -70,6 +74,7 @@ export default async function Page() {
       galleryImages={galleryImages}
       coupons={coupons}
       couponEvents={couponEvents}
+      teamMembers={teamMembers}
     />
   );
 }

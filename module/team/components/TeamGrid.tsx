@@ -1,9 +1,9 @@
 // module/team/components/TeamGrid.tsx
-import type { TeamMember } from "@/types/team";
+import type { TeamMember } from "@/types/team"; // ⭐ Changed from TeamMembers
 import TeamMemberCard from "./TeamMemberCard";
 
 type Props = {
-  members: TeamMember[];
+  members: TeamMember[]; // ⭐ Changed from TeamMembers[]
   title?: string;
   subtitle?: string;
 };

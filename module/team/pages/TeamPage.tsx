@@ -1,147 +1,15 @@
-// module/team/pages/TeamPage.tsx (or app/team/page.tsx)
+// module/team/pages/TeamPage.tsx
 import { HeroText } from "@/components/ui/HeroText";
 import TeamGrid from "../components/TeamGrid";
 import TeamStats from "../components/TeamStats";
-import JoinTeamCTA from "../components/JoinTeamCTA";
 import type { TeamMember } from "@/types/team";
 
-const leadership: TeamMember[] = [
-  {
-    id: "1",
-    name: "Sarah Rahman",
-    role: "Founder & CEO",
-    bio: "Former marathon champion turned entrepreneur. Sarah founded the platform to make running events accessible to everyone across Bangladesh.",
-    image: "https://i.pravatar.cc/400?img=12",
-    socials: {
-      linkedin: "https://linkedin.com/in/sarah",
-      twitter: "https://twitter.com/sarah",
-    },
-  },
-  {
-    id: "2",
-    name: "Kamal Hossain",
-    role: "Co-Founder & CTO",
-    bio: "Full-stack engineer with 10+ years of experience building scalable platforms. Passionate about using tech to connect communities.",
-    image: "https://i.pravatar.cc/400?img=32",
-    socials: {
-      linkedin: "https://linkedin.com/in/kamal",
-      github: "https://github.com/kamal",
-    },
-  },
-  {
-    id: "3",
-    name: "Nadia Islam",
-    role: "Head of Operations",
-    bio: "Expert in event logistics and operations. Nadia ensures every race runs smoothly from registration to finish line.",
-    image: "https://i.pravatar.cc/400?img=45",
-    socials: {
-      linkedin: "https://linkedin.com/in/nadia",
-      instagram: "https://instagram.com/nadia",
-    },
-  },
-  {
-    id: "4",
-    name: "Arif Khan",
-    role: "Creative Director",
-    bio: "Award-winning designer who brings every event to life through stunning visuals and unforgettable brand experiences.",
-    image: "https://i.pravatar.cc/400?img=60",
-    socials: {
-      linkedin: "https://linkedin.com/in/arif",
-      twitter: "https://twitter.com/arif",
-      instagram: "https://instagram.com/arif",
-    },
-  },
-];
+type TeamPageProps = {
+  adminMembers: TeamMember[];
+  advisorMembers: TeamMember[];
+};
 
-const team: TeamMember[] = [
-  {
-    id: "5",
-    name: "Tamim Iqbal",
-    role: "Lead Developer",
-    bio: "Builds the core platform features. React enthusiast and open-source contributor.",
-    image: "https://i.pravatar.cc/400?img=21",
-    socials: {
-      github: "https://github.com/tamim",
-      linkedin: "https://linkedin.com/in/tamim",
-    },
-  },
-  {
-    id: "6",
-    name: "Fatima Begum",
-    role: "Marketing Lead",
-    bio: "Drives growth and community engagement through creative campaigns and partnerships.",
-    image: "https://i.pravatar.cc/400?img=47",
-    socials: {
-      linkedin: "https://linkedin.com/in/fatima",
-      instagram: "https://instagram.com/fatima",
-    },
-  },
-  {
-    id: "7",
-    name: "Rezwan Ahmed",
-    role: "Event Coordinator",
-    bio: "On-ground operations specialist who has coordinated 50+ running events nationwide.",
-    image: "https://i.pravatar.cc/400?img=33",
-    socials: {
-      linkedin: "https://linkedin.com/in/rezwan",
-    },
-  },
-  {
-    id: "8",
-    name: "Priya Das",
-    role: "Community Manager",
-    bio: "Connects with runners, builds partnerships, and grows the community one race at a time.",
-    image: "https://i.pravatar.cc/400?img=5",
-    socials: {
-      twitter: "https://twitter.com/priya",
-      instagram: "https://instagram.com/priya",
-    },
-  },
-  {
-    id: "9",
-    name: "Sohel Rana",
-    role: "Backend Engineer",
-    bio: "Database architect and API specialist. Keeps the platform fast and reliable at scale.",
-    image: "https://i.pravatar.cc/400?img=14",
-    socials: {
-      github: "https://github.com/sohel",
-    },
-  },
-  {
-    id: "10",
-    name: "Mithila Chowdhury",
-    role: "UI/UX Designer",
-    bio: "Creates intuitive, beautiful interfaces that make event discovery and registration a breeze.",
-    image: "https://i.pravatar.cc/400?img=48",
-    socials: {
-      linkedin: "https://linkedin.com/in/mithila",
-      instagram: "https://instagram.com/mithila",
-    },
-  },
-  {
-    id: "11",
-    name: "Rafiq Uddin",
-    role: "Finance & Admin",
-    bio: "Manages budgets, sponsorships, and ensures financial sustainability across all operations.",
-    image: "https://i.pravatar.cc/400?img=52",
-    socials: {
-      linkedin: "https://linkedin.com/in/rafiq",
-    },
-  },
-  {
-    id: "12",
-    name: "Anika Sultana",
-    role: "Content Writer",
-    bio: "Tells the stories behind every race. From blog posts to social media, Anika captures the spirit of running.",
-    image: "https://i.pravatar.cc/400?img=49",
-    socials: {
-      twitter: "https://twitter.com/anika",
-      instagram: "https://instagram.com/anika",
-    },
-  },
-];
-
-const TeamPage = () => {
+const TeamPage = ({ adminMembers, advisorMembers }: TeamPageProps) => {
   return (
     <div className="min-h-screen bg-background font-body">
       {/* Hero */}
@@ -166,29 +34,41 @@ const TeamPage = () => {
 
         {/* Stats */}
         <div className="mb-20">
-          <TeamStats />
-        </div>
-
-        {/* Leadership */}
-        <div className="mb-20">
-          <TeamGrid
-            members={leadership}
-            title="LEADERSHIP"
-            subtitle="The visionaries steering our mission forward"
+          <TeamStats
+            totalMembers={adminMembers.length + advisorMembers.length}
+            adminCount={adminMembers.length}
+            teamCount={advisorMembers.length}
           />
         </div>
+
+        {/* Admin Team */}
+        {adminMembers.length > 0 && (
+          <div className="mb-20">
+            <TeamGrid
+              members={adminMembers}
+              title="ADMIN TEAM"
+              subtitle="The visionaries steering our mission forward"
+            />
+          </div>
+        )}
 
         {/* Full Team */}
-        <div className="mb-20">
-          <TeamGrid
-            members={team}
-            title="THE CREW"
-            subtitle="The talented individuals who bring everything together"
-          />
-        </div>
+        {advisorMembers.length > 0 && (
+          <div className="mb-20">
+            <TeamGrid
+              members={advisorMembers}
+              title="THE CREW"
+              subtitle="The talented individuals who bring everything together"
+            />
+          </div>
+        )}
 
-        {/* Join CTA */}
-        {/* <JoinTeamCTA /> */}
+        {/* Empty State */}
+        {adminMembers.length === 0 && advisorMembers.length === 0 && (
+          <div className="text-center py-20">
+            <p className="text-gray-500 text-lg">Team members coming soon...</p>
+          </div>
+        )}
       </div>
     </div>
   );

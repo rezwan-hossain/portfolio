@@ -9,11 +9,12 @@ import {
   Github,
   Instagram,
   ArrowUpRight,
+  Facebook,
 } from "lucide-react";
-import type { TeamMember } from "@/types/team";
+import type { TeamMember } from "@/types/team"; // ⭐ Changed from TeamMembers
 
 type Props = {
-  member: TeamMember;
+  member: TeamMember; // ⭐ Changed from TeamMembers
   index: number;
 };
 
@@ -30,10 +31,29 @@ const SOCIAL_ICONS = {
     label: "Instagram",
     hover: "hover:text-[#E4405F]",
   },
+  facebook: {
+    icon: Facebook,
+    label: "Facebook",
+    hover: "hover:text-[#1877F2]",
+  },
 } as const;
 
 const TeamMemberCard = ({ member, index }: Props) => {
   const [isHovered, setIsHovered] = useState(false);
+
+  // ⭐ Build socials object from individual URL fields
+  const socials = member.socials || {
+    linkedin: member.linkedinUrl || undefined,
+    twitter: member.twitterUrl || undefined,
+    github: member.githubUrl || undefined,
+    instagram: member.instagramUrl || undefined,
+    facebook: member.facebookUrl || undefined,
+  };
+
+  // ⭐ Filter out empty values
+  const socialEntries = Object.entries(socials).filter(
+    ([, url]) => url && url.trim() !== "",
+  ) as [keyof typeof SOCIAL_ICONS, string][];
 
   return (
     <div
@@ -46,13 +66,21 @@ const TeamMemberCard = ({ member, index }: Props) => {
       <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all duration-500 hover:border-gray-300 hover:shadow-xl">
         {/* Image Container */}
         <div className="relative aspect-[4/5] overflow-hidden bg-gray-100">
-          <Image
-            src={member.image}
-            alt={member.name}
-            fill
-            className="object-cover transition-transform duration-700 group-hover:scale-105"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-          />
+          {member.image ? (
+            <Image
+              src={member.image}
+              alt={member.name}
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-200">
+              <span className="text-4xl font-bold text-gray-400">
+                {member.name.charAt(0).toUpperCase()}
+              </span>
+            </div>
+          )}
 
           {/* Gradient overlay on hover */}
           <div
@@ -62,26 +90,19 @@ const TeamMemberCard = ({ member, index }: Props) => {
           />
 
           {/* Bio text — slides up on hover */}
-          <div
-            className={`absolute bottom-0 left-0 right-0 p-5 transition-all duration-500 ${
-              isHovered
-                ? "translate-y-0 opacity-100"
-                : "translate-y-4 opacity-0"
-            }`}
-          >
-            <p className="font-body text-sm text-white/90 leading-relaxed line-clamp-3">
-              {member.bio}
-            </p>
-          </div>
-
-          {/* Corner accent */}
-          {/* <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden">
+          {member.bio && (
             <div
-              className={`absolute rotate-45 bg-neon-lime w-24 h-6 -right-6 top-4 transition-all duration-500 ${
-                isHovered ? "opacity-100 scale-100" : "opacity-0 scale-75"
+              className={`absolute bottom-0 left-0 right-0 p-5 transition-all duration-500 ${
+                isHovered
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-4 opacity-0"
               }`}
-            />
-          </div> */}
+            >
+              <p className="font-body text-sm text-white/90 leading-relaxed line-clamp-3">
+                {member.bio}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Info */}
@@ -91,9 +112,12 @@ const TeamMemberCard = ({ member, index }: Props) => {
               <h3 className="font-display text-lg tracking-wide text-foreground truncate">
                 {member.name.toUpperCase()}
               </h3>
-              <p className="font-body text-sm text-muted-foreground mt-0.5">
-                {member.role}
-              </p>
+              {/* ⭐ Handle nullable role */}
+              {member.role && (
+                <p className="font-body text-sm text-muted-foreground mt-0.5">
+                  {member.role}
+                </p>
+              )}
             </div>
 
             {/* Arrow indicator */}
@@ -114,30 +138,26 @@ const TeamMemberCard = ({ member, index }: Props) => {
           </div>
 
           {/* Social Links */}
-          {member.socials && Object.keys(member.socials).length > 0 && (
+          {socialEntries.length > 0 && (
             <div className="flex items-center gap-1 mt-4 pt-4 border-t border-gray-100">
-              {(
-                Object.entries(member.socials) as [
-                  keyof typeof SOCIAL_ICONS,
-                  string,
-                ][]
-              )
-                .filter(([, url]) => url)
-                .map(([platform, url]) => {
-                  const { icon: Icon, label, hover } = SOCIAL_ICONS[platform];
-                  return (
-                    <a
-                      key={platform}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`p-2 rounded-lg text-gray-400 transition-colors ${hover} hover:bg-gray-50`}
-                      aria-label={`${member.name}'s ${label}`}
-                    >
-                      <Icon size={16} />
-                    </a>
-                  );
-                })}
+              {socialEntries.map(([platform, url]) => {
+                const socialConfig = SOCIAL_ICONS[platform];
+                if (!socialConfig) return null;
+
+                const { icon: Icon, label, hover } = socialConfig;
+                return (
+                  <a
+                    key={platform}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`p-2 rounded-lg text-gray-400 transition-colors ${hover} hover:bg-gray-50`}
+                    aria-label={`${member.name}'s ${label}`}
+                  >
+                    <Icon size={16} />
+                  </a>
+                );
+              })}
             </div>
           )}
         </div>

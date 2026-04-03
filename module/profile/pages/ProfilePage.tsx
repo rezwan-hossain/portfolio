@@ -16,6 +16,7 @@ import { AdminGalleryPanel } from "../components/admin/AdminGalleryPanel";
 import type { UserProfile, AdminEvent, AdminOrganizer } from "@/types/profile";
 import type { HeroSectionData } from "@/types/homepage";
 import type { GalleryImage } from "@/types/gallery";
+import type { TeamMember } from "@/types/team";
 import {
   User,
   Lock,
@@ -23,7 +24,9 @@ import {
   Layout,
   ImageIcon,
   Ticket,
+  Users,
 } from "lucide-react";
+import { AdminTeamPanel } from "../components/admin/AdminTeamPanel";
 
 type ProfilePageProps = {
   profile: UserProfile;
@@ -34,6 +37,7 @@ type ProfilePageProps = {
   galleryImages?: GalleryImage[];
   coupons?: Coupon[];
   couponEvents?: CouponEvent[];
+  teamMembers?: TeamMember[];
 };
 
 type Tab =
@@ -42,7 +46,8 @@ type Tab =
   | "events"
   | "homepage"
   | "gallery"
-  | "coupons";
+  | "coupons"
+  | "team";
 
 const ProfilePage = ({
   profile,
@@ -53,6 +58,7 @@ const ProfilePage = ({
   galleryImages = [],
   coupons = [],
   couponEvents = [],
+  teamMembers = [],
 }: ProfilePageProps) => {
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const isAdmin = profile.role === "ADMIN";
@@ -100,6 +106,12 @@ const ProfilePage = ({
             icon: ImageIcon,
             description: "Add, edit & remove photos",
           },
+          {
+            id: "team" as Tab,
+            label: "Manage Team",
+            icon: Users,
+            description: "Add & edit team members",
+          },
         ]
       : []),
   ];
@@ -146,7 +158,8 @@ const ProfilePage = ({
                   {(tab.id === "events" ||
                     tab.id === "homepage" ||
                     tab.id === "coupons" ||
-                    tab.id === "gallery") && (
+                    tab.id === "gallery" ||
+                    tab.id === "team") && (
                     <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-neon-lime text-gray-900 px-1.5 py-0.5 rounded">
                       Admin
                     </span>
@@ -177,6 +190,10 @@ const ProfilePage = ({
             )}
             {activeTab === "gallery" && isAdmin && (
               <AdminGalleryPanel initialImages={galleryImages} />
+            )}
+
+            {activeTab === "team" && isAdmin && (
+              <AdminTeamPanel initialMembers={teamMembers} />
             )}
           </div>
         </div>
