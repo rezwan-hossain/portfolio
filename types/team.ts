@@ -1,4 +1,7 @@
 // types/team.ts
+
+export type TeamCategory = "ADMIN" | "ADVISOR" | "ORGANIZER";
+
 export type TeamMember = {
   id: string;
   name: string;
@@ -6,7 +9,7 @@ export type TeamMember = {
   bio?: string | null;
   image?: string | null;
   sortOrder: number;
-  category: "ADMIN" | "ADVISOR";
+  category: TeamCategory;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -30,25 +33,11 @@ export type TeamMemberFormData = {
   role: string;
   bio: string;
   image: string;
-  category: "ADMIN" | "ADVISOR";
+  category: TeamCategory;
   sortOrder: string;
   linkedinUrl: string;
   twitterUrl: string;
   githubUrl: string;
   instagramUrl: string;
   facebookUrl: string;
-};
-
-export type TeamMembers = {
-  id: string;
-  name: string;
-  role: string;
-  bio: string;
-  image: string;
-  socials?: {
-    linkedin?: string;
-    twitter?: string;
-    github?: string;
-    instagram?: string;
-  };
 };

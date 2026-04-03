@@ -1,18 +1,18 @@
 type Props = {
   totalMembers?: number;
   adminCount?: number;
-  teamCount?: number;
+  advisorCount?: number;
 };
 
 const TeamStats = ({
   totalMembers = 12,
   adminCount = 4,
-  teamCount = 8,
+  advisorCount = 8,
 }: Props) => {
   const stats = [
     { value: totalMembers, label: "Team Members" },
     { value: adminCount, label: "Leadership" },
-    { value: teamCount, label: "Core Team" },
+    { value: advisorCount, label: "Core Team" },
     { value: "100+", label: "Events Organized" },
   ];
 

@@ -4,6 +4,8 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
+type TeamCategory = "ADMIN" | "ADVISOR" | "ORGANIZER";
+
 // ─── GET ALL TEAM MEMBERS ──────────────────────────
 export async function getAllTeamMembers() {
   try {
@@ -66,7 +68,7 @@ export async function createTeamMember(data: {
   role?: string;
   bio?: string;
   image?: string;
-  category?: "ADMIN" | "TEAM";
+  category?: TeamCategory;
   sortOrder?: number;
   linkedinUrl?: string;
   twitterUrl?: string;
@@ -81,7 +83,7 @@ export async function createTeamMember(data: {
         role: data.role || null,
         bio: data.bio || null,
         image: data.image || null,
-        category: data.category || "TEAM",
+        category: data.category || "ADVISOR",
         sortOrder: data.sortOrder || 0,
         linkedinUrl: data.linkedinUrl || null,
         twitterUrl: data.twitterUrl || null,
@@ -109,7 +111,7 @@ export async function updateTeamMember(
     role: string | null;
     bio: string | null;
     image: string | null;
-    category: "ADMIN" | "TEAM";
+    category: TeamCategory;
     sortOrder: number;
     isActive: boolean;
     linkedinUrl: string | null;

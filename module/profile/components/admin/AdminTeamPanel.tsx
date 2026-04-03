@@ -3,7 +3,6 @@
 
 import { useState } from "react";
 import {
-  updateTeamMember,
   deleteTeamMember,
   getAllTeamMembers,
   toggleTeamMemberActive,
@@ -21,6 +20,8 @@ import {
   Eye,
   EyeOff,
   GripVertical,
+  Shield,
+  Briefcase,
 } from "lucide-react";
 import Image from "next/image";
 import { TeamMemberForm } from "./TeamMemberForm";
@@ -31,6 +32,28 @@ type Props = {
 
 type View = "list" | "create" | "edit";
 
+// Category display config
+const CATEGORY_CONFIG = {
+  ADMIN: {
+    label: "Leadership",
+    bgColor: "bg-purple-100",
+    textColor: "text-purple-700",
+    icon: Shield,
+  },
+  ADVISOR: {
+    label: "Advisors",
+    bgColor: "bg-amber-100",
+    textColor: "text-amber-700",
+    icon: UserCog,
+  },
+  ORGANIZER: {
+    label: "Organizers",
+    bgColor: "bg-blue-100",
+    textColor: "text-blue-700",
+    icon: Briefcase,
+  },
+} as const;
+
 export function AdminTeamPanel({ initialMembers }: Props) {
   const [view, setView] = useState<View>("list");
   const [members, setMembers] = useState(initialMembers);
@@ -38,7 +61,8 @@ export function AdminTeamPanel({ initialMembers }: Props) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const adminMembers = members.filter((m) => m.category === "ADMIN");
-  const teamMembers = members.filter((m) => m.category === "ADVISOR");
+  const advisorMembers = members.filter((m) => m.category === "ADVISOR");
+  const organizerMembers = members.filter((m) => m.category === "ORGANIZER");
   const activeCount = members.filter((m) => m.isActive).length;
 
   const refreshMembers = async () => {
@@ -85,134 +109,162 @@ export function AdminTeamPanel({ initialMembers }: Props) {
     setLoadingId(null);
   };
 
-  const MemberCard = ({ member }: { member: TeamMember }) => (
-    <div
-      className={`bg-white border rounded-xl p-4 transition-all ${
-        member.isActive ? "border-gray-200" : "border-gray-200 opacity-50"
-      }`}
-    >
-      <div className="flex items-start gap-4">
-        {/* Drag Handle (for future reordering) */}
-        <div className="flex-shrink-0 pt-1 cursor-grab text-gray-300 hover:text-gray-400">
-          <GripVertical size={16} />
-        </div>
+  const MemberCard = ({ member }: { member: TeamMember }) => {
+    const categoryConfig = CATEGORY_CONFIG[member.category];
 
-        {/* Image */}
-        <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-          {member.image ? (
-            <Image
-              src={member.image}
-              alt={member.name}
-              fill
-              className="object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
-              <Users size={24} />
+    return (
+      <div
+        className={`bg-white border rounded-xl p-4 transition-all ${
+          member.isActive ? "border-gray-200" : "border-gray-200 opacity-50"
+        }`}
+      >
+        <div className="flex items-start gap-4">
+          {/* Drag Handle */}
+          <div className="flex-shrink-0 pt-1 cursor-grab text-gray-300 hover:text-gray-400">
+            <GripVertical size={16} />
+          </div>
+
+          {/* Image */}
+          <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+            {member.image ? (
+              <Image
+                src={member.image}
+                alt={member.name}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                <Users size={24} />
+              </div>
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h4 className="font-bold text-gray-900 truncate">
+                  {member.name}
+                </h4>
+                {member.role && (
+                  <p className="text-sm text-gray-500">{member.role}</p>
+                )}
+              </div>
+
+              {/* Category Badge */}
+              <span
+                className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full flex-shrink-0 ${categoryConfig.bgColor} ${categoryConfig.textColor}`}
+              >
+                {member.category}
+              </span>
             </div>
-          )}
-        </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <h4 className="font-bold text-gray-900 truncate">
-                {member.name}
-              </h4>
-              {member.role && (
-                <p className="text-sm text-gray-500">{member.role}</p>
+            {member.bio && (
+              <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                {member.bio}
+              </p>
+            )}
+
+            {/* Social Links Pills */}
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {member.linkedinUrl && (
+                <span className="px-2 py-0.5 text-[10px] bg-blue-50 text-blue-600 rounded-full">
+                  LinkedIn
+                </span>
+              )}
+              {member.twitterUrl && (
+                <span className="px-2 py-0.5 text-[10px] bg-sky-50 text-sky-600 rounded-full">
+                  Twitter
+                </span>
+              )}
+              {member.githubUrl && (
+                <span className="px-2 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded-full">
+                  GitHub
+                </span>
+              )}
+              {member.instagramUrl && (
+                <span className="px-2 py-0.5 text-[10px] bg-pink-50 text-pink-600 rounded-full">
+                  Instagram
+                </span>
+              )}
+              {member.facebookUrl && (
+                <span className="px-2 py-0.5 text-[10px] bg-indigo-50 text-indigo-600 rounded-full">
+                  Facebook
+                </span>
               )}
             </div>
-
-            {/* Category Badge */}
-            <span
-              className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full flex-shrink-0 ${
-                member.category === "ADMIN"
-                  ? "bg-purple-100 text-purple-700"
-                  : "bg-blue-100 text-blue-700"
-              }`}
-            >
-              {member.category}
-            </span>
           </div>
 
-          {member.bio && (
-            <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-              {member.bio}
-            </p>
-          )}
-
-          {/* Social Links Pills */}
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {member.linkedinUrl && (
-              <span className="px-2 py-0.5 text-[10px] bg-blue-50 text-blue-600 rounded-full">
-                LinkedIn
-              </span>
-            )}
-            {member.twitterUrl && (
-              <span className="px-2 py-0.5 text-[10px] bg-sky-50 text-sky-600 rounded-full">
-                Twitter
-              </span>
-            )}
-            {member.githubUrl && (
-              <span className="px-2 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded-full">
-                GitHub
-              </span>
-            )}
-            {member.instagramUrl && (
-              <span className="px-2 py-0.5 text-[10px] bg-pink-50 text-pink-600 rounded-full">
-                Instagram
-              </span>
-            )}
-            {member.facebookUrl && (
-              <span className="px-2 py-0.5 text-[10px] bg-indigo-50 text-indigo-600 rounded-full">
-                Facebook
-              </span>
+          {/* Actions */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {loadingId === member.id ? (
+              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleToggleActive(member)}
+                  className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                    member.isActive
+                      ? "text-green-500 hover:text-red-600 hover:bg-red-50"
+                      : "text-gray-400 hover:text-green-600 hover:bg-green-50"
+                  }`}
+                  title={member.isActive ? "Hide" : "Show"}
+                >
+                  {member.isActive ? <Eye size={15} /> : <EyeOff size={15} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleEdit(member)}
+                  className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                  title="Edit"
+                >
+                  <Pencil size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(member.id)}
+                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                  title="Delete"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </>
             )}
           </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {loadingId === member.id ? (
-            <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => handleToggleActive(member)}
-                className={`p-2 rounded-lg transition-colors cursor-pointer ${
-                  member.isActive
-                    ? "text-green-500 hover:text-red-600 hover:bg-red-50"
-                    : "text-gray-400 hover:text-green-600 hover:bg-green-50"
-                }`}
-                title={member.isActive ? "Hide" : "Show"}
-              >
-                {member.isActive ? <Eye size={15} /> : <EyeOff size={15} />}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleEdit(member)}
-                className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
-                title="Edit"
-              >
-                <Pencil size={15} />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(member.id)}
-                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                title="Delete"
-              >
-                <Trash2 size={15} />
-              </button>
-            </>
-          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const CategorySection = ({
+    title,
+    members,
+    icon: Icon,
+  }: {
+    title: string;
+    members: TeamMember[];
+    icon: React.ElementType;
+  }) => {
+    if (members.length === 0) return null;
+
+    return (
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <Icon size={14} className="text-gray-400" />
+          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+            {title} ({members.length})
+          </h3>
+        </div>
+        <div className="space-y-3">
+          {members.map((member) => (
+            <MemberCard key={member.id} member={member} />
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -249,15 +301,20 @@ export function AdminTeamPanel({ initialMembers }: Props) {
       {view === "list" && (
         <>
           {/* Stats Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
             {[
               { label: "Total", value: members.length, icon: Users },
+              { label: "Leadership", value: adminMembers.length, icon: Shield },
               {
-                label: "Admin Team",
-                value: adminMembers.length,
+                label: "Advisors",
+                value: advisorMembers.length,
                 icon: UserCog,
               },
-              { label: "Team Members", value: teamMembers.length, icon: Users },
+              {
+                label: "Organizers",
+                value: organizerMembers.length,
+                icon: Briefcase,
+              },
               { label: "Active", value: activeCount, icon: Eye },
             ].map((stat) => (
               <div
@@ -289,33 +346,21 @@ export function AdminTeamPanel({ initialMembers }: Props) {
             </div>
           ) : (
             <>
-              {/* Admin Team Section */}
-              {adminMembers.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                    Admin Team ({adminMembers.length})
-                  </h3>
-                  <div className="space-y-3">
-                    {adminMembers.map((member) => (
-                      <MemberCard key={member.id} member={member} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Team Members Section */}
-              {teamMembers.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                    The Crew ({teamMembers.length})
-                  </h3>
-                  <div className="space-y-3">
-                    {teamMembers.map((member) => (
-                      <MemberCard key={member.id} member={member} />
-                    ))}
-                  </div>
-                </div>
-              )}
+              <CategorySection
+                title="Leadership"
+                members={adminMembers}
+                icon={Shield}
+              />
+              <CategorySection
+                title="Advisors"
+                members={advisorMembers}
+                icon={UserCog}
+              />
+              <CategorySection
+                title="Organizers"
+                members={organizerMembers}
+                icon={Briefcase}
+              />
             </>
           )}
         </>

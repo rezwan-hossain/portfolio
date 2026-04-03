@@ -7,9 +7,17 @@ import type { TeamMember } from "@/types/team";
 type TeamPageProps = {
   adminMembers: TeamMember[];
   advisorMembers: TeamMember[];
+  organizerMembers: TeamMember[];
 };
 
-const TeamPage = ({ adminMembers, advisorMembers }: TeamPageProps) => {
+const TeamPage = ({
+  adminMembers,
+  advisorMembers,
+  organizerMembers,
+}: TeamPageProps) => {
+  const totalMembers =
+    adminMembers.length + advisorMembers.length + organizerMembers.length;
+
   return (
     <div className="min-h-screen bg-background font-body">
       {/* Hero */}
@@ -35,9 +43,10 @@ const TeamPage = ({ adminMembers, advisorMembers }: TeamPageProps) => {
         {/* Stats */}
         <div className="mb-20">
           <TeamStats
-            totalMembers={adminMembers.length + advisorMembers.length}
+            totalMembers={totalMembers}
             adminCount={adminMembers.length}
-            teamCount={advisorMembers.length}
+            advisorCount={advisorMembers.length}
+            // organizerCount={organizerMembers.length}
           />
         </div>
 
@@ -46,25 +55,36 @@ const TeamPage = ({ adminMembers, advisorMembers }: TeamPageProps) => {
           <div className="mb-20">
             <TeamGrid
               members={adminMembers}
-              title="ADMIN TEAM"
+              title="LEADERSHIP"
               subtitle="The visionaries steering our mission forward"
             />
           </div>
         )}
 
-        {/* Full Team */}
+        {/* Advisors */}
         {advisorMembers.length > 0 && (
           <div className="mb-20">
             <TeamGrid
               members={advisorMembers}
-              title="THE CREW"
+              title="ADVISORS"
+              subtitle="Expert guidance shaping our strategic direction"
+            />
+          </div>
+        )}
+
+        {/* Organizers */}
+        {organizerMembers.length > 0 && (
+          <div className="mb-20">
+            <TeamGrid
+              members={organizerMembers}
+              title="ORGANIZERS"
               subtitle="The talented individuals who bring everything together"
             />
           </div>
         )}
 
         {/* Empty State */}
-        {adminMembers.length === 0 && advisorMembers.length === 0 && (
+        {totalMembers === 0 && (
           <div className="text-center py-20">
             <p className="text-gray-500 text-lg">Team members coming soon...</p>
           </div>
