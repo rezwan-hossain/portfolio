@@ -151,6 +151,10 @@ model Order {
   eventId String
   event   Event  @relation(fields: [eventId], references: [id])
 
+  couponId String?
+  coupon   Coupon? @relation(fields: [couponId], references: [id])
+
+
   registration Registration?
   payment      Payment?
   couponUsage  CouponUsage?
@@ -270,6 +274,7 @@ model Coupon {
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   usages CouponUsage[]
+  orders Order[]
 
   @@unique([code, eventId])
   @@map("coupons")
