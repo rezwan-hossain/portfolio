@@ -100,6 +100,7 @@ export function EventOrdersModal({ event, onClose }: Props) {
         const match =
           regName.includes(q) ||
           userName.includes(q) ||
+          order.registration?.bibNumber?.toLowerCase().includes(q) ||
           order.user.email.toLowerCase().includes(q) ||
           (order.user.phone && order.user.phone.includes(q)) ||
           (order.registration?.phone && order.registration.phone.includes(q)) ||
@@ -151,6 +152,7 @@ export function EventOrdersModal({ event, onClose }: Props) {
   const exportCSV = () => {
     const headers = [
       "Order ID",
+      "BIB Number",
       "Order Status",
       "Registration Name",
       "User Email",
@@ -176,6 +178,7 @@ export function EventOrdersModal({ event, onClose }: Props) {
 
     const rows = filteredOrders.map((order) => [
       order.id,
+      order.registration?.bibNumber || "",
       order.status,
       `"${order.registration?.fullName || ""}"`,
       order.user.email,

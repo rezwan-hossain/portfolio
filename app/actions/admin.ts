@@ -406,6 +406,7 @@ export async function getEventOrders(eventId: string) {
             runnerCategory: true,
             emergencyContactName: true,
             emergencyContactNumber: true,
+            bibNumber: true,
           },
         },
         payment: {

@@ -130,6 +130,7 @@ export type EventOrder = {
     runnerCategory: string;
     emergencyContactName: string | null;
     emergencyContactNumber: string | null;
+    bibNumber: string | null;
   } | null;
   payment: {
     id: string;
