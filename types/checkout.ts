@@ -23,3 +23,10 @@ export type BillingFormData = {
   communityName: string;
   runnerCategory: string;
 };
+
+export type AppliedCoupon = {
+  code: string;
+  discountType: "PERCENTAGE" | "FIXED";
+  discountValue: number;
+  discountAmount: number;
+};

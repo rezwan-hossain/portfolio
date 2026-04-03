@@ -1,47 +1,24 @@
+// app/actions/checkout.ts
 "use server";
 
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 
 export async function getCheckoutData(packageId: number) {
   try {
     const pkg = await prisma.package.findUnique({
       where: { id: packageId },
       include: {
-        event: {
-          include: {
-            organizer: true,
-          },
-        },
+        event: { include: { organizer: true } },
       },
     });
     if (!pkg) return { package: null, error: "Package not found" };
-
     return { package: JSON.parse(JSON.stringify(pkg)) };
   } catch (error) {
     console.error("Failed to fetch checkout data:", error);
     return { package: null, error: "Failed to fetch checkout data" };
   }
 }
-
-// export async function placeOrder(formData){
-//     console.log("Placing order with data:", formData);
-
-//     try {
-//         const supabase = await createClient();
-//         const {
-//             data: { user },
-//         } = await supabase.auth.getUser();
-
-//         if (!user) {
-//             return { error: "You must be logged in to place an order" };
-//         }
-//     } catch (error) {
-//         console.error("Error placing order:", error);
-//         return { error: "Failed to place order. Please try again." };
-//     }
-// }
 
 export async function placeOrder(formData: {
   packageId: number;
@@ -59,63 +36,102 @@ export async function placeOrder(formData: {
   communityName?: string;
   runnerCategory: string;
   paymentMethod: string;
+  couponCode?: string; // ← NEW
 }) {
-  console.log("Step 1: Creating supabase client...");
   const supabase = await createClient();
-  console.log("Step 2: Getting user...");
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  console.log("Step 2 done, user:", user?.id);
 
   if (!user) {
     return { error: "You must be logged in to place an order" };
   }
 
   try {
-    console.log("Step 3: Finding DB user...");
-
-    // Get user from DB
     const dbUser = await prisma.user.findUnique({
       where: { authId: user.id },
     });
 
-    console.log("Step 3 done, dbUser:", dbUser?.id);
+    if (!dbUser) return { error: "User not found" };
 
-    if (!dbUser) {
-      return { error: "User not found" };
-    }
-
-    // Get package to verify price and availability
     const pkg = await prisma.package.findUnique({
       where: { id: formData.packageId },
     });
 
-    if (!pkg) {
-      return { error: "Package not found" };
-    }
+    if (!pkg) return { error: "Package not found" };
 
     const slotsLeft = pkg.availableSlots - pkg.usedSlots;
     if (slotsLeft < formData.qty) {
       return { error: `Only ${slotsLeft} slots remaining` };
     }
 
-    // Create order with registration and payment in a transaction
+    // ─── CALCULATE PRICING ─────────────────────────
+    const subtotal = Number(pkg.price) * formData.qty;
+    let discount = 0;
+    let couponId: string | null = null;
+
+    // ─── VALIDATE COUPON IF PROVIDED ───────────────
+    if (formData.couponCode) {
+      const coupon = await prisma.coupon.findFirst({
+        where: {
+          code: formData.couponCode.toUpperCase().trim(),
+          eventId: formData.eventId,
+          isActive: true,
+        },
+        include: {
+          usages: { where: { userId: dbUser.id } },
+        },
+      });
+
+      if (!coupon) return { error: "Invalid coupon code" };
+
+      const now = new Date();
+      if (now < coupon.validFrom || now > coupon.validUntil) {
+        return { error: "Coupon is not valid at this time" };
+      }
+
+      if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) {
+        return { error: "Coupon usage limit reached" };
+      }
+
+      if (coupon.usages.length >= coupon.maxUsesPerUser) {
+        return { error: "You have already used this coupon" };
+      }
+
+      if (coupon.minOrderAmount && subtotal < coupon.minOrderAmount) {
+        return { error: `Minimum order amount is ৳${coupon.minOrderAmount}` };
+      }
+
+      if (coupon.discountType === "PERCENTAGE") {
+        discount = (subtotal * coupon.discountValue) / 100;
+        if (coupon.maxDiscount && discount > coupon.maxDiscount) {
+          discount = coupon.maxDiscount;
+        }
+      } else {
+        discount = coupon.discountValue;
+      }
+
+      discount = Math.min(discount, subtotal);
+      couponId = coupon.id;
+    }
+
+    const total = subtotal - discount;
+
+    // ─── CREATE ORDER TRANSACTION ──────────────────
     const order = await prisma.$transaction(async (tx) => {
-      // Create order
       const newOrder = await tx.order.create({
         data: {
           userId: dbUser.id,
           packageId: formData.packageId,
           eventId: formData.eventId,
           qty: formData.qty,
+          subtotal,
+          discount,
+          total,
           status: "PENDING",
         },
       });
 
-      // Create registration
       await tx.registration.create({
         data: {
           eventId: formData.eventId,
@@ -134,23 +150,36 @@ export async function placeOrder(formData: {
         },
       });
 
-      // Create payment record
       await tx.payment.create({
         data: {
           orderId: newOrder.id,
-          amount: Number(pkg.price) * formData.qty,
+          amount: Math.round(total),
           currency: "BDT",
           status: "PENDING",
           paymentMethod: formData.paymentMethod,
         },
       });
 
-      // Update used slots
+      // ─── RECORD COUPON USAGE ───────────────────
+      if (couponId) {
+        await tx.couponUsage.create({
+          data: {
+            couponId,
+            userId: dbUser.id,
+            orderId: newOrder.id,
+            discount,
+          },
+        });
+
+        await tx.coupon.update({
+          where: { id: couponId },
+          data: { usedCount: { increment: 1 } },
+        });
+      }
+
       await tx.package.update({
         where: { id: formData.packageId },
-        data: {
-          usedSlots: { increment: formData.qty },
-        },
+        data: { usedSlots: { increment: formData.qty } },
       });
 
       return newOrder;
@@ -159,7 +188,8 @@ export async function placeOrder(formData: {
     return {
       success: true,
       orderId: order.id,
-      amount: Number(pkg.price) * formData.qty,
+      amount: Math.round(total),
+      discount: Math.round(discount),
     };
   } catch (error) {
     console.error("Failed to place order:", error);

@@ -9,10 +9,37 @@ import { ProfileSidebar } from "../components/ProfileSidebar";
 import { AdminEventsPanel } from "../components/admin/AdminEventsPanel";
 import { ManageHomepagePanel } from "../components/admin/ManageHomepagePanel";
 import type { UserProfile, AdminEvent, AdminOrganizer } from "@/types/profile";
-import { User, Lock, CalendarPlus, Layout, ImageIcon } from "lucide-react";
+import {
+  User,
+  Lock,
+  CalendarPlus,
+  Layout,
+  ImageIcon,
+  Ticket,
+} from "lucide-react";
 import { HeroSectionData } from "@/types/homepage";
 import { GalleryImage } from "@/types/gallery";
 import { AdminGalleryPanel } from "../components/admin/AdminGalleryPanel";
+import { AdminCouponsPanel } from "../components/admin/AdminCouponsPanel";
+
+type Coupon = {
+  id: string;
+  code: string;
+  discountType: "PERCENTAGE" | "FIXED";
+  discountValue: number;
+  maxUses: number | null;
+  usedCount: number;
+  maxUsesPerUser: number;
+  minOrderAmount: number | null;
+  maxDiscount: number | null;
+  validFrom: string;
+  validUntil: string;
+  isActive: boolean;
+  event: { id: string; name: string };
+  _count: { usages: number };
+};
+
+type Event = { id: string; name: string };
 
 type ProfilePageProps = {
   profile: UserProfile;
@@ -21,9 +48,17 @@ type ProfilePageProps = {
   organizers?: AdminOrganizer[];
   heroSections?: HeroSectionData[];
   galleryImages?: GalleryImage[];
+  coupons?: Coupon[];
+  couponEvents?: Event[];
 };
 
-type Tab = "profile" | "password" | "events" | "homepage" | "gallery";
+type Tab =
+  | "profile"
+  | "password"
+  | "events"
+  | "homepage"
+  | "gallery"
+  | "coupons";
 
 const ProfilePage = ({
   profile,
@@ -32,6 +67,8 @@ const ProfilePage = ({
   organizers = [],
   heroSections = [],
   galleryImages = [],
+  coupons = [],
+  couponEvents = [],
 }: ProfilePageProps) => {
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const isAdmin = profile.role === "ADMIN";
@@ -60,6 +97,12 @@ const ProfilePage = ({
             label: "Manage Events",
             icon: CalendarPlus,
             description: "Create and manage events",
+          },
+          {
+            id: "coupons" as Tab,
+            label: "Manage Coupons",
+            icon: Ticket,
+            description: "Create & manage discounts",
           },
           {
             id: "homepage" as Tab,
@@ -118,6 +161,7 @@ const ProfilePage = ({
 
                   {(tab.id === "events" ||
                     tab.id === "homepage" ||
+                    tab.id === "coupons" ||
                     tab.id === "gallery") && (
                     <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-neon-lime text-gray-900 px-1.5 py-0.5 rounded">
                       Admin
@@ -136,6 +180,12 @@ const ProfilePage = ({
               <AdminEventsPanel
                 initialEvents={adminEvents}
                 initialOrganizers={organizers}
+              />
+            )}
+            {activeTab === "coupons" && isAdmin && (
+              <AdminCouponsPanel
+                initialCoupons={coupons}
+                events={couponEvents}
               />
             )}
             {activeTab === "homepage" && isAdmin && (

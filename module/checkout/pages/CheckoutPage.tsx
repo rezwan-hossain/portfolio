@@ -4,7 +4,7 @@ import { useState } from "react";
 import { BillingForm } from "../components/BillingForm";
 import { OrderSummary } from "../components/OrderSummary";
 import { HeroText } from "@/components/ui/HeroText";
-import { BillingFormData, CheckoutItem } from "@/types/checkout";
+import { BillingFormData, CheckoutItem, AppliedCoupon } from "@/types/checkout";
 import { useRouter } from "next/navigation";
 import { placeOrder } from "@/app/actions/checkout";
 import { initiateShurjoPayPayment } from "@/app/actions/payment";
@@ -18,10 +18,15 @@ type CheckoutPageProps = {
 const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
   const router = useRouter();
 
-
   const [paymentMethod, setPaymentMethod] = useState("shurjopay");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // ─── Coupon state ───
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(
+    null,
+  );
+  const [finalPrice, setFinalPrice] = useState(item.price * item.qty);
 
   const [formData, setFormData] = useState<BillingFormData>({
     fullName: userName,
@@ -42,8 +47,19 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-    const handlePlaceOrder = async () => {
-       setError("");
+  // ─── Coupon handlers ───
+  const handleApplyCoupon = (coupon: AppliedCoupon, newFinalPrice: number) => {
+    setAppliedCoupon(coupon);
+    setFinalPrice(newFinalPrice);
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setFinalPrice(item.price * item.qty);
+  };
+
+  const handlePlaceOrder = async () => {
+    setError("");
 
     // Validation
     const required: (keyof BillingFormData)[] = [
@@ -59,7 +75,9 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
 
     for (const field of required) {
       if (!formData[field]) {
-        setError(`Please fill in ${field.replace(/([A-Z])/g, " $1").toLowerCase()}`);
+        setError(
+          `Please fill in ${field.replace(/([A-Z])/g, " $1").toLowerCase()}`,
+        );
         return;
       }
     }
@@ -84,7 +102,7 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
           communityName: formData.communityName || "",
           runnerCategory: formData.runnerCategory,
           paymentMethod,
-        })
+        }),
       );
 
       const orderResult = await placeOrder(safeArgs);
@@ -103,7 +121,7 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
         return;
       }
 
-        // ✅ Step 2: If ShurjoPay → initiate payment & redirect
+      // ✅ Step 2: If ShurjoPay → initiate payment & redirect
       if (paymentMethod === "shurjopay") {
         const paymentArgs = JSON.parse(
           JSON.stringify({
@@ -111,7 +129,7 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
             customerName: formData.fullName,
             customerEmail: formData.email || userEmail,
             customerPhone: formData.phone,
-          })
+          }),
         );
 
         const paymentResult = await initiateShurjoPayPayment(paymentArgs);
@@ -137,8 +155,6 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
 
       // Non-ShurjoPay → go to confirmation directly
       router.push(`/order-confirmation?orderId=${orderResult.orderId}`);
-
-
     } catch (err) {
       console.error("Error placing order:", err);
       setError("An unexpected error occurred. Please try again.");
@@ -172,9 +188,7 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
     // if (result.success && result.orderId) {
     //   router.push(`/order-confirmation?orderId=${result.orderId}`);
     // }
-
-
-  }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -183,7 +197,7 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 py-8 md:py-12">
-         {error && (
+        {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-600 text-sm font-medium">{error}</p>
           </div>
@@ -197,12 +211,23 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
 
           {/* Order Summary */}
           <div className="w-full lg:w-[450px]">
+            {/* <OrderSummary
+              item={item}
+              paymentMethod={paymentMethod}
+              onPaymentMethodChange={setPaymentMethod}
+              onPlaceOrder={handlePlaceOrder}
+              loading={loading}
+            /> */}
             <OrderSummary
               item={item}
               paymentMethod={paymentMethod}
               onPaymentMethodChange={setPaymentMethod}
               onPlaceOrder={handlePlaceOrder}
               loading={loading}
+              appliedCoupon={appliedCoupon}
+              onApplyCoupon={handleApplyCoupon}
+              onRemoveCoupon={handleRemoveCoupon}
+              finalPrice={finalPrice}
             />
           </div>
         </div>

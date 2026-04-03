@@ -35,7 +35,8 @@ model User {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  orders Order[]
+  orders       Order[]
+  couponUsages CouponUsage[]
 
   @@map("users")
 }
@@ -88,6 +89,7 @@ model Event {
   packages      Package[]
   orders        Order[]
   registrations Registration[]
+  coupons       Coupon[]
 
   @@map("events")
 }
@@ -134,6 +136,12 @@ model Order {
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
   qty        Int         @default(1)
+
+  subtotal Float @default(0)
+  discount Float @default(0)
+  total    Float @default(0)
+
+
   userId     String
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -144,8 +152,8 @@ model Order {
   event   Event  @relation(fields: [eventId], references: [id])
 
   registration Registration?
-
-  payment Payment?
+  payment      Payment?
+  couponUsage  CouponUsage?
 
   @@map("orders")
 }
@@ -156,9 +164,9 @@ model Registration {
   orderId String @unique
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  eventId   String  // ← ADD
+  eventId   String // ← ADD
   event     Event   @relation(fields: [eventId], references: [id]) // ← ADD
-  bibNumber String?  // ← ADD
+  bibNumber String? // ← ADD
 
   fullName  String
   phone     String
@@ -231,7 +239,6 @@ model HeroSection {
   @@map("hero_sections")
 }
 
-
 model GalleryImage {
   id        String   @id @default(cuid())
   src       String
@@ -240,4 +247,53 @@ model GalleryImage {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("gallery_images")
+}
+
+// ─── COUPON ─────────────────────────────────────────
+model Coupon {
+  id             String       @id @default(uuid())
+  code           String
+  discountType   DiscountType @default(PERCENTAGE)
+  discountValue  Float // 10 for 10% or 100 for ৳100
+  maxUses        Int? // null = unlimited
+  usedCount      Int          @default(0)
+  maxUsesPerUser Int          @default(1)
+  minOrderAmount Float?
+  maxDiscount    Float? // Cap for percentage discounts
+  validFrom      DateTime
+  validUntil     DateTime
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  usages CouponUsage[]
+
+  @@unique([code, eventId])
+  @@map("coupons")
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+model CouponUsage {
+  id       String   @id @default(uuid())
+  discount Float
+  usedAt   DateTime @default(now())
+
+  couponId String
+  coupon   Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([couponId, orderId])
+  @@map("coupon_usages")
 }

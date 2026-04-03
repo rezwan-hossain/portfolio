@@ -1,3 +1,5 @@
+// app/checkout/page.tsx
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import CheckoutPage from "@/module/checkout/pages/CheckoutPage";
 import { redirect } from "next/navigation";
@@ -9,32 +11,29 @@ type SearchParams = Promise<{
   qty?: string;
 }>;
 
-export default async function page({ searchParams }: { searchParams: SearchParams }) {
-
+async function CheckoutContent({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const { data: { user }} = await supabase.auth.getUser();
-
-    if (!user) {
-    redirect("/login");
-  }
+  if (!user) redirect("/login");
 
   const params = await searchParams;
   const packageId = params.package ? Number(params.package) : null;
   const quantity = params.qty ? Number(params.qty) : 1;
 
-  if (!packageId) {
-    redirect("/events");
-  }
+  if (!packageId) redirect("/events");
 
-   const { package: pkg, error } = await getCheckoutData(packageId);
+  const { package: pkg, error } = await getCheckoutData(packageId);
 
-  if (!pkg || error) {
-    redirect("/events");
-  }
+  if (!pkg || error) redirect("/events");
 
   const safePkg = JSON.parse(JSON.stringify(pkg));
-
 
   const checkoutItem = {
     packageId: safePkg.id,
@@ -42,18 +41,29 @@ export default async function page({ searchParams }: { searchParams: SearchParam
     eventName: safePkg.event.name,
     packageName: safePkg.name,
     distance: safePkg.distance,
-    price: Number(safePkg.price),   // Ensure it's a plain number
+    price: Number(safePkg.price),
     qty: quantity,
   };
 
-  // Pass user email for pre-filling
-  const userEmail = user.email ?? "";
-  const userName = user.user_metadata?.full_name ?? "";
-
   return (
-    <CheckoutPage item={checkoutItem}
-      userEmail={userEmail}
-      userName={userName}
+    <CheckoutPage
+      item={checkoutItem}
+      userEmail={user.email ?? ""}
+      userName={user.user_metadata?.full_name ?? ""}
     />
-  )
+  );
+}
+
+export default function Page({ searchParams }: { searchParams: SearchParams }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <CheckoutContent searchParams={searchParams} />
+    </Suspense>
+  );
 }
