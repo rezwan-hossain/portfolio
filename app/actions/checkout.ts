@@ -36,7 +36,7 @@ export async function placeOrder(formData: {
   communityName?: string;
   runnerCategory: string;
   paymentMethod: string;
-  couponCode?: string; // ← NEW
+  couponCode?: string;
 }) {
   const supabase = await createClient();
   const {
@@ -129,6 +129,7 @@ export async function placeOrder(formData: {
           discount,
           total,
           status: "PENDING",
+          couponId, // ⭐ ADD THIS — Store couponId for later application
         },
       });
 
@@ -160,22 +161,9 @@ export async function placeOrder(formData: {
         },
       });
 
-      // ─── RECORD COUPON USAGE ───────────────────
-      if (couponId) {
-        await tx.couponUsage.create({
-          data: {
-            couponId,
-            userId: dbUser.id,
-            orderId: newOrder.id,
-            discount,
-          },
-        });
-
-        await tx.coupon.update({
-          where: { id: couponId },
-          data: { usedCount: { increment: 1 } },
-        });
-      }
+      // ⭐ REMOVED — Don't create CouponUsage here anymore
+      // ⭐ REMOVED — Don't increment usedCount here anymore
+      // These will be done AFTER payment success in the callback
 
       await tx.package.update({
         where: { id: formData.packageId },
