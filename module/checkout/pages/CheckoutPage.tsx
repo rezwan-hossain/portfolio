@@ -102,6 +102,7 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
           communityName: formData.communityName || "",
           runnerCategory: formData.runnerCategory,
           paymentMethod,
+          couponCode: appliedCoupon?.code || undefined,
         }),
       );
 

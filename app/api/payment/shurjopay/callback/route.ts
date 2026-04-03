@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyShurjoPayPayment } from "@/lib/shurjopay";
 import { formatBDPhone, getPaymentConfirmationSMS, sendSMS } from "@/lib/sms";
 import { NextResponse, type NextRequest } from "next/server";
+import { applyCoupon } from "@/app/actions/coupon";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -102,6 +103,61 @@ export async function GET(request: NextRequest) {
           data: { status: "CONFIRMED" },
         });
       });
+
+      // ⭐ ADD THIS BLOCK — Apply coupon AFTER payment confirmed
+      // ──────────────────────────────────────────────────────
+      // ✨ APPLY COUPON USAGE (only after successful payment!)
+      // ──────────────────────────────────────────────────────
+      try {
+        const orderForCoupon = await prisma.order.findUnique({
+          where: { id: payment.orderId },
+          select: {
+            id: true,
+            userId: true,
+            couponId: true,
+            discount: true,
+            couponUsage: true, // Check if already applied
+          },
+        });
+
+        // Apply coupon if:
+        // 1. Order has a couponId (coupon was used)
+        // 2. Discount > 0
+        // 3. CouponUsage doesn't exist yet (not already applied)
+        if (
+          orderForCoupon?.couponId &&
+          orderForCoupon.discount > 0 &&
+          !orderForCoupon.couponUsage
+        ) {
+          console.log("🎟️ Applying coupon usage for order:", payment.orderId);
+
+          const couponResult = await applyCoupon({
+            couponId: orderForCoupon.couponId,
+            userId: orderForCoupon.userId,
+            orderId: orderForCoupon.id,
+            discount: orderForCoupon.discount,
+          });
+
+          if (couponResult.success) {
+            console.log("✅ Coupon usage recorded successfully");
+          } else {
+            console.error(
+              "⚠️ Failed to record coupon usage:",
+              couponResult.error,
+            );
+          }
+        } else if (orderForCoupon?.couponUsage) {
+          console.log("ℹ️ Coupon already applied for this order");
+        }
+      } catch (couponError: any) {
+        // Don't fail the payment if coupon application fails
+        console.error(
+          "⚠️ Coupon application error (non-critical):",
+          couponError?.message,
+        );
+      }
+      // ⭐ END OF COUPON BLOCK
+      // ──────────────────────────────────────────────────────
 
       // ──────────────────────────────────────────────────────
       // ✨ AUTO-ASSIGN BIB NUMBER AFTER PAYMENT CONFIRMED

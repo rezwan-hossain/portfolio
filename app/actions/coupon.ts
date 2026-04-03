@@ -255,3 +255,58 @@ export async function getCouponStats(couponId: string) {
     return { error: "Failed to fetch coupon stats" };
   }
 }
+
+export async function applyCoupon({
+  couponId,
+  userId,
+  orderId,
+  discount,
+}: {
+  couponId: string;
+  userId: string;
+  orderId: string;
+  discount: number;
+}) {
+  try {
+    // Check if already applied (idempotency)
+    const existingUsage = await prisma.couponUsage.findUnique({
+      where: { orderId },
+    });
+
+    if (existingUsage) {
+      console.log("⚠️ Coupon already applied for order:", orderId);
+      return { success: true, alreadyApplied: true };
+    }
+
+    // Use a transaction to ensure both happen or neither
+    await prisma.$transaction([
+      // 1. Create usage record (tracks WHO used it, on WHICH order)
+      prisma.couponUsage.create({
+        data: {
+          couponId,
+          userId,
+          orderId,
+          discount,
+        },
+      }),
+
+      // 2. Increment the global counter
+      prisma.coupon.update({
+        where: { id: couponId },
+        data: {
+          usedCount: { increment: 1 },
+        },
+      }),
+    ]);
+
+    console.log("✅ Coupon applied successfully:", {
+      couponId,
+      orderId,
+      discount,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Apply coupon error:", error);
+    return { error: "Failed to apply coupon" };
+  }
+}
