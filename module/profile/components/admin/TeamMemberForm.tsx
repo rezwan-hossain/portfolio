@@ -2,7 +2,11 @@
 "use client";
 
 import { useState } from "react";
-import type { TeamMember, TeamMemberFormData } from "@/types/team";
+import type {
+  TeamMember,
+  TeamMemberFormData,
+  TeamCategory,
+} from "@/types/team";
 import {
   createTeamMember,
   updateTeamMember,
@@ -33,6 +37,28 @@ type Props = {
   onSuccess: (members: TeamMember[]) => void;
   onCancel: () => void;
 };
+
+const CATEGORY_OPTIONS: {
+  value: TeamCategory;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "ADMIN",
+    label: "Leadership",
+    description: "Core team leaders and founders",
+  },
+  {
+    value: "ADVISOR",
+    label: "Advisor",
+    description: "Strategic advisors and mentors",
+  },
+  {
+    value: "ORGANIZER",
+    label: "Organizer",
+    description: "Event organizers and coordinators",
+  },
+];
 
 export function TeamMemberForm({ member, onSuccess, onCancel }: Props) {
   const isEditing = !!member;
@@ -78,7 +104,7 @@ export function TeamMemberForm({ member, onSuccess, onCancel }: Props) {
         role: form.role.trim() || undefined,
         bio: form.bio.trim() || undefined,
         image: form.image || undefined,
-        category: form.category as "ADMIN" | "TEAM",
+        category: form.category as TeamCategory,
         sortOrder: parseInt(form.sortOrder) || 0,
         linkedinUrl: form.linkedinUrl.trim() || undefined,
         twitterUrl: form.twitterUrl.trim() || undefined,
@@ -169,8 +195,16 @@ export function TeamMemberForm({ member, onSuccess, onCancel }: Props) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-white border border-gray-200">
-                <SelectItem value="ADMIN">Admin Team</SelectItem>
-                <SelectItem value="TEAM">Team Member</SelectItem>
+                {CATEGORY_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <div className="flex flex-col">
+                      <span>{option.label}</span>
+                      <span className="text-xs text-gray-400">
+                        {option.description}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
