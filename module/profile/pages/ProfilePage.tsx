@@ -1,4 +1,3 @@
-// module/profile/pages/ProfilePage.tsx
 "use client";
 
 import { useState } from "react";
@@ -8,7 +7,15 @@ import { PasswordForm } from "../components/PasswordForm";
 import { ProfileSidebar } from "../components/ProfileSidebar";
 import { AdminEventsPanel } from "../components/admin/AdminEventsPanel";
 import { ManageHomepagePanel } from "../components/admin/ManageHomepagePanel";
+import {
+  AdminCouponsPanel,
+  type Coupon,
+  type CouponEvent,
+} from "../components/admin/AdminCouponsPanel";
+import { AdminGalleryPanel } from "../components/admin/AdminGalleryPanel";
 import type { UserProfile, AdminEvent, AdminOrganizer } from "@/types/profile";
+import type { HeroSectionData } from "@/types/homepage";
+import type { GalleryImage } from "@/types/gallery";
 import {
   User,
   Lock,
@@ -17,29 +24,6 @@ import {
   ImageIcon,
   Ticket,
 } from "lucide-react";
-import { HeroSectionData } from "@/types/homepage";
-import { GalleryImage } from "@/types/gallery";
-import { AdminGalleryPanel } from "../components/admin/AdminGalleryPanel";
-import { AdminCouponsPanel } from "../components/admin/AdminCouponsPanel";
-
-type Coupon = {
-  id: string;
-  code: string;
-  discountType: "PERCENTAGE" | "FIXED";
-  discountValue: number;
-  maxUses: number | null;
-  usedCount: number;
-  maxUsesPerUser: number;
-  minOrderAmount: number | null;
-  maxDiscount: number | null;
-  validFrom: string;
-  validUntil: string;
-  isActive: boolean;
-  event: { id: string; name: string };
-  _count: { usages: number };
-};
-
-type Event = { id: string; name: string };
 
 type ProfilePageProps = {
   profile: UserProfile;
@@ -49,7 +33,7 @@ type ProfilePageProps = {
   heroSections?: HeroSectionData[];
   galleryImages?: GalleryImage[];
   coupons?: Coupon[];
-  couponEvents?: Event[];
+  couponEvents?: CouponEvent[];
 };
 
 type Tab =
