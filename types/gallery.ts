@@ -1,9 +1,10 @@
+// types/gallery.ts
 export type GalleryImage = {
   id: string;
   src: string;
   alt: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 };
 
 export type CreateGalleryImageInput = {

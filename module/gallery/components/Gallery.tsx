@@ -1,9 +1,12 @@
+// module/gallery/components/Gallery.tsx
 "use client";
 
 import { useState } from "react";
 import Image from "next/image";
+import type { GalleryImage } from "@/types/gallery";
 
 interface GalleryItem {
+  id: string;
   src: string;
   alt: string;
   width: number;
@@ -11,7 +14,7 @@ interface GalleryItem {
 }
 
 interface GalleryProps {
-  images: { src: string; alt: string }[];
+  images: GalleryImage[];
 }
 
 // Deterministic pseudo-random based on seed (index)
@@ -33,9 +36,11 @@ const getSize = (index: number) => {
 const Gallery = ({ images }: GalleryProps) => {
   const [selectedImage, setSelectedImage] = useState<GalleryItem | null>(null);
 
-  // Assign deterministic sizes based on index — no Math.random(), no useEffect needed
+  // Transform database images and assign deterministic sizes
   const imagesWithSize: GalleryItem[] = images.map((img, index) => ({
-    ...img,
+    id: img.id,
+    src: img.src,
+    alt: img.alt || `Gallery image ${index + 1}`,
     ...getSize(index),
   }));
 
@@ -47,7 +52,7 @@ const Gallery = ({ images }: GalleryProps) => {
           <div className="columns-2 md:columns-4 gap-4 space-y-4">
             {imagesWithSize.map((img, idx) => (
               <div
-                key={idx}
+                key={img.id}
                 className="break-inside-avoid cursor-pointer rounded-md overflow-hidden shadow hover:scale-105 transition-transform duration-200"
                 onClick={() => setSelectedImage(img)}
               >
@@ -67,23 +72,31 @@ const Gallery = ({ images }: GalleryProps) => {
       {/* Modal / Lightbox */}
       {selectedImage && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
           onClick={() => setSelectedImage(null)}
         >
-          <div className="relative max-w-4xl w-full">
+          <div className="relative max-w-5xl w-full">
             <Image
               src={selectedImage.src}
               alt={selectedImage.alt}
-              width={selectedImage.width}
-              height={selectedImage.height}
-              className="w-full h-auto rounded-md"
+              width={1200}
+              height={800}
+              className="w-full h-auto rounded-lg"
             />
             <button
-              className="absolute top-2 right-2 text-white text-2xl font-bold"
-              onClick={() => setSelectedImage(null)}
+              className="absolute -top-10 right-0 text-white text-3xl font-bold hover:text-gray-300 transition-colors cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedImage(null);
+              }}
             >
               &times;
             </button>
+            {selectedImage.alt && (
+              <p className="text-white/70 text-center mt-4 text-sm">
+                {selectedImage.alt}
+              </p>
+            )}
           </div>
         </div>
       )}

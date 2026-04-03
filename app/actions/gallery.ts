@@ -1,5 +1,4 @@
-// actions/gallery.ts
-
+// app/actions/gallery.ts
 "use server";
 
 import { prisma } from "@/lib/prisma";
@@ -9,6 +8,7 @@ import type {
   CreateGalleryImageInput,
   UpdateGalleryImageInput,
   DeleteGalleryImageInput,
+  GalleryImage,
 } from "@/types/gallery";
 
 // ─── Helpers ────────────────────────────────────────
@@ -43,11 +43,34 @@ type ActionResult<T = unknown> =
   | { success: false; error: string };
 
 // ─── Get All Gallery Images ─────────────────────────
-export async function getGalleryImages() {
+export async function getGalleryImages(): Promise<GalleryImage[]> {
   const images = await prisma.galleryImage.findMany({
     orderBy: { createdAt: "desc" },
   });
-  return images;
+
+  // ⭐ Serialize dates for client components
+  return images.map((img) => ({
+    ...img,
+    createdAt: img.createdAt.toISOString(),
+    updatedAt: img.updatedAt.toISOString(),
+  }));
+}
+
+// ─── Get All Gallery Images for Admin ───────────────
+export async function getAllGalleryImages(): Promise<{
+  images: GalleryImage[];
+}> {
+  const images = await prisma.galleryImage.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+
+  return {
+    images: images.map((img) => ({
+      ...img,
+      createdAt: img.createdAt.toISOString(),
+      updatedAt: img.updatedAt.toISOString(),
+    })),
+  };
 }
 
 // ─── Create ─────────────────────────────────────────
