@@ -37,7 +37,7 @@ export function getPaymentConfirmationEmailHTML({
   bibNumber,
   tshirtSize,
   bloodGroup,
-  appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  appUrl = process.env.NEXT_PUBLIC_APP_URL! || "http://localhost:3000",
 }: PaymentConfirmationEmailProps): string {
   const shortOrderId = orderId.slice(0, 8).toUpperCase();
   const shortTransactionId =

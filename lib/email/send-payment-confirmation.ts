@@ -86,7 +86,7 @@ export async function sendPaymentConfirmationEmail(
       transactionId: params.transactionId || undefined,
       paymentMethod: params.paymentMethod || undefined,
       bibNumber: params.bibNumber || undefined,
-      appUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+      appUrl: process.env.NEXT_PUBLIC_APP_URL! || "http://localhost:3000",
       tshirtSize: params.tshirtSize || undefined,
       bloodGroup: params.bloodGroup || undefined,
     });

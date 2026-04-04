@@ -16,7 +16,7 @@ export async function registerUser(formData: FormData) {
     options: {
       // 👇 This tells Supabase where to redirect after email click
       //   emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
-      emailRedirectTo: `http://localhost:3000/auth/callback`,
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
       data: {
         full_name: firstName,
       },
@@ -52,7 +52,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: "http://localhost:3000/auth/callback",
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
       queryParams: {
         access_type: "offline",
         prompt: "consent",
