@@ -8,6 +8,7 @@ import EventDetailSkeleton from "@/module/event/components/EventDetailSkeleton";
 
 type Props = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ view?: string }>;
 };
 
 // ── Dynamic Metadata ─────────────────────────
@@ -65,11 +66,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 // ── Page Component ───────────────────────────
-export default async function Page({ params }: Props) {
+export default async function Page({ params, searchParams }: Props) {
   // Move data fetching into a suspended component
   return (
     <Suspense fallback={<EventDetailSkeleton />}>
-      <EventPageContent paramsPromise={params} />
+      <EventPageContent paramsPromise={params} searchParams={searchParams} />
     </Suspense>
   );
 }
@@ -77,15 +78,18 @@ export default async function Page({ params }: Props) {
 // This component handles the data fetching and will be suspended
 async function EventPageContent({
   paramsPromise,
+  searchParams,
 }: {
   paramsPromise: Promise<{ slug: string }>;
+  searchParams: Promise<{ view?: string }>;
 }) {
   const { slug } = await paramsPromise;
   const { event, error } = await getEventBySlug(slug);
+  const resolvedSearchParams = await searchParams;
 
   if (!event || error) {
     notFound();
   }
 
-  return <EventDetailPage event={event} />;
+  return <EventDetailPage event={event} searchParams={resolvedSearchParams} />;
 }

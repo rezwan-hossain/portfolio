@@ -1,14 +1,3 @@
-import {
-  Lightbulb,
-  Users,
-  Rocket,
-  Globe,
-  Calendar,
-  MapPin,
-  User,
-  Activity,
-  Clock,
-} from "lucide-react";
 import TicketSelector from "../components/TicketSelector";
 import { HeroText } from "@/components/ui/HeroText";
 
@@ -16,38 +5,21 @@ import type { EventData } from "@/types/event";
 import EventInfoCard from "../components/EventInfoCard";
 import CountdownTimer from "../components/CountdownTimer";
 import EventDescription from "../components/EventDescription";
-
-const highlights = [
-  {
-    icon: Lightbulb,
-    title: "Keynote Speakers",
-    desc: "Hear from world-renowned innovators and thought leaders shaping the future of technology.",
-  },
-  {
-    icon: Users,
-    title: "Networking",
-    desc: "Connect with thousands of entrepreneurs, investors, and industry professionals.",
-  },
-  {
-    icon: Rocket,
-    title: "Startup Showcase",
-    desc: "Discover cutting-edge startups and groundbreaking products ready to disrupt industries.",
-  },
-  {
-    icon: Globe,
-    title: "Global Community",
-    desc: "Join a diverse community of innovators from over 50 countries worldwide.",
-  },
-];
+import Link from "next/link";
 
 type EventDetailPageProps = {
   event: EventData;
+  searchParams?: { view?: string };
 };
 
-// Set event date ~143 days from now
-const eventDate = new Date(Date.now() + 143 * 24 * 60 * 60 * 1000);
+type ViewMode = "styled" | "unstyled";
 
-const EventDetailPage = ({ event }: EventDetailPageProps) => {
+const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
+  const view: ViewMode =
+    (searchParams?.view as ViewMode) === "unstyled" ? "unstyled" : "styled";
+
+  const isUnstyled = view === "unstyled";
+
   const formattedDate = new Date(event.date).toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
@@ -137,19 +109,45 @@ const EventDetailPage = ({ event }: EventDetailPageProps) => {
               </div>
             </div>
 
-            <section className="mt-10 lg:mt-14">
+            <section className="mt-6 lg:mt-10">
+              <div className="flex items-center justify-end mb-4">
+                <Link
+                  href={`?view=${isUnstyled ? "styled" : "unstyled"}`}
+                  className="text-sm font-medium underline underline-offset-4"
+                >
+                  Switch to {isUnstyled ? "styled" : "unstyled"}
+                </Link>
+              </div>
+
+              <h2 className="font-display text-3xl lg:text-4xl tracking-wide mb-6">
+                EVENT DETAILS
+              </h2>
+
+              {isUnstyled ? (
+                <div
+                  className="prose mt-14 prose-slate [&>h2]:mt-12 [&>h2]:flex [&>h2]:items-center [&>h2]:font-mono [&>h2]:text-sm/7 [&>h2]:font-medium [&>h2]:text-slate-900 [&>h2]:before:mr-3 [&>h2]:before:h-3 [&>h2]:before:w-1.5 [&>h2]:before:rounded-r-full [&>h2]:before:bg-cyan-200 [&>h2:nth-of-type(3n)]:before:bg-violet-200 [&>h2:nth-of-type(3n+2)]:before:bg-indigo-200 [&>ul]:mt-6 [&>ul]:list-['\2013\20'] [&>ul]:pl-5"
+                  dangerouslySetInnerHTML={{ __html: event.description }}
+                />
+              ) : (
+                <EventDescription description={event.description} />
+              )}
+            </section>
+
+            {/* unstyle html */}
+            {/* <section className="mt-10 lg:mt-14">
               <div
                 className="prose mt-14 prose-slate [&>h2]:mt-12 [&>h2]:flex [&>h2]:items-center [&>h2]:font-mono [&>h2]:text-sm/7 [&>h2]:font-medium [&>h2]:text-slate-900 [&>h2]:before:mr-3 [&>h2]:before:h-3 [&>h2]:before:w-1.5 [&>h2]:before:rounded-r-full [&>h2]:before:bg-cyan-200 [&>h2:nth-of-type(3n)]:before:bg-violet-200 [&>h2:nth-of-type(3n+2)]:before:bg-indigo-200 [&>ul]:mt-6 [&>ul]:list-['\2013\20'] [&>ul]:pl-5"
                 dangerouslySetInnerHTML={{ __html: event.description }}
               />
-            </section>
+            </section> */}
 
-            <section className="mt-10 lg:mt-14">
+            {/* style html */}
+            {/* <section className="mt-10 lg:mt-14">
               <h2 className="font-display text-3xl lg:text-4xl tracking-wide mb-6">
                 EVENT DETAILS
               </h2>
               <EventDescription description={event.description} />
-            </section>
+            </section> */}
           </div>
 
           {/* Right column */}
