@@ -7,11 +7,6 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "hxkzggziycqzsfaprcno.supabase.co",
-        pathname: "/storage/v1/object/public/**",
-      },
-      {
-        protocol: "https",
         hostname: "cruip-tutorials.vercel.app",
         pathname: "/**", // allow all paths
       },
@@ -37,29 +32,6 @@ const nextConfig: NextConfig = {
       },
       { protocol: "https", hostname: "images.unsplash.com" },
     ],
-  },
-
-  async headers() {
-    return [
-      {
-        source: "/_next/static/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-      {
-        source: "/fonts/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-    ];
   },
 };
 

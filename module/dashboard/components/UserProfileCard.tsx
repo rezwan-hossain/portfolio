@@ -2,7 +2,6 @@
 import type { DashboardUser } from "@/types/dashboard";
 import { Mail, Phone, Shield, Calendar } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 
 type UserProfileCardProps = {
   user: DashboardUser;
@@ -23,11 +22,10 @@ export function UserProfileCard({ user }: UserProfileCardProps) {
         {/* Avatar */}
         <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden flex-shrink-0">
           {user.image ? (
-            <Image
+            <img
               src={user.image}
               alt={displayName}
-              fill
-              className="object-cover w-full h-full"
+              className="w-full h-full object-cover"
             />
           ) : (
             <span className="text-2xl font-bold text-indigo-600">

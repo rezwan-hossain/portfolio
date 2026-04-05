@@ -2,7 +2,6 @@
 import type { DashboardEvent } from "@/types/dashboard";
 import Link from "next/link";
 import { Calendar, MapPin } from "lucide-react";
-import Image from "next/image";
 
 type UpcomingEventsProps = {
   events: DashboardEvent[];
@@ -27,10 +26,9 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
         >
           {/* Image */}
           <div className="relative h-32 w-full">
-            <Image
+            <img
               src={event.bannerImage}
               alt={event.name}
-              fill
               className="w-full h-full object-cover"
             />
             <span
