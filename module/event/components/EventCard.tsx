@@ -1,6 +1,7 @@
 import HoverLine from "@/components/ui/HoverLine";
 import { Clock, Calendar, MapPin, Ticket, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface EventProps {
   slug: string;
@@ -15,13 +16,11 @@ interface EventProps {
   highlighted?: boolean;
 }
 
-interface EventCardProps  {
+interface EventCardProps {
   event: EventProps;
-};
+}
 
-const EventCard = ({
-  event
-}: EventCardProps) => {
+const EventCard = ({ event }: EventCardProps) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-8">
       {/* Info Card */}
@@ -41,7 +40,6 @@ const EventCard = ({
           </p>
 
           <div className="w-full border-b border-gray-200 mt-6 mb-6" />
-         
 
           <div className="space-y-4">
             <div className="flex items-center gap-3">
@@ -86,7 +84,13 @@ const EventCard = ({
 
       {/* Image */}
       <div className="hidden md:block lg:col-span-3 rounded-2xl overflow-hidden h-64 md:h-auto">
-        <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
+        {/* <img src={event.image} alt={event.title} className="w-full h-full object-cover" /> */}
+        <Image
+          src={event.image}
+          alt={event.title}
+          fill
+          className="object-cover w-full h-full"
+        />
       </div>
     </div>
   );

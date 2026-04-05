@@ -1,6 +1,7 @@
 // module/profile/components/ProfileSidebar.tsx
 import type { UserProfile } from "@/types/profile";
 import { Mail, Calendar, Shield } from "lucide-react";
+import Image from "next/image";
 
 type ProfileSidebarProps = {
   profile: UserProfile;
@@ -22,10 +23,11 @@ export function ProfileSidebar({ profile }: ProfileSidebarProps) {
       {/* Avatar */}
       <div className="w-24 h-24 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden mx-auto">
         {profile.image ? (
-          <img
+          <Image
             src={profile.image}
             alt={displayName}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover w-full h-full"
           />
         ) : (
           <span className="text-3xl font-bold text-indigo-600">

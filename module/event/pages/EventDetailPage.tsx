@@ -6,6 +6,7 @@ import EventInfoCard from "../components/EventInfoCard";
 import CountdownTimer from "../components/CountdownTimer";
 import EventDescription from "../components/EventDescription";
 import Link from "next/link";
+import Image from "next/image";
 
 type EventDetailPageProps = {
   event: EventData;
@@ -75,11 +76,21 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         {/* Main grid */}
         <div className="hidden md:block relative rounded-xl overflow-hidden mt-4 mb-8">
-          <img
+          {/* <img
             src={event.bannerImage}
             alt={event.name}
             className="w-full h-[300px] sm:h-[360px] lg:h-[540px] object-contain lg:object-cover overflow-hidden rounded-xl"
             loading="lazy"
+          /> */}
+          <Image
+            src={event.bannerImage}
+            alt={event.name}
+            width={1200}
+            height={540}
+            className="w-full h-[300px] sm:h-[360px] lg:h-[540px] object-contain lg:object-cover rounded-xl"
+            // loading="lazy"
+            priority // If it's above the fold (LCP element)
+            quality={75}
           />
           <span
             className={`absolute top-4 right-4 px-4 py-1.5 text-xs font-semibold rounded-full ${
@@ -96,11 +107,20 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
           <div>
             {/* Hero Image */}
             <div className="block md:hidden relative rounded-xl overflow-hidden">
-              <img
+              {/* <img
                 src={event.thumbImage ?? event.bannerImage}
                 alt={event.name}
                 className="w-full h-[280px] sm:h-[360px] lg:h-[440px] object-cover"
                 loading="lazy"
+              /> */}
+              <Image
+                src={event.bannerImage}
+                alt={event.name}
+                fill
+                className="object-contain lg:object-cover"
+                sizes="(min-width: 1024px) 100vw, (min-width: 768px) 100vw, 100vw"
+                quality={75}
+                priority // 👈 Add this for LCP optimization
               />
               <div className="absolute top-0 left-0 h-16 w-16 overflow-visible">
                 <div className="absolute -rotate-45 bg-neon-lime text-white font-body font-semibold text-xs text-center py-1 w-[170px] left-[-34px] top-[32px]">
