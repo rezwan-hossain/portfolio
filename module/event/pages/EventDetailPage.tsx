@@ -7,6 +7,7 @@ import Link from "next/link";
 import { HeroText } from "@/components/ui/HeroText";
 import type { EventData } from "@/types/event";
 import EventInfoCard from "../components/EventInfoCard";
+import EventDescription3 from "../components/EventDescription3";
 
 // Dynamic imports for non-critical components
 const TicketSelector = dynamic(() => import("../components/TicketSelector"), {
@@ -17,14 +18,14 @@ const CountdownTimer = dynamic(() => import("../components/CountdownTimer"), {
   loading: () => <div className="h-24 bg-gray-100 animate-pulse rounded-xl" />,
 });
 
-const EventDescription = dynamic(
-  () => import("../components/EventDescription"),
-  {
-    loading: () => (
-      <div className="h-64 bg-gray-100 animate-pulse rounded-lg" />
-    ),
-  },
-);
+// const EventDescription = dynamic(
+//   () => import("../components/EventDescription"),
+//   {
+//     loading: () => (
+//       <div className="h-64 bg-gray-100 animate-pulse rounded-lg" />
+//     ),
+//   },
+// );
 
 type EventDetailPageProps = {
   event: EventData;
@@ -136,9 +137,10 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
                   dangerouslySetInnerHTML={{ __html: event.description }}
                 />
               ) : (
-                <Suspense fallback={<DescriptionSkeleton />}>
-                  <EventDescription description={event.description} />
-                </Suspense>
+                // <Suspense fallback={<DescriptionSkeleton />}>
+                //   <EventDescription description={event.description} />
+                // </Suspense>
+                <EventDescription3 description={event.description} />
               )}
             </section>
           </div>
