@@ -19,6 +19,8 @@ const anton = Anton({
   subsets: ["latin"],
   display: "swap",
   preload: true,
+  fallback: ["system-ui", "arial"], // ✅ Add fallback
+  adjustFontFallback: true, // ✅ Reduce layout shift
 });
 
 const inter = Inter({
@@ -27,6 +29,8 @@ const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   preload: true,
+  fallback: ["system-ui", "arial"], // ✅ Add fallback
+  adjustFontFallback: true, // ✅ Reduce layout shift
 });
 
 export const metadata: Metadata = {

@@ -2,8 +2,13 @@ import { Suspense } from "react";
 import Navbar from "./Navbar";
 import SiteHeader2 from "./Navbar2";
 import SiteHeader4 from "./Navbar4";
-import SiteFooter from "./SiteFooter";
+// import SiteFooter from "./SiteFooter";
 import SiteHeader from "./SiteHeader";
+import dynamic from "next/dynamic";
+
+const SiteFooter = dynamic(() => import("./SiteFooter"), {
+  ssr: true,
+});
 
 interface AppLayoutProps {
   readonly children: React.ReactNode;

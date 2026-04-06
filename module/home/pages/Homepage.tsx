@@ -1,78 +1,53 @@
 import { getActiveHero } from "@/app/actions/homepage";
-import Categories from "../components/Category";
-import CTASection from "../components/CTASection";
-import EventSchedule from "../components/EventSchedule";
-import FAQ from "../components/FAQ";
 import HeroSection from "../components/HeroSection";
-import HeroSlider from "../components/HeroSlider";
-import RegisterCTA from "../components/RegisterCTA";
-import Sponsors from "../components/Sponsors";
-import Testimonials from "../components/Testimonials";
-import UpcomingEvents from "../components/UpcomingEvent";
-import UpcomingEvent from "../components/UpcomingEvent";
-import { heroSlides } from "../data/heroSlides";
+import dynamic from "next/dynamic";
+import { Suspense } from "react";
 
-/**
- * Homepage - Main landing page component
- *
- * Uses AsyncSection wrapper for all data-fetching sections to provide:
- * - Suspense-based streaming for faster perceived load times
- * - Per-section error boundaries for graceful degradation
- * - Consistent loading skeletons
- *
- * Architecture:
- * - Above-the-fold content (Hero, Quality, TopBrands) loads immediately
- * - Below-the-fold sections stream in as data becomes available
- * - Each async section can fail independently without affecting others
- */
+// ✅ Lazy load everything below the fold
+const UpcomingEvents = dynamic(() => import("../components/UpcomingEvent"), {
+  loading: () => <div className="h-96 bg-gray-100 animate-pulse" />,
+});
+
+const EventSchedule = dynamic(() => import("../components/EventSchedule"), {
+  loading: () => <div className="h-96 bg-gray-100 animate-pulse" />,
+});
+
+const CTASection = dynamic(() => import("../components/CTASection"));
+const Categories = dynamic(() => import("../components/Category"));
+const Testimonials = dynamic(() => import("../components/Testimonials"));
+const Sponsors = dynamic(() => import("../components/Sponsors"));
+const FAQ = dynamic(() => import("../components/FAQ"));
+const RegisterCTA = dynamic(() => import("../components/RegisterCTA"));
+
 export default async function Homepage() {
   const { hero } = await getActiveHero();
 
   return (
     <main role="main" aria-label="Homepage">
-      {/* SEO: Main H1 heading - visually hidden but accessible */}
-      {/* <h1 className="sr-only">
-				Gloria Elegance - Premium Beauty & Cosmetics from UK & USA in Bangladesh
-			</h1> */}
-
+      {/* ✅ Only hero loads immediately */}
       <section aria-label="Hero">
-        {/* <HeroSlider
-          slides={heroSlides}
-          autoPlay={true}
-          interval={5000}
-          height="h-[85vh]"
-        /> */}
         <HeroSection hero={hero} />
       </section>
 
-      <section aria-label="UpComing Event">
-        <UpcomingEvents />
-      </section>
+      {/* ✅ Everything else loads after hero is visible */}
+      <Suspense fallback={<div className="h-96" />}>
+        <section aria-label="UpComing Event">
+          <UpcomingEvents />
+        </section>
+      </Suspense>
 
-      <section aria-label=" Event">
-        <EventSchedule />
-      </section>
-      <section>
-        <CTASection />
-      </section>
+      <Suspense fallback={<div className="h-96" />}>
+        <section aria-label="Event Schedule">
+          <EventSchedule />
+        </section>
+      </Suspense>
 
-      <section aria-label=" Event">
-        <Categories />
-      </section>
-
-      <section aria-label="Testimonials">
-        <Testimonials />
-      </section>
-
-      <section aria-label="Sponsors">
-        <Sponsors />
-      </section>
-      <section aria-label="FAQ">
-        <FAQ />
-      </section>
-      <section aria-label="Follow Us on Social Media">
-        <RegisterCTA />
-      </section>
+      <CTASection />
+      <Categories />
+      <Testimonials />
+      <Sponsors />
+      <FAQ />
+      <RegisterCTA />
     </main>
   );
 }
