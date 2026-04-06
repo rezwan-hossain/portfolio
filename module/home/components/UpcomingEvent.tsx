@@ -29,6 +29,7 @@ export default async function UpcomingEvents() {
               slug: event.slug,
               title: event.name,
               description: event.description,
+              shortDesc: event.shortDesc,
               time: new Date(event.time).toLocaleTimeString("en-US", {
                 hour: "2-digit",
                 minute: "2-digit",
