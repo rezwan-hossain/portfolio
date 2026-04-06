@@ -1,11 +1,30 @@
-import TicketSelector from "../components/TicketSelector";
-import { HeroText } from "@/components/ui/HeroText";
+// module/event/pages/EventDetailPage.tsx
+import { Suspense } from "react";
+import dynamic from "next/dynamic";
+import Image from "next/image";
+import Link from "next/link";
 
+import { HeroText } from "@/components/ui/HeroText";
 import type { EventData } from "@/types/event";
 import EventInfoCard from "../components/EventInfoCard";
-import CountdownTimer from "../components/CountdownTimer";
-import EventDescription from "../components/EventDescription";
-import Link from "next/link";
+
+// Dynamic imports for non-critical components
+const TicketSelector = dynamic(() => import("../components/TicketSelector"), {
+  loading: () => <TicketSelectorSkeleton />,
+});
+
+const CountdownTimer = dynamic(() => import("../components/CountdownTimer"), {
+  loading: () => <div className="h-24 bg-gray-100 animate-pulse rounded-xl" />,
+});
+
+const EventDescription = dynamic(
+  () => import("../components/EventDescription"),
+  {
+    loading: () => (
+      <div className="h-64 bg-gray-100 animate-pulse rounded-lg" />
+    ),
+  },
+);
 
 type EventDetailPageProps = {
   event: EventData;
@@ -14,57 +33,34 @@ type EventDetailPageProps = {
 
 type ViewMode = "styled" | "unstyled";
 
-const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
-  const view: ViewMode =
-    (searchParams?.view as ViewMode) === "unstyled" ? "unstyled" : "styled";
-
-  const isUnstyled = view === "unstyled";
-
-  const formattedDate = new Date(event.date).toLocaleDateString("en-US", {
+// Pre-compute formatted values on server
+function formatEventDate(date: string | Date): string {
+  return new Date(date).toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
   });
+}
 
-  const formattedTime = new Date(event.time).toLocaleTimeString("en-US", {
+function formatEventTime(time: string | Date): string {
+  return new Date(time).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
 
-  // Status badge styling helper
-  const getStatusStyle = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return "bg-green-100 text-green-700";
-      case "COMPLETED":
-        return "bg-blue-100 text-blue-700";
-      case "CANCELLED":
-        return "bg-red-100 text-red-700";
-      case "INACTIVE":
-        return "bg-gray-100 text-gray-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
+const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
+  const view: ViewMode =
+    (searchParams?.view as ViewMode) === "unstyled" ? "unstyled" : "styled";
+  const isUnstyled = view === "unstyled";
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return "Upcoming";
-      case "COMPLETED":
-        return "Completed";
-      case "CANCELLED":
-        return "Cancelled";
-      case "INACTIVE":
-        return "Inactive";
-      default:
-        return status;
-    }
-  };
+  // Pre-compute on server
+  const formattedDate = formatEventDate(event.date);
+  const formattedTime = formatEventTime(event.time);
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mt-42 ">
+      <div className="mt-42">
         <HeroText
           title={event.name}
           date={formattedDate}
@@ -72,41 +68,41 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
           location={event.address}
         />
       </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-        {/* Main grid */}
+        {/* Desktop Banner - LCP Element */}
         <div className="hidden md:block relative rounded-xl overflow-hidden mt-4 mb-8">
-          <img
+          <Image
             src={event.bannerImage}
             alt={event.name}
-            className="w-full h-[300px] sm:h-[360px] lg:h-[540px] object-contain lg:object-cover overflow-hidden rounded-xl"
-            loading="lazy"
+            width={1200}
+            height={540}
+            className="w-full h-[300px] sm:h-[360px] lg:h-[540px] object-contain lg:object-cover rounded-xl"
+            priority // Critical for LCP
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1200px"
+            placeholder="blur"
+            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAUH/8QAIhAAAgEDAwUBAAAAAAAAAAAAAQIDBAURAAYhEiIxQVFh/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAYEQEBAQEBAAAAAAAAAAAAAAABAgADEf/aAAwDAQACEQMRAD8Aw+3bdu9ru1BXQ26eSGnqIpZFRVZmVXBIAHknGmG/rjPuC4Uu4J6SajgqIPTjp8qV7Y0H3A5Azk8f2mms0Bui5NdXe//Z"
           />
-          <span
-            className={`absolute top-4 right-4 px-4 py-1.5 text-xs font-semibold rounded-full ${
-              event.eventType === "VIRTUAL"
-                ? "bg-purple-500 text-white"
-                : "bg-neon-lime text-white"
-            }`}
-          >
-            {event.eventType === "LIVE" ? "UPCOMING" : event.eventType}
-          </span>
+          <EventTypeBadge eventType={event.eventType} />
         </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 lg:gap-12">
           {/* Left column */}
           <div>
-            {/* Hero Image */}
+            {/* Mobile Hero Image */}
             <div className="block md:hidden relative rounded-xl overflow-hidden">
-              <img
+              <Image
                 src={event.thumbImage ?? event.bannerImage}
                 alt={event.name}
-                className="w-full h-[280px] sm:h-[360px] lg:h-[440px] object-cover"
-                loading="lazy"
+                width={600}
+                height={280}
+                className="w-full h-[280px] sm:h-[360px] object-cover"
+                priority // Also LCP on mobile
+                sizes="100vw"
+                placeholder="blur"
+                blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAUH/8QAIhAAAgEDAwUBAAAAAAAAAAAAAQIDBAURAAYhEiIxQVFh/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAYEQEBAQEBAAAAAAAAAAAAAAABAgADEf/aAAwDAQACEQMRAD8Aw+3bdu9ru1BXQ26eSGnqIpZFRVZmVXBIAHknGmG/rjPuC4Uu4J6SajgqIPTjp8qV7Y0H3A5Azk8f2mms0Bui5NdXe//Z"
               />
-              <div className="absolute top-0 left-0 h-16 w-16 overflow-visible">
-                <div className="absolute -rotate-45 bg-neon-lime text-white font-body font-semibold text-xs text-center py-1 w-[170px] left-[-34px] top-[32px]">
-                  {event.status === "ACTIVE" ? "Upcoming" : event.status}
-                </div>
-              </div>
+              <StatusRibbon status={event.status} />
             </div>
 
             <section className="mt-6 lg:mt-10">
@@ -114,6 +110,7 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
                 <Link
                   href={`?view=${isUnstyled ? "styled" : "unstyled"}`}
                   className="text-sm font-medium underline underline-offset-4"
+                  prefetch={false}
                 >
                   Switch to {isUnstyled ? "styled" : "unstyled"}
                 </Link>
@@ -129,30 +126,22 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
                   dangerouslySetInnerHTML={{ __html: event.description }}
                 />
               ) : (
-                <EventDescription description={event.description} />
+                <Suspense fallback={<DescriptionSkeleton />}>
+                  <EventDescription description={event.description} />
+                </Suspense>
               )}
             </section>
-
-            {/* unstyle html */}
-            {/* <section className="mt-10 lg:mt-14">
-              <div
-                className="prose mt-14 prose-slate [&>h2]:mt-12 [&>h2]:flex [&>h2]:items-center [&>h2]:font-mono [&>h2]:text-sm/7 [&>h2]:font-medium [&>h2]:text-slate-900 [&>h2]:before:mr-3 [&>h2]:before:h-3 [&>h2]:before:w-1.5 [&>h2]:before:rounded-r-full [&>h2]:before:bg-cyan-200 [&>h2:nth-of-type(3n)]:before:bg-violet-200 [&>h2:nth-of-type(3n+2)]:before:bg-indigo-200 [&>ul]:mt-6 [&>ul]:list-['\2013\20'] [&>ul]:pl-5"
-                dangerouslySetInnerHTML={{ __html: event.description }}
-              />
-            </section> */}
-
-            {/* style html */}
-            {/* <section className="mt-10 lg:mt-14">
-              <h2 className="font-display text-3xl lg:text-4xl tracking-wide mb-6">
-                EVENT DETAILS
-              </h2>
-              <EventDescription description={event.description} />
-            </section> */}
           </div>
 
-          {/* Right column */}
-          <div className="lg:sticky lg:top-20 h-fit space-y-8 mt-10">
-            <CountdownTimer targetDate={new Date(event.date)} />
+          {/* Right column - Sticky sidebar */}
+          <aside className="lg:sticky lg:top-20 h-fit space-y-8 mt-10">
+            <Suspense
+              fallback={
+                <div className="h-24 bg-gray-100 animate-pulse rounded-xl" />
+              }
+            >
+              <CountdownTimer targetDate={new Date(event.date)} />
+            </Suspense>
 
             <EventInfoCard
               status={event.status}
@@ -163,16 +152,61 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
               organizer={event.organizer}
             />
 
-            <TicketSelector
-              packages={event.packages}
-              eventSlug={event.slug}
-              eventId={event.id}
-            />
-          </div>
+            <Suspense fallback={<TicketSelectorSkeleton />}>
+              <TicketSelector
+                packages={event.packages}
+                eventSlug={event.slug}
+                eventId={event.id}
+              />
+            </Suspense>
+          </aside>
         </div>
       </div>
     </div>
   );
 };
+
+// Extracted components for better code splitting
+const EventTypeBadge = ({ eventType }: { eventType: string }) => (
+  <span
+    className={`absolute top-4 right-4 px-4 py-1.5 text-xs font-semibold rounded-full ${
+      eventType === "VIRTUAL"
+        ? "bg-purple-500 text-white"
+        : "bg-neon-lime text-white"
+    }`}
+  >
+    {eventType === "LIVE" ? "UPCOMING" : eventType}
+  </span>
+);
+
+const StatusRibbon = ({ status }: { status: string }) => (
+  <div className="absolute top-0 left-0 h-16 w-16 overflow-visible">
+    <div className="absolute -rotate-45 bg-neon-lime text-white font-body font-semibold text-xs text-center py-1 w-[170px] left-[-34px] top-[32px]">
+      {status === "ACTIVE" ? "Upcoming" : status}
+    </div>
+  </div>
+);
+
+// Skeleton components
+const TicketSelectorSkeleton = () => (
+  <div className="bg-white rounded-xl p-6 shadow-sm border animate-pulse">
+    <div className="h-6 bg-gray-200 rounded w-1/3 mb-4" />
+    <div className="space-y-3">
+      <div className="h-12 bg-gray-200 rounded" />
+      <div className="h-12 bg-gray-200 rounded" />
+      <div className="h-12 bg-gray-200 rounded" />
+    </div>
+    <div className="h-12 bg-gray-200 rounded mt-4" />
+  </div>
+);
+
+const DescriptionSkeleton = () => (
+  <div className="space-y-4 animate-pulse">
+    <div className="h-4 bg-gray-200 rounded w-full" />
+    <div className="h-4 bg-gray-200 rounded w-5/6" />
+    <div className="h-4 bg-gray-200 rounded w-4/6" />
+    <div className="h-4 bg-gray-200 rounded w-full" />
+  </div>
+);
 
 export default EventDetailPage;
