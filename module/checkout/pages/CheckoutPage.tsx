@@ -193,7 +193,7 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mt-16 ">
+      <div className="mt-42 ">
         <HeroText title="Checkout" />
       </div>
 

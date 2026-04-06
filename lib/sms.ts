@@ -78,8 +78,8 @@ export function getPaymentConfirmationSMS({
   bibNumber?: string;
   tshirtSize?: string;
 }): string {
-  const bibText = bibNumber ? `Your BIB is : ${bibNumber}.` : "";
-  const tshirtText = tshirtSize ? `T-shirt size: ${tshirtSize}.` : "";
+  const bibText = bibNumber ? `Your BIB is:${bibNumber}.` : "";
+  const tshirtText = tshirtSize ? `T-shirt size:${tshirtSize}.` : "";
 
   return [
     `Hi ${runnerName}!`,

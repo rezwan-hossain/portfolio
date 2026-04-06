@@ -4,28 +4,18 @@
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { revalidateTag } from "next/cache";
+import type { CouponValidationResult } from "@/types/coupon";
 
-export type CouponValidationResult = {
-  valid: boolean;
-  error?: string;
-  coupon?: {
-    id: string;
-    code: string;
-    discountType: "PERCENTAGE" | "FIXED";
-    discountValue: number;
-    maxDiscount: number | null;
-  };
-  discountAmount?: number;
-  finalPrice?: number;
-};
-
-// ─── VALIDATE COUPON (used from checkout) ──────────
+// ─── VALIDATE COUPON ──────────────────────────────
+// IMPORTANT: Added packageId parameter - update all callers!
 export async function validateCoupon(
   code: string,
   eventId: string,
+  packageId: number,
   orderAmount: number,
 ): Promise<CouponValidationResult> {
   try {
+    // Auth check
     const supabase = await createClient();
     const {
       data: { user },
@@ -43,6 +33,7 @@ export async function validateCoupon(
       return { valid: false, error: "User not found" };
     }
 
+    // Find coupon with packages
     const coupon = await prisma.coupon.findFirst({
       where: {
         code: code.toUpperCase().trim(),
@@ -53,6 +44,9 @@ export async function validateCoupon(
         usages: {
           where: { userId: dbUser.id },
         },
+        packages: {
+          select: { id: true, name: true },
+        },
       },
     });
 
@@ -60,6 +54,35 @@ export async function validateCoupon(
       return { valid: false, error: "Invalid coupon code for this event" };
     }
 
+    // ─── PACKAGE SCOPE VALIDATION ───────────────────
+    // Only check if scopeType is PACKAGE (not EVENT)
+    if (coupon.scopeType === "PACKAGE") {
+      const applicablePackageIds = coupon.packages.map((p) => p.id);
+
+      // If package-scoped but no packages defined, treat as invalid
+      if (applicablePackageIds.length === 0) {
+        console.warn(
+          `Coupon ${coupon.code} is PACKAGE-scoped but has no packages`,
+        );
+        return {
+          valid: false,
+          error: "This coupon is not configured correctly",
+        };
+      }
+
+      // Check if selected package is in the allowed list
+      if (!applicablePackageIds.includes(packageId)) {
+        // Get package names for better error message
+        const packageNames = coupon.packages.map((p) => p.name).join(", ");
+        return {
+          valid: false,
+          error: `This coupon is only valid for: ${packageNames}`,
+        };
+      }
+    }
+    // If scopeType is EVENT, no package check needed - applies to all
+
+    // ─── TIME VALIDATION ────────────────────────────
     const now = new Date();
     if (now < coupon.validFrom) {
       return { valid: false, error: "Coupon is not yet active" };
@@ -68,6 +91,7 @@ export async function validateCoupon(
       return { valid: false, error: "Coupon has expired" };
     }
 
+    // ─── USAGE LIMITS ───────────────────────────────
     if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) {
       return { valid: false, error: "Coupon usage limit reached" };
     }
@@ -76,6 +100,7 @@ export async function validateCoupon(
       return { valid: false, error: "You have already used this coupon" };
     }
 
+    // ─── ORDER AMOUNT CHECK ─────────────────────────
     if (coupon.minOrderAmount && orderAmount < coupon.minOrderAmount) {
       return {
         valid: false,
@@ -83,6 +108,7 @@ export async function validateCoupon(
       };
     }
 
+    // ─── CALCULATE DISCOUNT ─────────────────────────
     let discountAmount: number;
 
     if (coupon.discountType === "PERCENTAGE") {
@@ -94,6 +120,7 @@ export async function validateCoupon(
       discountAmount = coupon.discountValue;
     }
 
+    // Never discount more than the order total
     discountAmount = Math.min(discountAmount, orderAmount);
     const finalPrice = orderAmount - discountAmount;
 
@@ -115,7 +142,32 @@ export async function validateCoupon(
   }
 }
 
-// ─── ADMIN: CREATE COUPON ──────────────────────────
+// ─── GET PACKAGES FOR EVENT ───────────────────────
+export async function getPackagesForEvent(eventId: string) {
+  try {
+    const packages = await prisma.package.findMany({
+      where: {
+        eventId,
+        isActive: true,
+        isArchived: false,
+      },
+      select: {
+        id: true,
+        name: true,
+        distance: true,
+        price: true,
+      },
+      orderBy: { price: "asc" },
+    });
+
+    return { packages, error: null };
+  } catch (error) {
+    console.error("Get packages error:", error);
+    return { packages: [], error: "Failed to fetch packages" };
+  }
+}
+
+// ─── CREATE COUPON ────────────────────────────────
 export async function createCoupon(data: {
   code: string;
   eventId: string;
@@ -127,43 +179,92 @@ export async function createCoupon(data: {
   maxDiscount?: number;
   validFrom: Date;
   validUntil: Date;
+  scopeType?: "EVENT" | "PACKAGE";
+  packageIds?: number[];
 }) {
   try {
+    const normalizedCode = data.code.toUpperCase().trim();
+
+    // Check for duplicate
     const existing = await prisma.coupon.findFirst({
       where: {
-        code: data.code.toUpperCase().trim(),
+        code: normalizedCode,
         eventId: data.eventId,
       },
     });
 
     if (existing) {
-      return { error: "Coupon code already exists for this event" };
+      return {
+        success: false,
+        error: "Coupon code already exists for this event",
+      };
     }
 
+    // Validate packages belong to event (if provided)
+    const scopeType = data.scopeType || "EVENT";
+    const packageIds = data.packageIds || [];
+
+    if (scopeType === "PACKAGE") {
+      if (packageIds.length === 0) {
+        return {
+          success: false,
+          error:
+            "Please select at least one package for package-specific coupon",
+        };
+      }
+
+      const validPackages = await prisma.package.findMany({
+        where: {
+          id: { in: packageIds },
+          eventId: data.eventId,
+        },
+        select: { id: true },
+      });
+
+      if (validPackages.length !== packageIds.length) {
+        return {
+          success: false,
+          error: "One or more selected packages do not belong to this event",
+        };
+      }
+    }
+
+    // Create coupon
     const coupon = await prisma.coupon.create({
       data: {
-        code: data.code.toUpperCase().trim(),
+        code: normalizedCode,
         eventId: data.eventId,
         discountType: data.discountType,
         discountValue: data.discountValue,
-        maxUses: data.maxUses || null,
-        maxUsesPerUser: data.maxUsesPerUser || 1,
-        minOrderAmount: data.minOrderAmount || null,
-        maxDiscount: data.maxDiscount || null,
+        maxUses: data.maxUses ?? null,
+        maxUsesPerUser: data.maxUsesPerUser ?? 1,
+        minOrderAmount: data.minOrderAmount ?? null,
+        maxDiscount: data.maxDiscount ?? null,
         validFrom: data.validFrom,
         validUntil: data.validUntil,
+        scopeType: scopeType,
+        ...(scopeType === "PACKAGE" &&
+          packageIds.length > 0 && {
+            packages: {
+              connect: packageIds.map((id) => ({ id })),
+            },
+          }),
+      },
+      include: {
+        event: { select: { id: true, name: true } },
+        packages: { select: { id: true, name: true, distance: true } },
       },
     });
 
     revalidateTag("coupons", "max");
-    return { success: true, coupon };
+    return { success: true, coupon, error: null };
   } catch (error) {
     console.error("Create coupon error:", error);
-    return { error: "Failed to create coupon" };
+    return { success: false, error: "Failed to create coupon" };
   }
 }
 
-// ─── ADMIN: GET ALL COUPONS ────────────────────────
+// ─── GET ALL COUPONS ──────────────────────────────
 export async function getAllCoupons(filters?: {
   eventId?: string;
   isActive?: boolean;
@@ -176,19 +277,27 @@ export async function getAllCoupons(filters?: {
       },
       include: {
         event: { select: { id: true, name: true, slug: true } },
+        packages: { select: { id: true, name: true, distance: true } },
         _count: { select: { usages: true } },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    return { coupons };
+    // Ensure scopeType has a default for old records
+    const normalizedCoupons = coupons.map((coupon) => ({
+      ...coupon,
+      scopeType: coupon.scopeType || "EVENT",
+      packages: coupon.packages || [],
+    }));
+
+    return { coupons: normalizedCoupons, error: null };
   } catch (error) {
     console.error("Get coupons error:", error);
     return { coupons: [], error: "Failed to fetch coupons" };
   }
 }
 
-// ─── ADMIN: UPDATE COUPON ──────────────────────────
+// ─── UPDATE COUPON ────────────────────────────────
 export async function updateCoupon(
   id: string,
   data: Partial<{
@@ -202,39 +311,118 @@ export async function updateCoupon(
     validFrom: Date;
     validUntil: Date;
     isActive: boolean;
+    scopeType: "EVENT" | "PACKAGE";
+    packageIds: number[];
   }>,
 ) {
   try {
+    // Get current coupon
+    const currentCoupon = await prisma.coupon.findUnique({
+      where: { id },
+      select: { eventId: true, scopeType: true },
+    });
+
+    if (!currentCoupon) {
+      return { success: false, error: "Coupon not found" };
+    }
+
+    // Determine final scope type
+    const finalScopeType = data.scopeType ?? currentCoupon.scopeType ?? "EVENT";
+    const packageIds = data.packageIds;
+
+    // Validate packages if updating to PACKAGE scope
+    if (finalScopeType === "PACKAGE" && packageIds !== undefined) {
+      if (packageIds.length === 0) {
+        return {
+          success: false,
+          error:
+            "Please select at least one package for package-specific coupon",
+        };
+      }
+
+      const validPackages = await prisma.package.findMany({
+        where: {
+          id: { in: packageIds },
+          eventId: currentCoupon.eventId,
+        },
+        select: { id: true },
+      });
+
+      if (validPackages.length !== packageIds.length) {
+        return {
+          success: false,
+          error: "One or more selected packages do not belong to this event",
+        };
+      }
+    }
+
+    // Build update data
+    const { packageIds: _, ...updateFields } = data;
+
     const coupon = await prisma.coupon.update({
       where: { id },
       data: {
-        ...data,
-        ...(data.code && { code: data.code.toUpperCase().trim() }),
+        ...updateFields,
+        ...(updateFields.code && {
+          code: updateFields.code.toUpperCase().trim(),
+        }),
+        // Handle package connections
+        ...(packageIds !== undefined && {
+          packages: {
+            set: packageIds.map((pkgId) => ({ id: pkgId })),
+          },
+        }),
+        // If switching to EVENT scope, disconnect all packages
+        ...(data.scopeType === "EVENT" && {
+          packages: { set: [] },
+        }),
+      },
+      include: {
+        event: { select: { id: true, name: true } },
+        packages: { select: { id: true, name: true, distance: true } },
       },
     });
 
     revalidateTag("coupons", "max");
-    return { success: true, coupon };
+    return { success: true, coupon, error: null };
   } catch (error) {
     console.error("Update coupon error:", error);
-    return { error: "Failed to update coupon" };
+    return { success: false, error: "Failed to update coupon" };
   }
 }
 
-// ─── ADMIN: DELETE COUPON ──────────────────────────
+// ─── DELETE COUPON ────────────────────────────────
 export async function deleteCoupon(id: string) {
   try {
+    // Check if coupon has been used
+    const usageCount = await prisma.couponUsage.count({
+      where: { couponId: id },
+    });
+
+    if (usageCount > 0) {
+      // Soft delete by deactivating instead
+      await prisma.coupon.update({
+        where: { id },
+        data: { isActive: false },
+      });
+      revalidateTag("coupons", "max");
+      return {
+        success: true,
+        warning: `Coupon has ${usageCount} usages. Deactivated instead of deleted.`,
+      };
+    }
+
     await prisma.coupon.delete({ where: { id } });
     revalidateTag("coupons", "max");
 
-    return { success: true };
+    return { success: true, error: null };
   } catch (error) {
     console.error("Delete coupon error:", error);
-    return { error: "Failed to delete coupon" };
+    return { success: false, error: "Failed to delete coupon" };
   }
 }
 
-// ─── ADMIN: GET USAGE STATS ───────────────────────
+// ─── GET COUPON STATS ─────────────────────────────
 export async function getCouponStats(couponId: string) {
   try {
     const usages = await prisma.couponUsage.findMany({
@@ -249,13 +437,19 @@ export async function getCouponStats(couponId: string) {
     });
 
     const totalDiscount = usages.reduce((sum, u) => sum + u.discount, 0);
-    return { usages, totalUsages: usages.length, totalDiscount };
+    return { usages, totalUsages: usages.length, totalDiscount, error: null };
   } catch (error) {
     console.error("Get coupon stats error:", error);
-    return { error: "Failed to fetch coupon stats" };
+    return {
+      usages: [],
+      totalUsages: 0,
+      totalDiscount: 0,
+      error: "Failed to fetch coupon stats",
+    };
   }
 }
 
+// ─── APPLY COUPON (after payment success) ─────────
 export async function applyCoupon({
   couponId,
   userId,
@@ -268,7 +462,7 @@ export async function applyCoupon({
   discount: number;
 }) {
   try {
-    // Check if already applied (idempotency)
+    // Idempotency check
     const existingUsage = await prisma.couponUsage.findUnique({
       where: { orderId },
     });
@@ -278,9 +472,8 @@ export async function applyCoupon({
       return { success: true, alreadyApplied: true };
     }
 
-    // Use a transaction to ensure both happen or neither
+    // Transaction: create usage + increment counter
     await prisma.$transaction([
-      // 1. Create usage record (tracks WHO used it, on WHICH order)
       prisma.couponUsage.create({
         data: {
           couponId,
@@ -289,8 +482,6 @@ export async function applyCoupon({
           discount,
         },
       }),
-
-      // 2. Increment the global counter
       prisma.coupon.update({
         where: { id: couponId },
         data: {
@@ -304,9 +495,9 @@ export async function applyCoupon({
       orderId,
       discount,
     });
-    return { success: true };
+    return { success: true, error: null };
   } catch (error) {
     console.error("Apply coupon error:", error);
-    return { error: "Failed to apply coupon" };
+    return { success: false, error: "Failed to apply coupon" };
   }
 }

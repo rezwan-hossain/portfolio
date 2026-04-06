@@ -1,3 +1,4 @@
+// app/(site)/profile/components/admin/AdminCouponsPanel.tsx
 "use client";
 
 import { useState } from "react";
@@ -18,7 +19,15 @@ import {
   Users,
   ToggleLeft,
   ToggleRight,
+  Package,
 } from "lucide-react";
+
+// Updated types
+export type CouponPackage = {
+  id: number;
+  name: string;
+  distance: string;
+};
 
 export type Coupon = {
   id: string;
@@ -33,7 +42,9 @@ export type Coupon = {
   validFrom: string;
   validUntil: string;
   isActive: boolean;
+  scopeType: "EVENT" | "PACKAGE";
   event: { id: string; name: string };
+  packages: CouponPackage[];
   _count: { usages: number };
 };
 
@@ -233,11 +244,39 @@ export function AdminCouponsPanel({ initialCoupons, events }: Props) {
                               Inactive
                             </span>
                           )}
+
+                          {/* NEW: Scope indicator */}
+                          {coupon.scopeType === "PACKAGE" ? (
+                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-indigo-100 text-indigo-600 rounded-full flex items-center gap-1">
+                              <Package size={10} />
+                              {coupon.packages.length} Package
+                              {coupon.packages.length !== 1 ? "s" : ""}
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-blue-100 text-blue-600 rounded-full">
+                              All Packages
+                            </span>
+                          )}
                         </div>
 
                         <p className="text-sm text-gray-500 mt-1 truncate">
                           {coupon.event.name}
                         </p>
+
+                        {/* NEW: Show applicable packages if scope is PACKAGE */}
+                        {coupon.scopeType === "PACKAGE" &&
+                          coupon.packages.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {coupon.packages.map((pkg) => (
+                                <span
+                                  key={pkg.id}
+                                  className="px-2 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded font-medium"
+                                >
+                                  {pkg.name} ({pkg.distance})
+                                </span>
+                              ))}
+                            </div>
+                          )}
 
                         <p className="text-sm font-medium text-gray-700 mt-2">
                           {coupon.discountType === "PERCENTAGE"

@@ -80,10 +80,21 @@ export async function placeOrder(formData: {
         },
         include: {
           usages: { where: { userId: dbUser.id } },
+          packages: { select: { id: true } },
         },
       });
 
       if (!coupon) return { error: "Invalid coupon code" };
+
+      if (coupon.scopeType === "PACKAGE") {
+        const applicablePackageIds = coupon.packages.map((p) => p.id);
+        if (
+          applicablePackageIds.length > 0 &&
+          !applicablePackageIds.includes(formData.packageId)
+        ) {
+          return { error: "This coupon is not valid for this package" };
+        }
+      }
 
       const now = new Date();
       if (now < coupon.validFrom || now > coupon.validUntil) {

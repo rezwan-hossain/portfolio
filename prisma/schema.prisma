@@ -124,6 +124,9 @@ model Package {
   event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
   orders  Order[]
 
+   // NEW: Coupons that specifically apply to this package
+  coupons Coupon[] @relation("CouponToPackages")
+
   @@map("packages")
 }
 
@@ -267,17 +270,30 @@ model Coupon {
   validFrom      DateTime
   validUntil     DateTime
   isActive       Boolean      @default(true)
+
+  scopeType      CouponScope  @default(EVENT)
+
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
+  // NEW: Many-to-many relation with packages
+  // Only used when scopeType = PACKAGE
+  packages Package[] @relation("CouponToPackages")
+
   usages CouponUsage[]
   orders Order[]
 
   @@unique([code, eventId])
   @@map("coupons")
+}
+
+//Enum for coupon scope
+enum CouponScope {
+  EVENT    // Applies to all packages of the event
+  PACKAGE  // Applies only to specific packages
 }
 
 enum DiscountType {

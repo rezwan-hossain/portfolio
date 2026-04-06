@@ -93,7 +93,9 @@ export async function sendPaymentConfirmationEmail(
 
     // Send email
     const { data, error } = await resend.emails.send({
-      from: "Marathon Events <onboarding@resend.dev>", // Change in production
+      from:
+        process.env.RESEND_ORDER_CONFIRATION_FROM_EMAIL ||
+        "Marathon Events <noreply@merchcommunication.com>", // Change in production
       to: [params.to],
       subject: `✅ Registration Confirmed - ${params.eventName}`,
       html: html,

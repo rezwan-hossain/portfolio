@@ -1,11 +1,13 @@
+// app/(site)/profile/components/admin/CouponForm.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Coupon, CouponEvent } from "./AdminCouponsPanel";
 import {
   createCoupon,
   updateCoupon,
   getAllCoupons,
+  getPackagesForEvent,
 } from "@/app/actions/coupon";
 import Input from "@/components/ui/input";
 import {
@@ -15,13 +17,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Check, Loader2, Save } from "lucide-react";
+import { Check, Loader2, Save, Package, X } from "lucide-react";
 
 type CouponFormProps = {
   coupon: Coupon | null;
   events: CouponEvent[];
   onSuccess: (coupons: Coupon[]) => void;
   onCancel: () => void;
+};
+
+type EventPackage = {
+  id: number;
+  name: string;
+  distance: string;
+  price: number;
 };
 
 type FormData = {
@@ -35,6 +44,8 @@ type FormData = {
   maxDiscount: string;
   validFrom: string;
   validUntil: string;
+  scopeType: "EVENT" | "PACKAGE";
+  packageIds: number[];
 };
 
 export function CouponForm({
@@ -47,6 +58,10 @@ export function CouponForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+
+  // Package state
+  const [eventPackages, setEventPackages] = useState<EventPackage[]>([]);
+  const [loadingPackages, setLoadingPackages] = useState(false);
 
   const [form, setForm] = useState<FormData>({
     code: coupon?.code || "",
@@ -63,12 +78,56 @@ export function CouponForm({
     validUntil: coupon?.validUntil
       ? new Date(coupon.validUntil).toISOString().slice(0, 16)
       : "",
+    scopeType: coupon?.scopeType || "EVENT",
+    packageIds: coupon?.packages?.map((p) => p.id) || [],
   });
 
-  const updateField = (field: keyof FormData, value: string) => {
+  // Load packages when event changes
+  useEffect(() => {
+    const loadPackages = async () => {
+      if (!form.eventId) {
+        setEventPackages([]);
+        return;
+      }
+
+      setLoadingPackages(true);
+      const { packages } = await getPackagesForEvent(form.eventId);
+      setEventPackages(packages as EventPackage[]);
+      setLoadingPackages(false);
+    };
+
+    loadPackages();
+  }, [form.eventId]);
+
+  const updateField = (field: keyof FormData, value: string | number[]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setError("");
     setSuccess(false);
+  };
+
+  const handleEventChange = (eventId: string) => {
+    updateField("eventId", eventId);
+    // Reset package selection when event changes
+    updateField("packageIds", []);
+  };
+
+  const togglePackage = (packageId: number) => {
+    const current = form.packageIds;
+    const updated = current.includes(packageId)
+      ? current.filter((id) => id !== packageId)
+      : [...current, packageId];
+    updateField("packageIds", updated);
+  };
+
+  const selectAllPackages = () => {
+    updateField(
+      "packageIds",
+      eventPackages.map((p) => p.id),
+    );
+  };
+
+  const clearAllPackages = () => {
+    updateField("packageIds", []);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,6 +161,14 @@ export function CouponForm({
       return;
     }
 
+    // Package scope validation
+    if (form.scopeType === "PACKAGE" && form.packageIds.length === 0) {
+      setError(
+        "Please select at least one package for package-specific coupon",
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -120,6 +187,8 @@ export function CouponForm({
           maxDiscount: form.maxDiscount ? parseFloat(form.maxDiscount) : null,
           validFrom: new Date(form.validFrom),
           validUntil: new Date(form.validUntil),
+          scopeType: form.scopeType,
+          packageIds: form.scopeType === "PACKAGE" ? form.packageIds : [],
         });
       } else {
         result = await createCoupon({
@@ -137,6 +206,8 @@ export function CouponForm({
             : undefined,
           validFrom: new Date(form.validFrom),
           validUntil: new Date(form.validUntil),
+          scopeType: form.scopeType,
+          packageIds: form.scopeType === "PACKAGE" ? form.packageIds : [],
         });
       }
 
@@ -183,7 +254,7 @@ export function CouponForm({
             </label>
             <Select
               value={form.eventId}
-              onValueChange={(val) => updateField("eventId", val)}
+              onValueChange={handleEventChange}
               disabled={isEditing}
             >
               <SelectTrigger className="h-11 rounded-lg border border-gray-200 bg-gray-50">
@@ -198,6 +269,150 @@ export function CouponForm({
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        {/* NEW: Coupon Scope Section */}
+        <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
+            Coupon Scope <span className="text-red-500">*</span>
+          </label>
+
+          <div className="flex gap-4 mb-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="scopeType"
+                value="EVENT"
+                checked={form.scopeType === "EVENT"}
+                onChange={() => updateField("scopeType", "EVENT")}
+                className="w-4 h-4 text-gray-900 border-gray-300 focus:ring-gray-900"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                All Packages
+              </span>
+              <span className="text-xs text-gray-500">
+                (Applies to entire event)
+              </span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="scopeType"
+                value="PACKAGE"
+                checked={form.scopeType === "PACKAGE"}
+                onChange={() => updateField("scopeType", "PACKAGE")}
+                className="w-4 h-4 text-gray-900 border-gray-300 focus:ring-gray-900"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Specific Packages
+              </span>
+              <span className="text-xs text-gray-500">
+                (Select packages below)
+              </span>
+            </label>
+          </div>
+
+          {/* Package Selection (only shown when scope is PACKAGE) */}
+          {form.scopeType === "PACKAGE" && (
+            <div className="mt-4">
+              {!form.eventId ? (
+                <p className="text-sm text-gray-500 italic">
+                  Please select an event first
+                </p>
+              ) : loadingPackages ? (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading packages...
+                </div>
+              ) : eventPackages.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">
+                  No packages found for this event
+                </p>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-medium text-gray-600">
+                      Select applicable packages:
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={selectAllPackages}
+                        className="text-xs text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+                      >
+                        Select All
+                      </button>
+                      <span className="text-gray-300">|</span>
+                      <button
+                        type="button"
+                        onClick={clearAllPackages}
+                        className="text-xs text-gray-500 hover:text-gray-700 font-medium cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {eventPackages.map((pkg) => {
+                      const isSelected = form.packageIds.includes(pkg.id);
+                      return (
+                        <button
+                          key={pkg.id}
+                          type="button"
+                          onClick={() => togglePackage(pkg.id)}
+                          className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer text-left ${
+                            isSelected
+                              ? "border-gray-900 bg-gray-900 text-white"
+                              : "border-gray-200 bg-white hover:border-gray-400"
+                          }`}
+                        >
+                          <Package
+                            size={16}
+                            className={
+                              isSelected ? "text-white" : "text-gray-400"
+                            }
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className={`text-sm font-medium truncate ${
+                                isSelected ? "text-white" : "text-gray-900"
+                              }`}
+                            >
+                              {pkg.name}
+                            </p>
+                            <p
+                              className={`text-xs ${
+                                isSelected ? "text-white/70" : "text-gray-500"
+                              }`}
+                            >
+                              {pkg.distance} · ৳{pkg.price}
+                            </p>
+                          </div>
+                          {isSelected && (
+                            <Check
+                              size={16}
+                              className="text-neon-lime flex-shrink-0"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {form.packageIds.length > 0 && (
+                    <p className="mt-3 text-xs text-gray-600">
+                      <span className="font-semibold">
+                        {form.packageIds.length}
+                      </span>{" "}
+                      package(s) selected
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Discount Type & Value */}

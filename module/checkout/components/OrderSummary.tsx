@@ -84,6 +84,7 @@ export const OrderSummary = ({
           appliedCoupon={appliedCoupon}
           onApply={onApplyCoupon}
           onRemove={onRemoveCoupon}
+          packageId={item.packageId}
         />
       </div>
 

@@ -8,6 +8,7 @@ import { Loader2, Tag, X, Check } from "lucide-react";
 
 type CouponInputProps = {
   eventId: string;
+  packageId: number; // Optional, only needed if validating package-specific coupons
   orderAmount: number;
   appliedCoupon: AppliedCoupon | null;
   onApply: (coupon: AppliedCoupon, finalPrice: number) => void;
@@ -18,6 +19,7 @@ export function CouponInput({
   eventId,
   orderAmount,
   appliedCoupon,
+  packageId,
   onApply,
   onRemove,
 }: CouponInputProps) {
@@ -37,7 +39,12 @@ export function CouponInput({
     setSuccess("");
 
     try {
-      const result = await validateCoupon(code, eventId, orderAmount);
+      const result = await validateCoupon(
+        code,
+        eventId,
+        packageId,
+        orderAmount,
+      );
 
       if (!result.valid || !result.coupon) {
         setError(result.error || "Invalid coupon");
