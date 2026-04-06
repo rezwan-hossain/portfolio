@@ -35,8 +35,8 @@
 
   --radius: 0.75rem;
 
-  --font-heading: "Anton", sans-serif;
-  --font-body: "Inter", sans-serif;
+  /* --font-heading: "Anton", sans-serif;
+  --font-body: "Inter", sans-serif; */
 
   --highlight: 240 80% 90%;
 
@@ -80,6 +80,19 @@
   --sidebar-accent-foreground: 240 4.8% 95.9%;
   --sidebar-border: 240 3.7% 15.9%;
   --sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+}
+
+body {
+  font-family: var(--font-body);
 }
 
 @theme {
