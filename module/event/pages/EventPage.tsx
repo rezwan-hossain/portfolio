@@ -8,8 +8,6 @@ type EventsPageProps = {
 };
 
 const EventsPage = ({ events, error }: EventsPageProps) => {
-  
-
   return (
     <div className="min-h-screen bg-background  px-4 md:px-8 py-4 md:py-8">
       <div className="mt-42 ">
@@ -42,6 +40,7 @@ const EventsPage = ({ events, error }: EventsPageProps) => {
             slug: event.slug,
             title: event.name,
             description: event.description,
+            shortDesc: event.shortDesc,
             time: new Date(event.time).toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",
@@ -60,14 +59,16 @@ const EventsPage = ({ events, error }: EventsPageProps) => {
             //         .map((pkg) => `${pkg.name} ৳${pkg.price}`)
             //         .join(" / ")
             //     : "No packages available",
-          
+
             pricing:
               event.packages.length > 0 ? (
                 <>
                   {event.packages.map((pkg, i) => (
                     <span key={i}>
                       {pkg.name}{" "}
-                      <span className="font-semibold text-neon-lime">৳{pkg.price}</span>
+                      <span className="font-semibold text-neon-lime">
+                        ৳{pkg.price}
+                      </span>
                       {i !== event.packages.length - 1 && " / "}
                     </span>
                   ))}
