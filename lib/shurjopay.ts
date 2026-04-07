@@ -5,6 +5,7 @@ const BASE_URL = process.env.SHURJOPAY_API_URL!;
 const USERNAME = process.env.SHURJOPAY_USERNAME!;
 const PASSWORD = process.env.SHURJOPAY_PASSWORD!;
 const CALLBACK_URL = process.env.SHURJOPAY_CALLBACK_URL!;
+const SHURJOPAY_PREFIX = process.env.SHURJOPAY_PREFIX;
 
 // ─── Get Token ──────────────────────────────────────
 export async function getShurjoPayToken() {
@@ -51,6 +52,7 @@ export async function createShurjoPayPayment({
   customerPhone,
   customerAddress,
   customerCity,
+  clientIp,
 }: {
   token: string;
   storeId: number;
@@ -61,9 +63,10 @@ export async function createShurjoPayPayment({
   customerPhone: string;
   customerAddress?: string;
   customerCity?: string;
+  clientIp?: string;
 }) {
   const payload = {
-    prefix: "RRN",
+    prefix: SHURJOPAY_PREFIX || "RRN",
     token,
     store_id: storeId,
     return_url: CALLBACK_URL,
@@ -76,7 +79,7 @@ export async function createShurjoPayPayment({
     customer_city: customerCity || "Dhaka",
     customer_phone: customerPhone,
     customer_email: customerEmail,
-    client_ip: "127.0.0.1",
+    client_ip: clientIp || "127.0.0.1",
     discount_amount: 0,
     disc_percent: 0,
     value1: orderId,

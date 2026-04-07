@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { getShurjoPayToken, createShurjoPayPayment } from "@/lib/shurjopay";
+import { getClientIp } from "@/lib/get-client-ip";
 
 export async function initiateShurjoPayPayment({
   orderId,
@@ -26,6 +27,10 @@ export async function initiateShurjoPayPayment({
   }
 
   try {
+    // ✅ Get client IP at the start
+    const clientIp = await getClientIp();
+    console.log("🌐 Client IP:", clientIp);
+
     // Get order with payment
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -78,6 +83,7 @@ export async function initiateShurjoPayPayment({
       customerName,
       customerEmail,
       customerPhone,
+      clientIp,
     });
 
     if (!paymentResponse.checkout_url) {
