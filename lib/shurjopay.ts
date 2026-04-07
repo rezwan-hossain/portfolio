@@ -11,6 +11,7 @@ const SHURJOPAY_PREFIX = process.env.SHURJOPAY_PREFIX;
 export async function getShurjoPayToken() {
   console.log("🔑 Token request to:", `${BASE_URL}/api/get_token`);
   console.log("🔑 Username:", USERNAME);
+  console.log("🔑 Password:", PASSWORD);
 
   const { data } = await axios.post(
     `${BASE_URL}/api/get_token`,

@@ -1,21 +1,36 @@
 // app/api/payment/shurjopay/callback/route.ts
-// import { autoAssignBibNumber, getEventBibPrefix } from "@/lib/bib";
 import { autoAssignBibNumber } from "@/lib/bib-package-prefix";
 import { sendPaymentConfirmationEmail } from "@/lib/email/send-payment-confirmation";
 import { prisma } from "@/lib/prisma";
-import { verifyShurjoPayPayment } from "@/lib/shurjopay";
+import {
+  verifyShurjoPayPayment,
+  isPaymentSuccessful,
+  isPaymentCancelled,
+  isPaymentDeclined,
+  getPaymentStatusMessage,
+  SP_CODE,
+} from "@/lib/shurjopay2";
 import { formatBDPhone, getPaymentConfirmationSMS, sendSMS } from "@/lib/sms";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+
 import { applyCoupon } from "@/app/actions/coupon";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const spOrderId = searchParams.get("order_id");
+
+  // ✅ Check multiple possible parameter names
+  const spOrderId =
+    searchParams.get("order_id") ||
+    searchParams.get("sp_order_id") ||
+    searchParams.get("orderId");
+
   const origin = new URL(request.url).origin;
 
-  console.log("📥 ShurjoPay callback received:", { spOrderId });
+  console.log("📥 ShurjoPay callback received:", {
+    spOrderId,
+    allParams: Object.fromEntries(searchParams.entries()),
+  });
 
-  // ─── No order ID ──────────────────────────────────
   if (!spOrderId) {
     console.error("❌ No order_id in callback");
     return NextResponse.redirect(
@@ -26,7 +41,29 @@ export async function GET(request: NextRequest) {
   try {
     // ─── Verify payment with ShurjoPay ──────────────
     console.log("🔍 Verifying payment with ShurjoPay...");
-    const verifyData = await verifyShurjoPayPayment(spOrderId);
+
+    let verifyData;
+    try {
+      verifyData = await verifyShurjoPayPayment(spOrderId);
+    } catch (verifyError: any) {
+      console.error("❌ Verification API error:", verifyError?.message);
+
+      // Find payment and keep as PENDING for manual review
+      const paymentBySpOrderId = await prisma.payment.findFirst({
+        where: { paymentId: spOrderId },
+      });
+
+      if (paymentBySpOrderId) {
+        console.log(
+          "⚠️ Payment marked for manual review:",
+          paymentBySpOrderId.id,
+        );
+      }
+
+      return NextResponse.redirect(
+        `${origin}/payment/failed?reason=verification_error`,
+      );
+    }
 
     if (!verifyData || verifyData.length === 0) {
       console.error("❌ Verification returned empty data");
@@ -36,15 +73,18 @@ export async function GET(request: NextRequest) {
     }
 
     const paymentInfo = verifyData[0];
-    console.log("📋 Payment info:", {
-      bank_status: paymentInfo.bank_status,
+
+    // ✅ CRITICAL: Log sp_code which is the ONLY reliable field
+    console.log("📋 Payment verification result:", {
       sp_code: paymentInfo.sp_code,
-      transaction_status: paymentInfo.transaction_status,
-      bank_trx_id: paymentInfo.bank_trx_id,
-      amount: paymentInfo.amount,
+      sp_code_type: typeof paymentInfo.sp_code,
+      sp_message: paymentInfo.sp_message,
       method: paymentInfo.method,
-      customer_order_id: paymentInfo.customer_order_id,
+      amount: paymentInfo.amount,
+      received_amount: paymentInfo.received_amount,
+      order_id: paymentInfo.order_id,
       value1: paymentInfo.value1,
+      status_message: getPaymentStatusMessage(paymentInfo),
     });
 
     // ─── Find payment in DB ─────────────────────────
@@ -52,15 +92,21 @@ export async function GET(request: NextRequest) {
       where: {
         OR: [
           { paymentId: spOrderId },
-          { orderId: paymentInfo.customer_order_id },
           { orderId: paymentInfo.value1 },
+          // ✅ Also check customer_order_id if it exists
+          ...(paymentInfo.customer_order_id
+            ? [{ orderId: paymentInfo.customer_order_id }]
+            : []),
         ],
       },
       include: { order: true },
     });
 
     if (!payment) {
-      console.error("❌ Payment not found in DB for:", spOrderId);
+      console.error("❌ Payment not found in DB:", {
+        spOrderId,
+        value1: paymentInfo.value1,
+      });
       return NextResponse.redirect(
         `${origin}/payment/failed?reason=payment_not_found`,
       );
@@ -68,46 +114,48 @@ export async function GET(request: NextRequest) {
 
     console.log("📦 Found payment:", payment.id, "for order:", payment.orderId);
 
-    // ─── Check payment status ───────────────────────
-    const isSuccess =
-      paymentInfo.bank_status === "Success" ||
-      paymentInfo.sp_code === 1000 ||
-      paymentInfo.transaction_status === "Completed";
+    // ✅ Idempotency check
+    if (payment.status === "PAID") {
+      console.log("ℹ️ Payment already PAID, redirecting to success");
+      return NextResponse.redirect(
+        `${origin}/payment/success?orderId=${payment.orderId}`,
+      );
+    }
 
-    const isCancelled =
-      paymentInfo.bank_status === "Cancel" ||
-      paymentInfo.transaction_status === "Cancelled";
+    // ─── Check payment status using sp_code (per documentation) ───────
+    const spCode = Number(paymentInfo.sp_code);
 
-    const isFailed =
-      paymentInfo.bank_status === "Failed" ||
-      paymentInfo.transaction_status === "Failed";
+    console.log("📊 Payment status check:", {
+      sp_code: spCode,
+      is_success: spCode === SP_CODE.SUCCESS,
+      is_cancelled: spCode === SP_CODE.CANCELLED_BY_CUSTOMER,
+      is_declined: spCode === SP_CODE.DECLINED_BY_BANK,
+    });
 
-    if (isSuccess) {
-      console.log("✅ Payment SUCCESS — updating DB...");
+    // ✅ SUCCESS: sp_code === 1000
+    if (spCode === SP_CODE.SUCCESS) {
+      console.log("✅ Payment SUCCESS (sp_code=1000) — updating DB...");
 
       await prisma.$transaction(async (tx) => {
-        // Update payment
         await tx.payment.update({
           where: { id: payment.id },
           data: {
             status: "PAID",
-            transactionId: paymentInfo.bank_trx_id || null,
+            // ✅ Use order_id from verification as transaction reference
+            transactionId: paymentInfo.order_id || spOrderId,
             paymentMethod: paymentInfo.method || "shurjopay",
             paymentGateway: "shurjopay",
+            paymentId: spOrderId,
           },
         });
 
-        // Confirm order
         await tx.order.update({
           where: { id: payment.orderId },
           data: { status: "CONFIRMED" },
         });
       });
 
-      // ⭐ ADD THIS BLOCK — Apply coupon AFTER payment confirmed
-      // ──────────────────────────────────────────────────────
-      // ✨ APPLY COUPON USAGE (only after successful payment!)
-      // ──────────────────────────────────────────────────────
+      // ─── Coupon Application ───────────────────────
       try {
         const orderForCoupon = await prisma.order.findUnique({
           where: { id: payment.orderId },
@@ -116,21 +164,16 @@ export async function GET(request: NextRequest) {
             userId: true,
             couponId: true,
             discount: true,
-            couponUsage: true, // Check if already applied
+            couponUsage: true,
           },
         });
 
-        // Apply coupon if:
-        // 1. Order has a couponId (coupon was used)
-        // 2. Discount > 0
-        // 3. CouponUsage doesn't exist yet (not already applied)
         if (
           orderForCoupon?.couponId &&
           orderForCoupon.discount > 0 &&
           !orderForCoupon.couponUsage
         ) {
-          console.log("🎟️ Applying coupon usage for order:", payment.orderId);
-
+          console.log("🎟️ Applying coupon usage...");
           const couponResult = await applyCoupon({
             couponId: orderForCoupon.couponId,
             userId: orderForCoupon.userId,
@@ -139,29 +182,16 @@ export async function GET(request: NextRequest) {
           });
 
           if (couponResult.success) {
-            console.log("✅ Coupon usage recorded successfully");
+            console.log("✅ Coupon usage recorded");
           } else {
-            console.error(
-              "⚠️ Failed to record coupon usage:",
-              couponResult.error,
-            );
+            console.error("⚠️ Coupon failed:", couponResult.error);
           }
-        } else if (orderForCoupon?.couponUsage) {
-          console.log("ℹ️ Coupon already applied for this order");
         }
       } catch (couponError: any) {
-        // Don't fail the payment if coupon application fails
-        console.error(
-          "⚠️ Coupon application error (non-critical):",
-          couponError?.message,
-        );
+        console.error("⚠️ Coupon error:", couponError?.message);
       }
-      // ⭐ END OF COUPON BLOCK
-      // ──────────────────────────────────────────────────────
 
-      // ──────────────────────────────────────────────────────
-      // ✨ AUTO-ASSIGN BIB NUMBER AFTER PAYMENT CONFIRMED
-      // ──────────────────────────────────────────────────────
+      // ─── BIB, Email, SMS ──────────────────────────
       try {
         const order = await prisma.order.findUnique({
           where: { id: payment.orderId },
@@ -175,38 +205,14 @@ export async function GET(request: NextRequest) {
         });
 
         if (order?.registration && order.event && order.package) {
-          // const prefix = getEventBibPrefix(order.eventId);
-          // const bibNumber = await autoAssignBibNumber(
-          //   order.registration.id,
-          //   order.eventId,
-          //   prefix,
-          // );
-
           const bibNumber = await autoAssignBibNumber(
             order.registration.id,
             order.eventId,
-            order.packageId, // ← just pass packageId, prefix resolved internally
+            order.packageId,
           );
 
-          // ✅ Send BIB email to runner TODO: Implement sendBibEmail function and uncomment
-          // if (bibNumber && order.user?.email) {
-          //   await sendBibEmail({
-          //     to: order.user.email,
-          //     bibNumber,
-          //     eventName: order.event.name,
-          //     runnerName: order.registration.fullName,
-          //   });
-          // }
-
-          // ──────────────────────────────────────────────────────
-          // ✨ SEND CONFIRMATION EMAIL
-          // ──────────────────────────────────────────────────────
-          console.log("📧 Sending payment confirmation email...");
+          // Email
           try {
-            // const emailResult = await sendPaymentConfirmationEmail({
-            //   to: order.user.email,
-            //   runnerName: order.registration?.fullName || order.user.firstName || "Runner",
-            // });
             const emailResult = await sendPaymentConfirmationEmail({
               to: order.user.email,
               runnerName:
@@ -223,40 +229,22 @@ export async function GET(request: NextRequest) {
               orderDate: order.createdAt,
               orderStatus: order.status,
               paymentStatus: order.payment?.status || "PENDING",
-              transactionId: order.payment?.transactionId ?? undefined,
-              paymentMethod: order.payment?.paymentMethod ?? undefined,
+              transactionId: paymentInfo.order_id || spOrderId,
+              paymentMethod: paymentInfo.method || undefined,
               bibNumber: bibNumber ?? undefined,
               tshirtSize: order.registration?.tshirtSize ?? undefined,
               bloodGroup: order.registration?.bloodGroup ?? undefined,
             });
-            if (emailResult.success) {
-              console.log("✅ Confirmation email sent");
-            } else {
-              console.error(
-                "⚠️ Email failed (non-critical):",
-                emailResult.error,
-              );
-            }
-          } catch (emailError: any) {
-            // Don't fail payment if email fails
-            console.error(
-              "⚠️ Email error (non-critical):",
-              emailError?.message,
-            );
+            if (emailResult.success) console.log("✅ Email sent");
+          } catch (e: any) {
+            console.error("⚠️ Email error:", e?.message);
           }
-          // ──────────────────────────────────────────────────────
 
-          // ──────────────────────────────────────────────────────
-          // ✨ SEND CONFIRMATION SMS
-          // ──────────────────────────────────────────────────────
-          console.log("📱 Sending payment confirmation SMS...");
+          // SMS
           try {
-            // Check if user has phone number
-            if (order.registration?.phone || order.user?.phone) {
-              const phoneNumber =
-                order.registration?.phone || order.user?.phone || "";
+            const phoneNumber = order.registration?.phone || order.user?.phone;
+            if (phoneNumber) {
               const formattedPhone = formatBDPhone(phoneNumber);
-
               const smsMessage = getPaymentConfirmationSMS({
                 runnerName:
                   order.registration?.fullName ||
@@ -266,49 +254,33 @@ export async function GET(request: NextRequest) {
                 bibNumber: bibNumber ?? undefined,
                 tshirtSize: order.registration?.tshirtSize ?? undefined,
               });
-
               const smsResult = await sendSMS({
                 number: formattedPhone,
                 message: smsMessage,
               });
-
-              if (smsResult.success) {
-                console.log("✅ Confirmation SMS sent to:", formattedPhone);
-              } else {
-                console.error("⚠️ SMS failed (non-critical):", smsResult.error);
-              }
-            } else {
-              console.warn("⚠️ No phone number found for user");
+              if (smsResult.success) console.log("✅ SMS sent");
             }
-          } catch (smsError: any) {
-            // Don't fail payment if SMS fails
-            console.error("⚠️ SMS error (non-critical):", smsError?.message);
+          } catch (e: any) {
+            console.error("⚠️ SMS error:", e?.message);
           }
-          // ──────────────────────────────────────────────────────
 
           if (bibNumber) {
-            console.log(`✅ BIB ${bibNumber} assigned to order ${order.id}`);
-          } else {
-            console.warn(`⚠️ Failed to auto-assign BIB for order ${order.id}`);
+            console.log(`✅ BIB ${bibNumber} assigned`);
           }
         }
-      } catch (bibError: any) {
-        // Don't fail the payment if BIB assignment fails
-        console.error(
-          "⚠️ BIB assignment error (non-critical):",
-          bibError?.message,
-        );
+      } catch (e: any) {
+        console.error("⚠️ Post-payment processing error:", e?.message);
       }
-      // ──────────────────────────────────────────────────────
 
-      console.log("✅ Order confirmed, redirecting to success page");
+      console.log("✅ Order confirmed, redirecting to success");
       return NextResponse.redirect(
         `${origin}/payment/success?orderId=${payment.orderId}`,
       );
     }
 
-    if (isCancelled) {
-      console.log("⚠️ Payment CANCELLED");
+    // ✅ CANCELLED: sp_code === 1002
+    if (spCode === SP_CODE.CANCELLED_BY_CUSTOMER) {
+      console.log("⚠️ Payment CANCELLED (sp_code=1002)");
       await prisma.payment.update({
         where: { id: payment.id },
         data: {
@@ -323,30 +295,40 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (isFailed) {
-      console.log("❌ Payment FAILED");
+    // ✅ DECLINED: sp_code === 1001
+    if (spCode === SP_CODE.DECLINED_BY_BANK) {
+      console.log("❌ Payment DECLINED by bank (sp_code=1001)");
       await prisma.payment.update({
         where: { id: payment.id },
         data: {
           status: "FAILED",
           paymentMethod: paymentInfo.method || "shurjopay",
+          paymentGateway: "shurjopay",
         },
       });
 
       return NextResponse.redirect(
-        `${origin}/payment/failed?orderId=${payment.orderId}&reason=payment_failed`,
+        `${origin}/payment/failed?orderId=${payment.orderId}&reason=declined`,
       );
     }
 
-    // ─── Unknown status ─────────────────────────────
-    console.error("❓ Unknown payment status:", paymentInfo.bank_status);
+    // ─── Unknown sp_code ────────────────────────────
+    console.error("❓ Unknown sp_code:", {
+      sp_code: spCode,
+      sp_message: paymentInfo.sp_message,
+    });
+
+    // Keep as PENDING for manual review
     await prisma.payment.update({
       where: { id: payment.id },
-      data: { status: "FAILED" },
+      data: {
+        status: "PENDING",
+        paymentId: spOrderId,
+      },
     });
 
     return NextResponse.redirect(
-      `${origin}/payment/failed?orderId=${payment.orderId}&reason=unknown`,
+      `${origin}/payment/failed?orderId=${payment.orderId}&reason=unknown_status`,
     );
   } catch (error: any) {
     console.error("❌ Callback error:", error?.message);
@@ -356,7 +338,23 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// ShurjoPay might POST to callback
 export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json().catch(() => ({}));
+    console.log("📥 ShurjoPay POST callback body:", body);
+
+    if (body.order_id || body.sp_order_id) {
+      const url = new URL(request.url);
+      url.searchParams.set("order_id", body.order_id || body.sp_order_id);
+      const newRequest = new NextRequest(url, {
+        method: "GET",
+        headers: request.headers,
+      });
+      return GET(newRequest);
+    }
+  } catch (e) {
+    console.log("POST body parse failed, using GET params");
+  }
+
   return GET(request);
 }
