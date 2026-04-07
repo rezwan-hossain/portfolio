@@ -1,7 +1,8 @@
+// module/checkout/pages/CheckoutPage.tsx
 "use client";
 
-import { useState } from "react";
-import { BillingForm } from "../components/BillingForm";
+import { useState, useRef, useMemo } from "react";
+import { BillingForm, BillingFormRef } from "../components/BillingForm";
 import { OrderSummary } from "../components/OrderSummary";
 import { HeroText } from "@/components/ui/HeroText";
 import { BillingFormData, CheckoutItem, AppliedCoupon } from "@/types/checkout";
@@ -15,8 +16,13 @@ type CheckoutPageProps = {
   userName: string;
 };
 
+// Bangladeshi phone number regex for validation
+const BD_PHONE_REGEX = /^(?:\+?880|0)1[3-9]\d{8}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
   const router = useRouter();
+  const billingFormRef = useRef<BillingFormRef>(null);
 
   const [paymentMethod, setPaymentMethod] = useState("shurjopay");
   const [loading, setLoading] = useState(false);
@@ -43,6 +49,60 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
     runnerCategory: "",
   });
 
+  // Check if form is valid for enabling/disabling submit button
+  const isFormValid = useMemo(() => {
+    // Check required fields
+    const requiredFields: (keyof BillingFormData)[] = [
+      "fullName",
+      "email",
+      "phone",
+      "gender",
+      "birthDate",
+      "ageCategory",
+      "bloodGroup",
+      "tshirtSize",
+      "runnerCategory",
+    ];
+
+    // Check if all required fields have values
+    for (const field of requiredFields) {
+      if (!formData[field]?.trim()) {
+        return false;
+      }
+    }
+
+    // Validate email format
+    if (!EMAIL_REGEX.test(formData.email)) {
+      return false;
+    }
+
+    // Validate phone format
+    const cleanPhone = formData.phone.replace(/[\s-]/g, "");
+    if (!BD_PHONE_REGEX.test(cleanPhone)) {
+      return false;
+    }
+
+    // Validate birth date is in the past
+    const selectedDate = new Date(formData.birthDate);
+    const today = new Date();
+    if (selectedDate >= today) {
+      return false;
+    }
+
+    // Validate emergency contact number if provided
+    if (formData.emergencyContactNumber?.trim()) {
+      const cleanEmergencyPhone = formData.emergencyContactNumber.replace(
+        /[\s-]/g,
+        "",
+      );
+      if (!BD_PHONE_REGEX.test(cleanEmergencyPhone)) {
+        return false;
+      }
+    }
+
+    return true;
+  }, [formData]);
+
   const updateField = (field: keyof BillingFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -61,25 +121,12 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
   const handlePlaceOrder = async () => {
     setError("");
 
-    // Validation
-    const required: (keyof BillingFormData)[] = [
-      "fullName",
-      "phone",
-      "gender",
-      "birthDate",
-      "ageCategory",
-      "bloodGroup",
-      "tshirtSize",
-      "runnerCategory",
-    ];
+    // Validate form and focus on first invalid field
+    const isValid = billingFormRef.current?.validateAndFocus();
 
-    for (const field of required) {
-      if (!formData[field]) {
-        setError(
-          `Please fill in ${field.replace(/([A-Z])/g, " $1").toLowerCase()}`,
-        );
-        return;
-      }
+    if (!isValid) {
+      setError("Please fill in all required fields correctly");
+      return;
     }
 
     setLoading(true);
@@ -161,34 +208,6 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
       setError("An unexpected error occurred. Please try again.");
       setLoading(false);
     }
-
-    // const result = await placeOrder({
-    //   packageId: item.packageId,
-    //   eventId: item.eventId,
-    //   qty: item.qty,
-    //   fullName: formData.fullName,
-    //   phone: formData.phone,
-    //   gender: formData.gender,
-    //   birthDate: formData.birthDate,
-    //   ageCategory: formData.ageCategory,
-    //   bloodGroup: formData.bloodGroup,
-    //   tshirtSize: formData.tshirtSize,
-    //   emergencyContactName: formData.emergencyContactName || undefined,
-    //   emergencyContactNumber: formData.emergencyContactNumber || undefined,
-    //   communityName: formData.communityName || undefined,
-    //   runnerCategory: formData.runnerCategory,
-    //   paymentMethod,
-    // });
-
-    // if (result.error) {
-    //   setError(result.error);
-    //   setLoading(false);
-    //   return;
-    // }
-
-    // if (result.success && result.orderId) {
-    //   router.push(`/order-confirmation?orderId=${result.orderId}`);
-    // }
   };
 
   return (
@@ -197,34 +216,34 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
         <HeroText title="Checkout" />
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 md:py-12">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:py-8 md:py-12">
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-sm font-medium">{error}</p>
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600 text-xs sm:text-sm font-medium">
+              {error}
+            </p>
           </div>
         )}
 
-        <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
+        <div className="flex flex-col gap-6 sm:gap-8 lg:flex-row lg:gap-12">
           {/* Billing Details */}
           <div className="flex-1">
-            <BillingForm formData={formData} updateField={updateField} />
+            <BillingForm
+              ref={billingFormRef}
+              formData={formData}
+              updateField={updateField}
+            />
           </div>
 
           {/* Order Summary */}
           <div className="w-full lg:w-[450px]">
-            {/* <OrderSummary
-              item={item}
-              paymentMethod={paymentMethod}
-              onPaymentMethodChange={setPaymentMethod}
-              onPlaceOrder={handlePlaceOrder}
-              loading={loading}
-            /> */}
             <OrderSummary
               item={item}
               paymentMethod={paymentMethod}
               onPaymentMethodChange={setPaymentMethod}
               onPlaceOrder={handlePlaceOrder}
               loading={loading}
+              isFormValid={isFormValid}
               appliedCoupon={appliedCoupon}
               onApplyCoupon={handleApplyCoupon}
               onRemoveCoupon={handleRemoveCoupon}
