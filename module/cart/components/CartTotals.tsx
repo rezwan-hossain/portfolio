@@ -1,3 +1,4 @@
+// module/cart/components/CartTotals.tsx
 import { CartItemType } from "@/types/cart";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,21 +19,20 @@ const CartTotals = ({ subtotal, items, disabled = false }: CartTotalsProps) => {
     if (items.length === 0 || !agreed) return;
 
     // Pass first item info to checkout
-    // You can extend this for multiple items
+    // Quantity is fixed at 1
     const item = items[0];
     const params = new URLSearchParams({
       package: String(item.packageId),
       event: item.eventId,
-      qty: String(item.qty),
+      qty: "1", // Fixed quantity
     });
 
     router.push(`/checkout?${params.toString()}`);
   };
 
-
   return (
-    <div className="bg-cart-totals-bg rounded-sm p-6 lg:p-8">
-      <h2 className="text-2xl font-bold text-cart-foreground mb-6 tracking-wider uppercase">
+    <div className="bg-cart-totals-bg rounded-sm p-4 sm:p-6 lg:p-8">
+      <h2 className="text-xl sm:text-2xl font-bold text-cart-foreground mb-4 sm:mb-6 tracking-wider uppercase">
         Cart Totals
       </h2>
 
@@ -42,7 +42,7 @@ const CartTotals = ({ subtotal, items, disabled = false }: CartTotalsProps) => {
           {items.map((item) => (
             <div
               key={item.id}
-              className="flex justify-between text-sm text-cart-muted"
+              className="flex justify-between text-xs sm:text-sm text-cart-muted"
             >
               <span className="truncate mr-2">
                 {item.packageName} ({item.distance}) × {item.qty}
@@ -55,32 +55,34 @@ const CartTotals = ({ subtotal, items, disabled = false }: CartTotalsProps) => {
         </div>
       )}
 
-      <div className="flex justify-between items-center py-5 border-b border-t border-gray-200">
-        <span className="text-base text-cart-muted">Subtotal</span>
-        <span className="text-base text-cart-foreground">
-          ${subtotal.toFixed(2)}
+      <div className="flex justify-between items-center py-4 sm:py-5 border-b border-t border-gray-200">
+        <span className="text-sm sm:text-base text-cart-muted">Subtotal</span>
+        <span className="text-sm sm:text-base text-cart-foreground">
+          ৳{subtotal.toFixed(2)}
         </span>
       </div>
 
-      <div className="flex justify-between items-center py-5 border-b border-gray-200">
-        <span className="text-lg font-bold text-cart-foreground">Total</span>
-        <span className="text-lg font-bold text-cart-foreground">
-          ${subtotal.toFixed(2)}
+      <div className="flex justify-between items-center py-4 sm:py-5 border-b border-gray-200">
+        <span className="text-base sm:text-lg font-bold text-cart-foreground">
+          Total
+        </span>
+        <span className="text-base sm:text-lg font-bold text-cart-foreground">
+          ৳{subtotal.toFixed(2)}
         </span>
       </div>
 
-      <p className="text-xs text-cart-muted mt-3 mb-6">
+      <p className="text-xs text-cart-muted mt-3 mb-4 sm:mb-6">
         Taxes and shipping calculated at checkout
       </p>
 
-      <label className="flex items-start gap-2 mb-6 cursor-pointer">
+      <label className="flex items-start gap-2 mb-4 sm:mb-6 cursor-pointer">
         <input
           type="checkbox"
           checked={agreed}
           onChange={(e) => setAgreed(e.target.checked)}
           className="mt-0.5 w-4 h-4 rounded border-cart-border accent-cart-foreground"
         />
-        <span className="text-sm font-mono font-semibold  text-cart-muted">
+        <span className="text-xs sm:text-sm font-mono font-semibold text-cart-muted">
           I agree with{" "}
           <Link
             href="/terms-and-conditions"
@@ -94,7 +96,7 @@ const CartTotals = ({ subtotal, items, disabled = false }: CartTotalsProps) => {
       <button
         onClick={handleCheckout}
         disabled={!agreed || disabled}
-        className="w-full py-3.5 bg-neon-lime text-white text-base font-bold tracking-wide rounded-full hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 sm:py-3.5 bg-neon-lime text-white text-sm sm:text-base font-bold tracking-wide rounded-full hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Proceed To Checkout
       </button>
