@@ -51,7 +51,7 @@ export async function validateCoupon(
     });
 
     if (!coupon) {
-      return { valid: false, error: "Invalid coupon code for this event" };
+      return { valid: false, error: "Invalid coupon code" };
     }
 
     // ─── PACKAGE SCOPE VALIDATION ───────────────────

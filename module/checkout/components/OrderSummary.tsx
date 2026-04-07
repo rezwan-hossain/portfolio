@@ -4,7 +4,7 @@
 import { CheckoutItem, AppliedCoupon } from "@/types/checkout";
 import { CouponInput } from "./CouponInput";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
 
 interface OrderSummaryProps {
   item: CheckoutItem;
@@ -24,15 +24,23 @@ const paymentMethods = [
   {
     id: "shurjopay",
     label: "SurjoPay",
+    image: "/icons/shurjopay.png",
     description:
       "Pay securely via ShurjoPay. Supports bKash, Nagad, Rocket, Visa, Mastercard, and more. You will be redirected to complete your payment.",
   },
-  {
-    id: "bkash",
-    label: "bKash Payment",
-    description:
-      "You will be redirected to bKash to complete your payment securely. Please keep your bKash account ready.",
-  },
+  // {
+  //   id: "bkash",
+  //   label: "bKash Payment",
+  //   image: "/images/payment/bkash.svg",
+  //   description:
+  //     "You will be redirected to bKash to complete your payment securely. Please keep your bKash account ready.",
+  // },  // {
+  //   id: "bkash",
+  //   label: "bKash Payment",
+  //   image: "/images/payment/bkash.svg",
+  //   description:
+  //     "You will be redirected to bKash to complete your payment securely. Please keep your bKash account ready.",
+  // },
 ];
 
 export const OrderSummary = ({
@@ -121,37 +129,71 @@ export const OrderSummary = ({
       </div>
 
       {/* Payment Methods */}
-      <div className="mb-8 space-y-4">
-        <h3 className="text-sm font-semibold text-foreground mb-3">
+      <div className="mb-8">
+        <h3 className="text-sm font-semibold text-foreground mb-3 mt-3">
           Payment Method
         </h3>
-        {paymentMethods.map((method) => (
-          <div key={method.id}>
-            <label className="flex cursor-pointer items-center gap-3">
-              <input
-                type="radio"
-                name="payment"
-                value={method.id}
-                checked={paymentMethod === method.id}
-                onChange={() => onPaymentMethodChange(method.id)}
-                className="h-4 w-4 accent-neon-lime"
-              />
-              <span className="text-sm font-medium text-foreground">
-                {method.label}
-              </span>
-            </label>
+        <div className="space-y-3">
+          {paymentMethods.map((method) => {
+            const isSelected = paymentMethod === method.id;
 
-            {/* Description tooltip */}
-            {paymentMethod === method.id && method.description && (
-              <div className="relative mt-3">
-                <div className="absolute -top-2 left-4 h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-gray-200" />
-                <div className="rounded-sm bg-gray-200 p-4 text-sm leading-relaxed text-gray-600">
-                  {method.description}
+            return (
+              <button
+                key={method.id}
+                type="button"
+                onClick={() => onPaymentMethodChange(method.id)}
+                className={`w-full text-left rounded-xl border-2 transition-all duration-200 ${
+                  isSelected
+                    ? "border-neon-lime bg-neon-lime/5 shadow-sm shadow-neon-lime/20"
+                    : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {/* Main row: radio indicator + image + label */}
+                <div className="flex items-center gap-3 p-3.5">
+                  {/* Custom radio indicator */}
+                  <div
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200 ${
+                      isSelected
+                        ? "border-neon-lime bg-neon-lime"
+                        : "border-gray-300 bg-white"
+                    }`}
+                  >
+                    {isSelected && (
+                      <Check className="h-3 w-3 text-black" strokeWidth={3} />
+                    )}
+                  </div>
+
+                  {/* Payment logo */}
+                  <div className="flex h-10 w-14 shrink-0 items-center justify-center rounded-md bg-gray-50 p-1">
+                    <img
+                      src={method.image}
+                      alt={method.label}
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+
+                  {/* Label */}
+                  <span
+                    className={`text-sm font-medium ${
+                      isSelected ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    {method.label}
+                  </span>
                 </div>
-              </div>
-            )}
-          </div>
-        ))}
+
+                {/* Expandable description */}
+                {isSelected && method.description && (
+                  <div className="px-3.5 pb-3.5 pt-0">
+                    <div className="rounded-lg bg-gray-100 px-4 py-3 text-xs leading-relaxed text-gray-500">
+                      {method.description}
+                    </div>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Privacy Notice */}
