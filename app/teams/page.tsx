@@ -8,6 +8,7 @@ export const metadata = {
 };
 
 export default async function Page() {
+  // await new Promise((resolve) => setTimeout(resolve, 5000));
   const { members } = await getActiveTeamMembers();
 
   const adminMembers = members.filter((m) => m.category === "ADMIN");
