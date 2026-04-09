@@ -8,6 +8,7 @@ import { HeroText } from "@/components/ui/HeroText";
 import type { EventData } from "@/types/event";
 import EventInfoCard from "../components/EventInfoCard";
 import EventDescription3 from "../components/EventDescription3";
+import { formatEventTime } from "@/utils/date";
 
 // Dynamic imports for non-critical components
 const TicketSelector = dynamic(() => import("../components/TicketSelector"), {
@@ -43,12 +44,12 @@ function formatEventDate(date: string | Date): string {
   });
 }
 
-function formatEventTime(time: string | Date): string {
-  return new Date(time).toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+// function formatEventTime(time: string | Date): string {
+//   return new Date(time).toLocaleTimeString("en-US", {
+//     hour: "2-digit",
+//     minute: "2-digit",
+//   });
+// }
 
 const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
   const view: ViewMode =
@@ -57,6 +58,7 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
 
   // Pre-compute on server
   const formattedDate = formatEventDate(event.date);
+  // const formattedTime = formatEventTime(event.time);
   const formattedTime = formatEventTime(event.time);
 
   return (

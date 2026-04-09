@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Check, Loader2, Plus, Save, X } from "lucide-react";
 import dynamic from "next/dynamic";
+import { formatEventTime } from "@/utils/date";
 
 const RichTextEditor = dynamic(
   () =>
@@ -67,12 +68,7 @@ export function EventForm({
     name: event?.name || "",
     slug: event?.slug || "",
     date: event?.date ? new Date(event.date).toISOString().split("T")[0] : "",
-    time: event?.time
-      ? new Date(event.time).toLocaleTimeString("en-GB", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "",
+    time: event?.time ? formatEventTime(event.time) : "",
     address: event?.address || "",
     eventType: event?.eventType || "LIVE",
     description: event?.description || "",

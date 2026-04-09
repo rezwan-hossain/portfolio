@@ -1,6 +1,7 @@
 import { HeroText } from "@/components/ui/HeroText";
 import EventCard from "../components/EventCard";
 import { EventData } from "@/types/event";
+import { formatEventTime } from "@/utils/date";
 
 type EventsPageProps = {
   events: EventData[];
@@ -20,10 +21,11 @@ const EventsPage = ({ events, error }: EventsPageProps) => {
             title: event.name,
             description: event.description,
             shortDesc: event.shortDesc,
-            time: new Date(event.time).toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
+            // time: new Date(event.time).toLocaleTimeString("en-US", {
+            //   hour: "2-digit",
+            //   minute: "2-digit",
+            // }),
+            time: formatEventTime(event.time),
             date: new Date(event.date)
               .toLocaleDateString("en-US", {
                 month: "short",
