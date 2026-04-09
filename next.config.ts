@@ -45,6 +45,7 @@ const nextConfig: NextConfig = {
 
   async headers() {
     return [
+      // Security headers for all routes
       {
         source: "/:path*",
         headers: [
@@ -60,10 +61,122 @@ const nextConfig: NextConfig = {
             key: "X-Content-Type-Options",
             value: "nosniff",
           },
+          {
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+        ],
+      },
+
+      // ✅ Next.js built static assets (JS, CSS chunks)
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+
+      // ✅ Next.js optimized images
+      {
+        source: "/_next/image/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+
+      // ✅ Your custom static folder
+      {
+        source: "/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+
+      // ✅ Images in /public/images
+      {
+        source: "/images/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+
+      // ✅ Fonts
+      {
+        source: "/fonts/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+
+      // ✅ Favicon and icons
+      {
+        source: "/favicon.ico",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
         ],
       },
       {
-        source: "/static/:path*",
+        source: "/:path*.ico",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+
+      // ✅ Common static file extensions
+      {
+        source: "/:path*.(jpg|jpeg|png|gif|webp|avif|svg)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/:path*.(woff|woff2|ttf|otf|eot)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/:path*.(mp4|webm|ogg|mp3|wav)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/:path*.(pdf|doc|docx)",
         headers: [
           {
             key: "Cache-Control",
