@@ -348,3 +348,60 @@ h6 {
 .animate-dropdown {
   animation: dropdown 0.15s ease-out;
 }
+
+@layer utilities {
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-in {
+    from {
+      transform: translate3d(100%, 0, 0);
+    }
+    to {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes dropdown {
+    from {
+      opacity: 0;
+      transform: translate3d(0, -10px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.2s ease-out;
+    will-change: opacity;
+  }
+
+  .animate-slide-in {
+    animation: slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+  }
+
+  .animate-dropdown {
+    animation: dropdown 0.2s ease-out;
+    will-change: opacity, transform;
+  }
+
+  /* Optimize transforms for GPU */
+  .will-change-transform {
+    will-change: transform;
+  }
+
+  /* Reduce repaints */
+  nav {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+}

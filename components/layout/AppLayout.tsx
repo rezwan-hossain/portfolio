@@ -1,10 +1,9 @@
 import { Suspense } from "react";
-import Navbar from "./Navbar";
-import SiteHeader2 from "./Navbar2";
+
 import SiteHeader4 from "./Navbar4";
-// import SiteFooter from "./SiteFooter";
-import SiteHeader from "./SiteHeader";
+
 import dynamic from "next/dynamic";
+import SiteHeader5 from "./header/SiteHeader5";
 
 const SiteFooter = dynamic(() => import("./SiteFooter"), {
   ssr: true,
@@ -23,7 +22,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* <Navbar /> */}
         {/* <SiteHeader2 /> */}
         <Suspense fallback={<div className="h-16 bg-black" />}>
-          <SiteHeader4 />
+          {/* <SiteHeader4 /> */}
+          <SiteHeader5 />
         </Suspense>
 
         <main className="min-h-screen">
