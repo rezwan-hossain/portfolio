@@ -15,7 +15,7 @@ const faqs = [
   {
     question: "Can beginners participate?",
     answer:
-      "Absolutely! We offer 1K and 7.5K categories perfect for beginners as well as a full marathon for experienced runners.",
+      "Absolutely! We offer 1K and 7.5K categories perfect for beginners as well as a half marathon for experienced runners.",
   },
   {
     question: "What should I bring on race day?",

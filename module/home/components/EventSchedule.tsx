@@ -13,7 +13,7 @@ const schedule: ScheduleItem[] = [
   {
     time: "04:30",
     title: "MARATHON FLAG-OFF",
-    location: "Professional Wave",
+    // location: "Professional Wave",
   },
   {
     time: "7:30",

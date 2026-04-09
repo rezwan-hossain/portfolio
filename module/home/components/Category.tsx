@@ -15,7 +15,7 @@ type Category = {
 
 const categories: Category[] = [
   {
-    title: "5K KIDS RUN",
+    title: "1K KIDS RUN",
     description: "A lively dash for beginners and families.",
     icon: <Bolt size={24} />,
     link: "/login",
