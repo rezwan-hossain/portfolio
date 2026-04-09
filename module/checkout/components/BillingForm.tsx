@@ -545,7 +545,7 @@ export const BillingForm = forwardRef<BillingFormRef, BillingFormProps>(
 
               <SelectContent className="bg-white border border-gray-200">
                 <SelectItem value="Amateur">Amateur</SelectItem>
-                <SelectItem value="Elite">Elite</SelectItem>
+                {/* <SelectItem value="Elite">Elite</SelectItem> */}
               </SelectContent>
             </Select>
             <ErrorMessage field="runnerCategory" />

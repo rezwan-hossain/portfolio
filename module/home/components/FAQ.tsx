@@ -15,12 +15,31 @@ const faqs = [
   {
     question: "Can beginners participate?",
     answer:
-      "Absolutely! We offer 5K and 10K categories perfect for beginners as well as a full marathon for experienced runners.",
+      "Absolutely! We offer 1K and 7.5K categories perfect for beginners as well as a full marathon for experienced runners.",
   },
   {
     question: "What should I bring on race day?",
     answer:
       "Bring your registration confirmation, proper running shoes, water bottle, and a positive attitude! Safety gear is recommended for long-distance runners.",
+  },
+  {
+    question: "Is baggage storage available?",
+    answer:
+      "Yes, secure baggage drop-off will be provided near the start line.",
+  },
+  {
+    question: "Is parking available at the venue?",
+    answer:
+      "Limited parking is available. Participants are encouraged to use public transportation or ride-sharing.",
+  },
+  {
+    question: "Is there an age limit to participate?",
+    answer: "NO.",
+  },
+  {
+    question: "What happens if it rains?",
+    answer:
+      "The race will proceed in most weather conditions unless deemed unsafe by organizers.",
   },
 ];
 

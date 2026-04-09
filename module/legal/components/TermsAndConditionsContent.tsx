@@ -17,7 +17,6 @@ const sections = [
   {
     title: "3. Eligibility Requirements",
     content: `
-      • Participants must meet the minimum age requirement for their chosen race category.
       • You must be in good physical health and capable of completing the registered distance.
       • We strongly recommend consulting a physician before participating, especially if you have any pre-existing medical conditions.
       • The organizers reserve the right to request medical clearance certificates.
@@ -76,15 +75,13 @@ const sections = [
       • By registering, you acknowledge that participating in a marathon involves inherent risks, including but not limited to physical injury, illness, or in extreme cases, death.
       • You agree to release and hold harmless the organizers, sponsors, volunteers, and affiliated parties from any claims, damages, or liabilities arising from your participation.
       • This waiver extends to personal property loss or damage during the event.
-      • You are responsible for your own insurance coverage for the event.
     `,
   },
   {
     title: "10. Media & Photography",
     content: `
-      • By participating, you grant the organizers permission to use your name, photograph, video, and likeness in any media for promotional purposes without compensation.
       • Official event photographs and videos may be published on our website, social media, and marketing materials.
-      • If you do not wish to be photographed, please notify the organizers in writing before the event.
+      • If you do not wish to be photographed, please notify the organizers before the event.
     `,
   },
   {
@@ -93,7 +90,6 @@ const sections = [
       • Your personal information will be collected, stored, and processed in accordance with our Privacy Policy.
       • We may share your data with timing companies, medical services, and sponsors as necessary for event operations.
       • Your contact information may be used to send event-related communications and future event promotions.
-      • You can opt out of marketing communications at any time.
     `,
   },
   {
@@ -148,9 +144,9 @@ const sections = [
     content: `
       For any questions or concerns regarding these Terms and Conditions, please contact us at:
       
-      Email: support@bengalmarathon.com
-      Phone: +880 1XXX-XXXXXX
-      Address: Dhaka, Bangladesh
+      Email: info@merchcommunication.com
+      Phone: +8801862221943
+      Address: House-32,Road-08,Block-H,Mirpur-2
     `,
   },
 ];
@@ -168,7 +164,7 @@ export default function TermsAndConditionsContent() {
       </div>
 
       <p className="mb-6 text-xs sm:text-sm text-gray-500">
-        Last updated: January 15, 2025
+        Last updated: January 15, 2026
       </p>
 
       <div className="mb-6 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-lg">

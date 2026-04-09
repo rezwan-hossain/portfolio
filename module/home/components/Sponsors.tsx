@@ -1,12 +1,12 @@
 const sponsors = [
-  "BKASH",
-  "GRAMEENPHONE",
-  "SQUARE PHARMA",
-  "ROBI AXIATA",
-  "PRAN GROUP",
-  "DUTCH-BANGLA BANK",
-  "BASHUNDHARA",
-  "TRANSCOM",
+  "RiseX Limited",
+  // "T-Sports",
+  // "SQUARE PHARMA",
+  // "ROBI AXIATA",
+  // "PRAN GROUP",
+  // "DUTCH-BANGLA BANK",
+  // "BASHUNDHARA",
+  // "TRANSCOM",
 ];
 
 export default function Sponsors() {

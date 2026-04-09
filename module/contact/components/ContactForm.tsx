@@ -80,7 +80,7 @@ const ContactForm = () => {
             <input
               type="text"
               name="name"
-              placeholder="Adam Smith"
+              placeholder="Your Name"
               value={form.name}
               onChange={handleChange}
               className={inputStyle("name")}
@@ -116,7 +116,7 @@ const ContactForm = () => {
             <input
               type="tel"
               name="phone"
-              placeholder="+235-5678-9010"
+              placeholder="+880-xxx-xxx"
               value={form.phone}
               onChange={handleChange}
               className={inputStyle("phone")}

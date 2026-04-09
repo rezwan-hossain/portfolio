@@ -34,7 +34,7 @@ const stats: Stat[] = [
     accent: true,
   },
   {
-    value: 50,
+    value: 100000,
     label: "PRIZE POOL ",
     prefix: "৳",
     suffix: "+",

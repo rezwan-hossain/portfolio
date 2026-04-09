@@ -1,9 +1,9 @@
 const testimonials = [
   {
-    name: "Rafi Farouk",
-    role: "21K Finisher, 2024 Edition",
-    avatar: "RF",
-    text: "I never believed I could run a half marathon. Last year's Dhaka Ultra proved me wrong. The crowd, the energy, the route — it changed my life. Already registered for the full marathon this year.",
+    name: "Nipu Sen",
+    role: "ULRA RUNNER",
+    avatar: "NF",
+    text: "Running is my freedom, my discipline, and my purpose. What began as passion has grown into a relentless pursuit of ultra-distance endurance—where limits are tested and the mind is transformed.",
   },
   {
     name: "Sadia Akhter",
