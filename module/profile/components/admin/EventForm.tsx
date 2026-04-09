@@ -68,7 +68,12 @@ export function EventForm({
     name: event?.name || "",
     slug: event?.slug || "",
     date: event?.date ? new Date(event.date).toISOString().split("T")[0] : "",
-    time: event?.time ? formatEventTime(event.time) : "",
+    time: event?.time
+      ? new Date(event.time).toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "",
     address: event?.address || "",
     eventType: event?.eventType || "LIVE",
     description: event?.description || "",
