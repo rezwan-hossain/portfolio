@@ -84,10 +84,10 @@ export function getPaymentConfirmationSMS({
   return [
     `Hi ${runnerName}!`,
     `Welcome to ${eventName}.`,
-    bibText,
+    // bibText,
     tshirtText,
     ``,
-    `Thanks from Merch Sports`,
+    `Thanks from Gen-Z Runners & Merch Sports`,
   ]
     .filter(Boolean)
     .join("\n");

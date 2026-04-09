@@ -6,19 +6,18 @@ type ScheduleItem = {
 
 const schedule: ScheduleItem[] = [
   {
-    time: "05:00",
-    title: "ASSEMBLY & WARMUP",
+    time: "04:00",
+    title: "REPORTING",
     location: "Hatirjheel Main Entrance",
   },
   {
-    time: "06:00",
+    time: "04:30",
     title: "MARATHON FLAG-OFF",
     location: "Professional Wave",
   },
   {
-    time: "10:30",
-    title: "MEDAL PRESENTATION",
-    location: "Main Podium Stage",
+    time: "7:30",
+    title: "PRIZE GIVING CEREMONY",
   },
 ];
 

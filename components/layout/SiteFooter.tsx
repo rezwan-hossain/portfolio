@@ -29,10 +29,10 @@ const quickLinks = [
 
 const helpLinks = [
   { label: "Support", href: "#support" },
-  { label: "Terms & Conditions", href: "#terms" },
-  { label: "Privacy Policy", href: "#privacy" },
+  { label: "Terms & Conditions", href: "/terms-and-conditions" },
+  { label: "Privacy Policy", href: "/privacy-policy" },
   { label: "Refund Policy", href: "#refund" },
-  { label: "Contact Help", href: "#contact-help" },
+  { label: "Contact Help", href: "/contact" },
 ];
 
 const SiteFooter = () => {
@@ -123,12 +123,12 @@ const SiteFooter = () => {
             <ul className="space-y-2 sm:space-y-2.5">
               {helpLinks.map((link, i) => (
                 <li key={i}>
-                  <a
+                  <Link
                     href={link.href}
                     className="text-sm text-gray-400 hover:text-neon-lime transition-colors inline-block py-0.5"
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -148,32 +148,32 @@ const SiteFooter = () => {
                   <span className="w-9 h-9 rounded-full bg-gray-800 group-hover:bg-neon-lime/20 flex items-center justify-center flex-shrink-0 transition-colors">
                     <Mail size={16} className="text-neon-lime" />
                   </span>
-                  info@runfest.com
+                  info@merchcommunication.com
                 </a>
               </li>
               <li>
                 <a
-                  href="tel:+8801234567890"
+                  href="tel:+8801862221943"
                   className="flex items-center gap-3 text-sm text-gray-400 hover:text-neon-lime transition-colors group"
                 >
                   <span className="w-9 h-9 rounded-full bg-gray-800 group-hover:bg-neon-lime/20 flex items-center justify-center flex-shrink-0 transition-colors">
                     <Phone size={16} className="text-neon-lime" />
                   </span>
-                  +880 1234 567890
+                  +8801862221943
                 </a>
               </li>
               <li className="flex items-center gap-3 text-sm text-gray-400">
                 <span className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center flex-shrink-0">
                   <MapPin size={16} className="text-neon-lime" />
                 </span>
-                Dhaka, Bangladesh
+                House-32,Road-08,Block-H,Mirpur-2
               </li>
             </ul>
           </div>
 
           {/* Social Media — Desktop Only */}
-          <div className="hidden md:block">
-            <h4 className="font-semibold uppercase text-sm tracking-wider mb-4 text-white">
+          <div className="hidden md:block px-2 ml-2">
+            <h4 className="font-semibold uppercase text-sm tracking-wider mb-4 text-white ">
               Follow Us
             </h4>
             <div className="flex gap-3">

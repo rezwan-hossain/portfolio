@@ -14,8 +14,8 @@ const ContactInfo = () => {
           </h3>
         </div>
         <div className="ml-16 flex flex-col gap-0.5 text-muted-foreground text-[15px]">
-          <span>(+088) 234-5110</span>
-          <span>(+088) 456-3217</span>
+          <span>(+88) 01791-161187</span>
+          <span>(+88) 01670-445151</span>
         </div>
       </div>
 
@@ -32,8 +32,8 @@ const ContactInfo = () => {
           </h3>
         </div>
         <div className="ml-16 flex flex-col gap-0.5 text-muted-foreground text-[15px]">
-          <span>example@gmail.com</span>
-          <span>mthemeus@gmail.com</span>
+          <span>genzrunnersofficial@gmail.com</span>
+          <span>info@merchcommunication.com</span>
         </div>
       </div>
 
@@ -50,7 +50,7 @@ const ContactInfo = () => {
           </h3>
         </div>
         <div className="ml-16 text-muted-foreground text-[15px]">
-          <span>4132 Thornridge City, New York.</span>
+          <span>House-32,Road-08,Block-H,Mirpur-2.</span>
         </div>
       </div>
     </div>

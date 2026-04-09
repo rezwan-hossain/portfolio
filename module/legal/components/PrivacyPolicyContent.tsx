@@ -14,7 +14,7 @@ const sections = [
   {
     icon: Database,
     title: "1. Information We Collect",
-    content: `
+    content: `6
       We collect information to provide better services to our marathon participants. The types of information we collect include:
       
       • Personal Information: Name, email address, phone number, date of birth, gender, and emergency contact details provided during registration.
@@ -114,11 +114,11 @@ const sections = [
     content: `
       If you have any questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:
       
-      Email: privacy@bengalmarathon.com
-      Phone: +880 1XXX-XXXXXX
-      Address: Dhaka, Bangladesh
+      Email: info@merchcommunication.com
+      Phone: +880 186-2221943
+      Address: House-32,Road-08,Block-H,Mirpur-2
       
-      We aim to respond to all inquiries within 48 hours during business days.
+      
     `,
   },
 ];
@@ -130,13 +130,10 @@ export default function PrivacyPolicyContent() {
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
           Privacy Policy
         </h1>
-        <span className="text-xs sm:text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full w-fit">
-          Bengal Marathon
-        </span>
       </div>
 
       <p className="mb-6 text-xs sm:text-sm text-gray-500">
-        Last updated: January 15, 2025
+        Last updated: January 15, 2026
       </p>
 
       <div className="mb-6 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">

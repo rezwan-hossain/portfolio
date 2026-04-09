@@ -335,6 +335,9 @@ async function PaymentSuccessContent({
               A copy of your registration details has been sent to your
               registered email address.
             </p>
+            <p className="text-xs text-red-600 mt-0.5">
+              Check spam folder some time emails goes to the spam folder
+            </p>
           </div>
         </div>
 

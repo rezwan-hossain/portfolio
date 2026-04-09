@@ -205,11 +205,11 @@ export async function GET(request: NextRequest) {
         });
 
         if (order?.registration && order.event && order.package) {
-          const bibNumber = await autoAssignBibNumber(
-            order.registration.id,
-            order.eventId,
-            order.packageId,
-          );
+          // const bibNumber = await autoAssignBibNumber(
+          //   order.registration.id,
+          //   order.eventId,
+          //   order.packageId,
+          // );
 
           // Email
           try {
@@ -231,7 +231,7 @@ export async function GET(request: NextRequest) {
               paymentStatus: order.payment?.status || "PENDING",
               transactionId: paymentInfo.order_id || spOrderId,
               paymentMethod: paymentInfo.method || undefined,
-              bibNumber: bibNumber ?? undefined,
+              // bibNumber: bibNumber ?? undefined,
               tshirtSize: order.registration?.tshirtSize ?? undefined,
               bloodGroup: order.registration?.bloodGroup ?? undefined,
             });
@@ -251,7 +251,7 @@ export async function GET(request: NextRequest) {
                   order.user.firstName ||
                   "Runner",
                 eventName: order.event.name,
-                bibNumber: bibNumber ?? undefined,
+                // bibNumber: bibNumber ?? undefined,
                 tshirtSize: order.registration?.tshirtSize ?? undefined,
               });
               const smsResult = await sendSMS({
@@ -264,9 +264,9 @@ export async function GET(request: NextRequest) {
             console.error("⚠️ SMS error:", e?.message);
           }
 
-          if (bibNumber) {
-            console.log(`✅ BIB ${bibNumber} assigned`);
-          }
+          // if (bibNumber) {
+          //   console.log(`✅ BIB ${bibNumber} assigned`);
+          // }
         }
       } catch (e: any) {
         console.error("⚠️ Post-payment processing error:", e?.message);

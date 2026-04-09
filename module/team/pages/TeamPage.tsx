@@ -55,7 +55,7 @@ const TeamPage = ({
           <div className="mb-20">
             <TeamGrid
               members={adminMembers}
-              title="LEADERSHIP"
+              title="ADMIN"
               subtitle="The visionaries steering our mission forward"
             />
           </div>

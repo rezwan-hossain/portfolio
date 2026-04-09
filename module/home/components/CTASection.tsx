@@ -2,9 +2,9 @@
 import { Facebook, ArrowRight, Users, Trophy, MapPin } from "lucide-react";
 
 const stats = [
-  { icon: Users, value: "5,000+", label: "Members" },
-  { icon: Trophy, value: "120+", label: "Events" },
-  { icon: MapPin, value: "15+", label: "Cities" },
+  { icon: Users, value: "5,000+", label: "Expectators" },
+  { icon: MapPin, value: "3500+", label: "Runners" },
+  { icon: Trophy, value: "5+", label: "Events" },
 ];
 
 const CTASection = () => {
@@ -135,7 +135,7 @@ const CTASection = () => {
             {/* CTA Buttons */}
             <div className="mt-8 flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start">
               <a
-                href="https://facebook.com"
+                href="https://www.facebook.com/profile.php?id=61566321857186"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-neon-lime text-gray-900 font-bold uppercase tracking-wider text-sm rounded-lg px-7 py-4 hover:opacity-90 hover:-translate-y-0.5 transition-all"
@@ -147,12 +147,12 @@ const CTASection = () => {
                 </div>
               </a>
 
-              <a
+              {/* <a
                 href="/events"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-white/20 text-white font-bold uppercase tracking-wider text-sm rounded-lg px-7 py-4 hover:bg-white/10 transition-all"
               >
                 Browse Events
-              </a>
+              </a> */}
             </div>
           </div>
 
@@ -195,33 +195,6 @@ const CTASection = () => {
                   </p>
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom trust bar */}
-        <div className="mt-12 sm:mt-16 pt-8 border-t border-white/10">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-            <p className="text-xs sm:text-sm text-white/40">
-              Trusted by runners from{" "}
-              <span className="text-white/60 font-semibold">15+ cities</span>{" "}
-              across Bangladesh
-            </p>
-            <div className="flex items-center gap-2">
-              {/* Avatars stack */}
-              <div className="flex -space-x-2">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div
-                    key={i}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-gray-900 bg-white/20 flex items-center justify-center"
-                  >
-                    <span className="text-[10px] font-bold text-white/60">
-                      {String.fromCharCode(64 + i)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <span className="text-xs text-white/40 ml-1">+5,000 members</span>
             </div>
           </div>
         </div>

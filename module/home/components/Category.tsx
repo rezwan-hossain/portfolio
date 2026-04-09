@@ -15,7 +15,7 @@ type Category = {
 
 const categories: Category[] = [
   {
-    title: "5K DISCOVERY",
+    title: "5K KIDS RUN",
     description: "A lively dash for beginners and families.",
     icon: <Bolt size={24} />,
     link: "/login",
@@ -26,7 +26,7 @@ const categories: Category[] = [
     btnHoverTextColor: "hover:text-white",
   },
   {
-    title: "10K SPEED",
+    title: "7.5K FUN RUN",
     description: "Test your pace on our certified flat course.",
     icon: <Gauge size={24} />,
     link: "/login",
@@ -37,7 +37,7 @@ const categories: Category[] = [
     btnHoverTextColor: "hover:text-white",
   },
   {
-    title: "HALF MARATHON",
+    title: "15K EDDURANCE RUN",
     description: "The definitive test of strength and endurance.",
     icon: <Star size={24} />,
     link: "/login",
@@ -48,7 +48,7 @@ const categories: Category[] = [
     btnHoverTextColor: "hover:text-black",
   },
   {
-    title: "FULL MARATHON",
+    title: "21K HALF MARATHON",
     description: "The ultimate achievement for elite athletes.",
     icon: <Trophy size={24} />,
     link: "/login",

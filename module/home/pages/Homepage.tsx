@@ -2,6 +2,8 @@ import { getActiveHero } from "@/app/actions/homepage";
 import HeroSection from "../components/HeroSection";
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
+import StatsCounter from "../components/StatsCounter";
+import CourseHighlights from "../components/CourseHighlights";
 
 // ✅ Lazy load everything below the fold
 const UpcomingEvents = dynamic(() => import("../components/UpcomingEvent"), {
@@ -41,6 +43,8 @@ export default async function Homepage() {
           <EventSchedule />
         </section>
       </Suspense>
+
+      <StatsCounter />
 
       <CTASection />
       <Categories />
