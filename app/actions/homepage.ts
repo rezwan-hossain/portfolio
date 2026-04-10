@@ -3,7 +3,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag, cacheLife, cacheTag } from "next/cache";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -25,6 +25,10 @@ async function requireAdmin() {
 
 // ─── Get Active Hero (Public) ───────────────────────
 export async function getActiveHero() {
+  "use cache";
+  cacheLife("days");
+  cacheTag("hero-section", "active-hero");
+
   try {
     const hero = await prisma.heroSection.findFirst({
       where: { isActive: true },
@@ -87,6 +91,9 @@ export async function createHero(formData: {
 
     revalidatePath("/");
     revalidatePath("/profile");
+    revalidatePath("/");
+    revalidatePath("/profile");
+    revalidateTag("hero-section", "active-hero");
 
     return { success: true, error: null };
   } catch (err: any) {
@@ -127,6 +134,9 @@ export async function updateHero(
 
     revalidatePath("/");
     revalidatePath("/profile");
+    revalidatePath("/");
+    revalidatePath("/profile");
+    revalidateTag("hero-section", "active-hero");
 
     return { success: true, error: null };
   } catch (err: any) {
@@ -149,6 +159,9 @@ export async function setActiveHero(heroId: string) {
 
     revalidatePath("/");
     revalidatePath("/profile");
+    revalidatePath("/");
+    revalidatePath("/profile");
+    revalidateTag("hero-section", "active-hero");
 
     return { success: true, error: null };
   } catch {
@@ -166,6 +179,9 @@ export async function deleteHero(heroId: string) {
 
     revalidatePath("/");
     revalidatePath("/profile");
+    revalidatePath("/");
+    revalidatePath("/profile");
+    revalidateTag("hero-section", "active-hero");
 
     return { success: true, error: null };
   } catch {

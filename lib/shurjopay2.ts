@@ -86,7 +86,7 @@ export async function getShurjoPayToken(): Promise<ShurjoPayTokenResponse> {
         headers: {
           "Content-Type": "application/json",
         },
-        timeout: 30000,
+        timeout: 50000,
       },
     );
 
@@ -179,7 +179,7 @@ export async function createShurjoPayPayment({
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      timeout: 30000,
+      timeout: 50000,
     });
 
     console.log("💳 ShurjoPay create payment response:", {
@@ -222,7 +222,7 @@ export async function verifyShurjoPayPayment(
           Authorization: `Bearer ${tokenData.token}`,
           "Content-Type": "application/json",
         },
-        timeout: 30000,
+        timeout: 50000,
       },
     );
 
