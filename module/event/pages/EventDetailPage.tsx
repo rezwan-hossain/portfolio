@@ -8,7 +8,7 @@ import { HeroText } from "@/components/ui/HeroText";
 import type { EventData } from "@/types/event";
 import EventInfoCard from "../components/EventInfoCard";
 import EventDescription3 from "../components/EventDescription3";
-import { formatEventTime } from "@/utils/date";
+import { formatEventTime, formatEventTimeUTC } from "@/utils/date";
 
 // Dynamic imports for non-critical components
 const TicketSelector = dynamic(() => import("../components/TicketSelector"), {
@@ -59,7 +59,7 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
   // Pre-compute on server
   const formattedDate = formatEventDate(event.date);
   // const formattedTime = formatEventTime(event.time);
-  const formattedTime = formatEventTime(event.time);
+  const formattedTime = formatEventTimeUTC(event.time);
 
   return (
     <div className="min-h-screen bg-background">

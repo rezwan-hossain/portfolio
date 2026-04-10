@@ -16,6 +16,17 @@ export function formatEventTime(
   });
 }
 
+export function formatEventTimeUTC(
+  time: string | Date,
+  timezone: string = "UTC",
+): string {
+  return new Date(time).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: timezone,
+  });
+}
+
 /**
  * Format date to display format (e.g., "JUL 10, 2026")
  * @param date - Date object or ISO string

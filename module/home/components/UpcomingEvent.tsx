@@ -1,5 +1,6 @@
 import { getUpcomingEvents } from "@/app/actions/event";
 import EventCard from "@/module/event/components/EventCard";
+import { formatEventTimeUTC } from "@/utils/date";
 import { ChevronDown } from "lucide-react";
 
 export default async function UpcomingEvents() {
@@ -30,10 +31,11 @@ export default async function UpcomingEvents() {
               title: event.name,
               description: event.description,
               shortDesc: event.shortDesc,
-              time: new Date(event.time).toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
+              // time: new Date(event.time).toLocaleTimeString("en-US", {
+              //   hour: "2-digit",
+              //   minute: "2-digit",
+              // }),
+              time: formatEventTimeUTC(event.time),
               date: new Date(event.date)
                 .toLocaleDateString("en-US", {
                   month: "short",
