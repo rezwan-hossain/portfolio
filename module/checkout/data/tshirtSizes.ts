@@ -7,4 +7,9 @@ export const tshirtSizes = [
   { value: "2XL", chest: 46, length: 30 },
   { value: "3XL", chest: 48, length: 31 },
   { value: "4XL", chest: 50, length: 32 },
+  { value: "3-4 Years", chest: 26, length: 18 },
+  { value: "5-6 Years", chest: 28, length: 19 },
+  { value: "7-8 Years", chest: 30, length: 20 },
+  { value: "9-10 Years", chest: 32, length: 22 },
+  { value: "11-12 Years", chest: 34, length: 24 },
 ];
