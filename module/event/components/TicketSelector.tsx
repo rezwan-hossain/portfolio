@@ -39,9 +39,17 @@ const TicketSelector = ({
         return;
       }
 
-      router.push(
-        `/cart?package=${selectedPackage.id}&qty=1&event=${eventSlug}`,
-      );
+      // router.push(
+      //   `/cart?package=${selectedPackage.id}&qty=1&event=${eventSlug}`,
+      // );
+
+      const params = new URLSearchParams({
+        package: String(selectedPackage.id),
+        event: eventId,
+        qty: "1", // Fixed quantity
+      });
+
+      router.push(`/checkout?${params.toString()}`);
     } finally {
       setIsLoading(false);
     }
