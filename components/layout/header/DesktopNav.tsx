@@ -29,7 +29,7 @@ const DesktopNav = memo(function DesktopNav({
           <li key={item.label}>
             <Link
               href={item.href}
-              prefetch={true}
+              // prefetch={true}
               className={`text-base font-bold uppercase tracking-wider transition-opacity hover:opacity-70 ${
                 scrolled ? "text-gray-800" : "text-gray-800/90"
               }`}
@@ -48,7 +48,7 @@ const DesktopNav = memo(function DesktopNav({
         ) : (
           <Link
             href="/register"
-            prefetch={true}
+            // prefetch={true}
             className="flex items-center gap-3 bg-gray-900 text-white font-bold uppercase tracking-wider text-xs rounded-lg px-5 py-3 hover:bg-gray-800 transition-colors"
           >
             <span>Buy Ticket</span>

@@ -125,6 +125,7 @@ const SiteFooter = () => {
                 <li key={i}>
                   <Link
                     href={link.href}
+                    prefetch={false}
                     className="text-sm text-gray-400 hover:text-neon-lime transition-colors inline-block py-0.5"
                   >
                     {link.label}
