@@ -16,6 +16,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "res.cloudinary.com", // Added Cloudinary here
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "cruip-tutorials.vercel.app",
         pathname: "/**", // allow all paths
       },
