@@ -83,13 +83,13 @@ export default function Register() {
           <button
             onClick={handleGoogleSignIn}
             type="button"
-            className="w-full flex items-center justify-center gap-3 h-12 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+            className="w-full flex items-center justify-center gap-3 h-14 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
           >
             <Image
               src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/googleLogo.svg"
               alt="Google"
-              width={80}
-              height={80}
+              width={84}
+              height={84}
             />
             <span className="text-sm font-semibold text-gray-700">
               Continue with Google
@@ -97,13 +97,13 @@ export default function Register() {
           </button>
 
           {/* Divider */}
-          <div className="flex items-center gap-4 my-6">
+          {/* <div className="flex items-center gap-4 my-6">
             <div className="flex-1 h-px bg-gray-200" />
             <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
               or
             </span>
             <div className="flex-1 h-px bg-gray-200" />
-          </div>
+          </div> */}
 
           {/* Form */}
 
