@@ -67,13 +67,13 @@ export default function Login() {
           <button
             onClick={handleGoogleSignIn}
             type="button"
-            className="w-full flex items-center justify-center gap-3 h-12 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+            className="w-full flex items-center justify-center gap-3 h-14 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
           >
             <Image
               src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/googleLogo.svg"
               alt="Google"
-              width={20}
-              height={20}
+              width={84}
+              height={84}
             />
             <span className="text-sm font-semibold text-gray-700">
               Continue with Google
