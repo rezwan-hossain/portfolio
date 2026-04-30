@@ -40,12 +40,12 @@ async function OrderConfirmationContent({
 
   if (!orderId) redirect("/events");
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // const supabase = await createClient();
+  // const {
+  //   data: { user },
+  // } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  // if (!user) redirect("/login");
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },

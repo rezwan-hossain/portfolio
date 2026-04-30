@@ -21,7 +21,7 @@ async function CheckoutContent({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  // if (!user) redirect("/login");
 
   const params = await searchParams;
   const packageId = params.package ? Number(params.package) : null;
@@ -48,8 +48,8 @@ async function CheckoutContent({
   return (
     <CheckoutPage
       item={checkoutItem}
-      userEmail={user.email ?? ""}
-      userName={user.user_metadata?.full_name ?? ""}
+      userEmail={user?.email ?? ""}
+      userName={user?.user_metadata?.full_name ?? ""}
     />
   );
 }

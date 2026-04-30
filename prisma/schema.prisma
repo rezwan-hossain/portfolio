@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../lib/generated/prisma"
@@ -15,39 +9,30 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ─── USER ───────────────────────────────────────────
 model User {
-  id                  String    @id @default(uuid())
-  authId              String    @unique // 👈 Supabase auth.users id
-  email               String    @unique
+  id                  String        @id @default(uuid())
+  authId              String        @unique
+  email               String        @unique
   firstName           String?
   lastName            String?
-  userName            String?   @unique
+  userName            String?       @unique
   phone               String?
   address             String?
   birthDate           DateTime?
   gender              String?
   image               String?
-  role                Role      @default(USER)
-  forcePasswordChange Boolean   @default(false)
-  isActive            Boolean   @default(true)
-  isArchived          Boolean   @default(false)
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  orders       Order[]
-  couponUsages CouponUsage[]
+  role                Role          @default(USER)
+  forcePasswordChange Boolean       @default(false)
+  isActive            Boolean       @default(true)
+  isArchived          Boolean       @default(false)
+  isGuest             Boolean       @default(false)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  couponUsages        CouponUsage[]
+  orders              Order[]
 
   @@map("users")
 }
-
-enum Role {
-  USER
-  ADMIN
-  ORGANIZER
-}
-
-// ─── ORGANIZER ───────────────────────────────────────────
 
 model Organizer {
   id        Int      @id @default(autoincrement())
@@ -58,55 +43,39 @@ model Organizer {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  events Event[]
+  events    Event[]
 
   @@map("organizers")
 }
 
-// ─── EVENT ──────────────────────────────────────────
 model Event {
-  id              String    @id @default(uuid())
+  id              String         @id @default(uuid())
   name            String
-  slug            String    @unique
+  slug            String         @unique
   date            DateTime
   time            DateTime
   address         String
-  eventType       EventType @default(LIVE)
+  eventType       EventType      @default(LIVE)
   organizerId     Int
-  organizer       Organizer @relation(fields: [organizerId], references: [id])
-  description     String    @db.Text
-  shortDesc       String?   @db.VarChar(255)
+  description     String
+  shortDesc       String?        @db.VarChar(255)
   bannerImage     String
   thumbImage      String?
   minPackagePrice Float?
-  status          Status    @default(ACTIVE)
-  isActive        Boolean   @default(true)
-  isArchived      Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  packages      Package[]
-  orders        Order[]
-  registrations Registration[]
-  coupons       Coupon[]
+  status          Status         @default(ACTIVE)
+  isActive        Boolean        @default(true)
+  isArchived      Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  coupons         Coupon[]
+  organizer       Organizer      @relation(fields: [organizerId], references: [id])
+  orders          Order[]
+  packages        Package[]
+  registrations   Registration[]
 
   @@map("events")
 }
 
-enum EventType {
-  LIVE
-  VIRTUAL
-}
-
-enum Status {
-  ACTIVE
-  INACTIVE
-  CANCELLED
-  COMPLETED
-}
-
-// ─── PACKAGE ────────────────────────────────────────
 model Package {
   id             Int      @id @default(autoincrement())
   name           String
@@ -119,115 +88,82 @@ model Package {
   isArchived     Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-
-  eventId String
-  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  orders  Order[]
-
-   // NEW: Coupons that specifically apply to this package
-  coupons Coupon[] @relation("CouponToPackages")
+  eventId        String
+  orders         Order[]
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  coupons        Coupon[] @relation("CouponToPackages")
 
   @@map("packages")
 }
 
-// ─── ORDER ──────────────────────────────────────────
 model Order {
-  id         String      @id @default(uuid())
-  status     OrderStatus @default(PENDING)
-  isActive   Boolean     @default(true)
-  isArchived Boolean     @default(false)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  qty        Int         @default(1)
-
-  subtotal Float @default(0)
-  discount Float @default(0)
-  total    Float @default(0)
-
-
-  userId     String
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  packageId Int
-  package   Package @relation(fields: [packageId], references: [id])
-
-  eventId String
-  event   Event  @relation(fields: [eventId], references: [id])
-
-  couponId String?
-  coupon   Coupon? @relation(fields: [couponId], references: [id])
-
-
-  registration Registration?
-  payment      Payment?
+  id           String        @id @default(uuid())
+  status       OrderStatus   @default(PENDING)
+  isActive     Boolean       @default(true)
+  isArchived   Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  qty          Int           @default(1)
+  subtotal     Float         @default(0)
+  discount     Float         @default(0)
+  total        Float         @default(0)
+  userId       String
+  packageId    Int
+  eventId      String
+  couponId     String?
   couponUsage  CouponUsage?
+  coupon       Coupon?       @relation(fields: [couponId], references: [id])
+  event        Event         @relation(fields: [eventId], references: [id])
+  package      Package       @relation(fields: [packageId], references: [id])
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment      Payment?
+  registration Registration?
 
   @@map("orders")
 }
 
 model Registration {
-  id String @id @default(uuid())
-
-  orderId String @unique
-  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  eventId   String // ← ADD
-  event     Event   @relation(fields: [eventId], references: [id]) // ← ADD
-  bibNumber String? // ← ADD
-
-  fullName  String
-  phone     String
-  gender    String
-  birthDate DateTime
-
-  ageCategory String
-  bloodGroup  String
-  tshirtSize  String
-
+  id                     String   @id @default(uuid())
+  orderId                String   @unique
+  eventId                String
+  bibNumber              String?
+  fullName               String
+  phone                  String
+  gender                 String
+  birthDate              DateTime
+  ageCategory            String
+  bloodGroup             String
+  tshirtSize             String
   emergencyContactName   String?
   emergencyContactNumber String?
+  communityName          String?
+  runnerCategory         String
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  event                  Event    @relation(fields: [eventId], references: [id])
+  order                  Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  communityName  String?
-  runnerCategory String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  email                  String?
 
   @@unique([eventId, bibNumber])
   @@map("registrations")
 }
 
-enum OrderStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-}
-
-// ─── PAYMENT ────────────────────────────────────────
 model Payment {
   id             String        @id @default(uuid())
   amount         Int
   currency       String        @default("BDT")
   status         PaymentStatus @default(PENDING)
   transactionId  String?       @unique
-  paymentId      String?       @unique // bKash internal payment ID
+  paymentId      String?       @unique
   paymentMethod  String?
   paymentGateway String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  orderId String @unique
-  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  orderId        String        @unique
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("payments")
-}
-
-enum PaymentStatus {
-  PENDING
-  PAID
-  FAILED
-  REFUNDED
 }
 
 model HeroSection {
@@ -256,83 +192,58 @@ model GalleryImage {
   @@map("gallery_images")
 }
 
-// ─── COUPON ─────────────────────────────────────────
 model Coupon {
-  id             String       @id @default(uuid())
+  id             String        @id @default(uuid())
   code           String
-  discountType   DiscountType @default(PERCENTAGE)
-  discountValue  Float // 10 for 10% or 100 for ৳100
-  maxUses        Int? // null = unlimited
-  usedCount      Int          @default(0)
-  maxUsesPerUser Int          @default(1)
+  discountType   DiscountType  @default(PERCENTAGE)
+  discountValue  Float
+  maxUses        Int?
+  usedCount      Int           @default(0)
+  maxUsesPerUser Int           @default(1)
   minOrderAmount Float?
-  maxDiscount    Float? // Cap for percentage discounts
+  maxDiscount    Float?
   validFrom      DateTime
   validUntil     DateTime
-  isActive       Boolean      @default(true)
-
-  scopeType      CouponScope  @default(EVENT)
-
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  eventId String
-  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
-  // NEW: Many-to-many relation with packages
-  // Only used when scopeType = PACKAGE
-  packages Package[] @relation("CouponToPackages")
-
-  usages CouponUsage[]
-  orders Order[]
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  eventId        String
+  scopeType      CouponScope   @default(EVENT)
+  usages         CouponUsage[]
+  event          Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  orders         Order[]
+  packages       Package[]     @relation("CouponToPackages")
 
   @@unique([code, eventId])
   @@map("coupons")
-}
-
-//Enum for coupon scope
-enum CouponScope {
-  EVENT    // Applies to all packages of the event
-  PACKAGE  // Applies only to specific packages
-}
-
-enum DiscountType {
-  PERCENTAGE
-  FIXED
 }
 
 model CouponUsage {
   id       String   @id @default(uuid())
   discount Float
   usedAt   DateTime @default(now())
-
   couponId String
-  coupon   Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  orderId String @unique
-  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId   String
+  orderId  String   @unique
+  coupon   Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([couponId, orderId])
   @@map("coupon_usages")
 }
 
-
 model TeamMember {
   id           String       @id @default(uuid())
   name         String
   role         String?
-  bio          String?      @db.Text
+  bio          String?
   image        String?
   sortOrder    Int          @default(0)
   category     TeamCategory @default(ADVISOR)
   isActive     Boolean      @default(true)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
-
-  // Social Links (all optional)
   linkedinUrl  String?
   twitterUrl   String?
   githubUrl    String?
@@ -342,9 +253,49 @@ model TeamMember {
   @@map("team_members")
 }
 
+enum Role {
+  USER
+  ADMIN
+  ORGANIZER
+}
+
+enum EventType {
+  LIVE
+  VIRTUAL
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+  CANCELLED
+  COMPLETED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum CouponScope {
+  EVENT
+  PACKAGE
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
 enum TeamCategory {
   ADMIN
   ADVISOR
   ORGANIZER
-  
 }

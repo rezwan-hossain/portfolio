@@ -111,6 +111,7 @@ export type EventOrder = {
     email: string;
     phone: string | null;
     image: string | null;
+    isGuest: boolean;
   };
   package: {
     id: number;
@@ -131,6 +132,7 @@ export type EventOrder = {
     emergencyContactName: string | null;
     emergencyContactNumber: string | null;
     bibNumber: string | null;
+    email: string | null;
   } | null;
   payment: {
     id: string;

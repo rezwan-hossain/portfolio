@@ -383,6 +383,7 @@ export async function getEventOrders(eventId: string) {
             email: true,
             phone: true,
             image: true,
+            isGuest: true,
           },
         },
         package: {
@@ -407,6 +408,7 @@ export async function getEventOrders(eventId: string) {
             emergencyContactName: true,
             emergencyContactNumber: true,
             bibNumber: true,
+            email: true,
           },
         },
         payment: {

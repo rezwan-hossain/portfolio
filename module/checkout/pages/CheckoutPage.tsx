@@ -35,8 +35,8 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
   const [finalPrice, setFinalPrice] = useState(item.price * item.qty);
 
   const [formData, setFormData] = useState<BillingFormData>({
-    fullName: userName,
-    email: userEmail,
+    fullName: userName?.trim() || "",
+    email: userEmail?.trim() || "",
     phone: "",
     gender: "",
     birthDate: "",
@@ -138,6 +138,7 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
           eventId: item.eventId,
           qty: item.qty,
           fullName: formData.fullName,
+          email: formData.email,
           phone: formData.phone,
           gender: formData.gender,
           birthDate: formData.birthDate,

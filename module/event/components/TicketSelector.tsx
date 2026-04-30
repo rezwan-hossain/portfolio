@@ -28,16 +28,16 @@ const TicketSelector = ({
     setIsLoading(true);
 
     try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      // const supabase = createClient();
+      // const {
+      //   data: { user },
+      // } = await supabase.auth.getUser();
 
-      if (!user) {
-        const cartUrl = `/cart?package=${selectedPackage.id}&qty=1&event=${eventSlug}`;
-        router.push(`/login?redirect=${encodeURIComponent(cartUrl)}`);
-        return;
-      }
+      // if (!user) {
+      //   const cartUrl = `/cart?package=${selectedPackage.id}&qty=1&event=${eventSlug}`;
+      //   router.push(`/login?redirect=${encodeURIComponent(cartUrl)}`);
+      //   return;
+      // }
 
       // router.push(
       //   `/cart?package=${selectedPackage.id}&qty=1&event=${eventSlug}`,

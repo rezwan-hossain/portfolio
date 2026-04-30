@@ -15,25 +15,21 @@ export async function validateCoupon(
   orderAmount: number,
 ): Promise<CouponValidationResult> {
   try {
-    // Auth check
+    // Auth is now optional
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      return { valid: false, error: "You must be logged in" };
+    let dbUser: { id: string } | null = null;
+
+    if (user) {
+      dbUser = await prisma.user.findUnique({
+        where: { authId: user.id },
+      });
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { authId: user.id },
-    });
-
-    if (!dbUser) {
-      return { valid: false, error: "User not found" };
-    }
-
-    // Find coupon with packages
+    //  include — only fetch per-user usages if logged in
     const coupon = await prisma.coupon.findFirst({
       where: {
         code: code.toUpperCase().trim(),
@@ -41,9 +37,7 @@ export async function validateCoupon(
         isActive: true,
       },
       include: {
-        usages: {
-          where: { userId: dbUser.id },
-        },
+        usages: dbUser ? { where: { userId: dbUser.id } } : false,
         packages: {
           select: { id: true, name: true },
         },
@@ -54,25 +48,18 @@ export async function validateCoupon(
       return { valid: false, error: "Invalid coupon code" };
     }
 
-    // ─── PACKAGE SCOPE VALIDATION ───────────────────
-    // Only check if scopeType is PACKAGE (not EVENT)
+    // ─── PACKAGE SCOPE VALIDATION ─────────────────────────
     if (coupon.scopeType === "PACKAGE") {
       const applicablePackageIds = coupon.packages.map((p) => p.id);
 
-      // If package-scoped but no packages defined, treat as invalid
       if (applicablePackageIds.length === 0) {
-        console.warn(
-          `Coupon ${coupon.code} is PACKAGE-scoped but has no packages`,
-        );
         return {
           valid: false,
           error: "This coupon is not configured correctly",
         };
       }
 
-      // Check if selected package is in the allowed list
       if (!applicablePackageIds.includes(packageId)) {
-        // Get package names for better error message
         const packageNames = coupon.packages.map((p) => p.name).join(", ");
         return {
           valid: false,
@@ -80,9 +67,8 @@ export async function validateCoupon(
         };
       }
     }
-    // If scopeType is EVENT, no package check needed - applies to all
 
-    // ─── TIME VALIDATION ────────────────────────────
+    // ─── TIME VALIDATION ──────────────────────────────────
     const now = new Date();
     if (now < coupon.validFrom) {
       return { valid: false, error: "Coupon is not yet active" };
@@ -91,16 +77,21 @@ export async function validateCoupon(
       return { valid: false, error: "Coupon has expired" };
     }
 
-    // ─── USAGE LIMITS ───────────────────────────────
+    // ─── USAGE LIMITS ─────────────────────────────────────
     if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) {
       return { valid: false, error: "Coupon usage limit reached" };
     }
 
-    if (coupon.usages.length >= coupon.maxUsesPerUser) {
+    // Per-user limit only applies to logged-in users
+    if (
+      dbUser &&
+      coupon.usages &&
+      coupon.usages.length >= coupon.maxUsesPerUser
+    ) {
       return { valid: false, error: "You have already used this coupon" };
     }
 
-    // ─── ORDER AMOUNT CHECK ─────────────────────────
+    // ─── ORDER AMOUNT CHECK ───────────────────────────────
     if (coupon.minOrderAmount && orderAmount < coupon.minOrderAmount) {
       return {
         valid: false,
@@ -108,7 +99,7 @@ export async function validateCoupon(
       };
     }
 
-    // ─── CALCULATE DISCOUNT ─────────────────────────
+    // ─── CALCULATE DISCOUNT ───────────────────────────────
     let discountAmount: number;
 
     if (coupon.discountType === "PERCENTAGE") {
@@ -120,7 +111,6 @@ export async function validateCoupon(
       discountAmount = coupon.discountValue;
     }
 
-    // Never discount more than the order total
     discountAmount = Math.min(discountAmount, orderAmount);
     const finalPrice = orderAmount - discountAmount;
 

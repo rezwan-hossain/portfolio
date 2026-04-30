@@ -21,6 +21,7 @@ import {
   Heart,
   Users,
   Hash,
+  UserX,
 } from "lucide-react";
 
 type Props = {
@@ -82,6 +83,8 @@ export function OrderCard({
   const [showActions, setShowActions] = useState(false);
   const [updating, setUpdating] = useState(false);
 
+  const isGuest = order.user.isGuest;
+
   const orderConfig = ORDER_STATUS[order.status] || ORDER_STATUS.PENDING;
   const paymentConfig = order.payment
     ? PAYMENT_STATUS[order.payment.status] || PAYMENT_STATUS.PENDING
@@ -93,7 +96,8 @@ export function OrderCard({
   const displayName =
     order.registration?.fullName ||
     [order.user.firstName, order.user.lastName].filter(Boolean).join(" ") ||
-    order.user.email.split("@")[0];
+    order.user.email.split("@")[0] ||
+    "Guest";
 
   const userInitials = displayName
     .split(" ")
@@ -102,7 +106,17 @@ export function OrderCard({
     .toUpperCase()
     .slice(0, 2);
 
+  const displayEmail = isGuest
+    ? (order.registration?.email ?? "—")
+    : order.user.email;
+
   const orderAmount = order.payment?.amount || order.package.price * order.qty;
+
+  const cardBg = expanded
+    ? isGuest
+      ? "bg-amber-50 border-amber-200"
+      : orderConfig.bg
+    : "border-gray-200 bg-white";
 
   const handleStatusChange = async (
     newOrderStatus: string,
@@ -126,9 +140,7 @@ export function OrderCard({
 
   return (
     <div
-      className={`border rounded-xl overflow-hidden transition-all ${
-        expanded ? "shadow-sm " + orderConfig.bg : "border-gray-200 bg-white"
-      }`}
+      className={`border rounded-xl overflow-hidden transition-all ${cardBg}`}
     >
       {/* ─── Header Row ─── */}
       <div
@@ -136,7 +148,7 @@ export function OrderCard({
         className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50/50 transition-colors"
       >
         {/* Avatar */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 relative">
           {order.user.image ? (
             <img
               src={order.user.image}
@@ -144,12 +156,29 @@ export function OrderCard({
               className="w-9 h-9 rounded-full object-cover border border-gray-200"
             />
           ) : (
-            <div className="w-9 h-9 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center">
-              <span className="text-xs font-bold text-gray-500">
+            <div
+              className={`w-9 h-9 rounded-full border flex items-center justify-center ${
+                isGuest
+                  ? "bg-amber-100 border-amber-200"
+                  : "bg-gray-100 border-gray-200"
+              }`}
+            >
+              <span
+                className={`text-xs font-bold ${
+                  isGuest ? "text-amber-600" : "text-gray-500"
+                }`}
+              >
                 {userInitials}
               </span>
             </div>
           )}
+
+          {/* Guest indicator dot */}
+          {/* {isGuest && (
+            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-amber-400 rounded-full border-2 border-white flex items-center justify-center">
+              <UserX size={7} className="text-white" />
+            </span>
+          )} */}
         </div>
 
         {/* Info */}
@@ -161,6 +190,13 @@ export function OrderCard({
             <span className="px-1.5 py-0.5 text-[10px] bg-indigo-50 text-indigo-600 rounded-full font-bold flex-shrink-0">
               {order.package.distance}
             </span>
+
+            {/* Guest badge */}
+            {isGuest && (
+              <span className="px-1.5 py-0.5 text-[10px] bg-amber-100 text-amber-700 rounded-full font-bold flex-shrink-0 border border-amber-200">
+                Guest
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-xs text-gray-500">
@@ -212,22 +248,35 @@ export function OrderCard({
       {/* ─── Expanded Details ─── */}
       {expanded && (
         <div className="border-t border-gray-200/60 px-4 pb-4 pt-3 space-y-4">
+          {/* ─── Guest Notice ─── */}
+          {isGuest && (
+            <div className="flex items-center gap-2 p-2.5 bg-amber-100 border border-amber-200 rounded-lg">
+              <UserX size={14} className="text-amber-600 flex-shrink-0" />
+              <p className="text-xs text-amber-700 font-medium">
+                Guest checkout — no account associated with this order
+              </p>
+            </div>
+          )}
           {/* ─── Contact Info ─── */}
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
               Contact
             </p>
             <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-gray-600">
-              <span className="flex items-center gap-1.5">
-                <Mail size={13} className="text-gray-400" />
-                <a
-                  href={`mailto:${order.user.email}`}
-                  className="hover:text-gray-900 hover:underline"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {order.user.email}
-                </a>
-              </span>
+              {/* Email — real email for guests, user email for real users */}
+              {displayEmail !== "—" && (
+                <span className="flex items-center gap-1.5">
+                  <Mail size={13} className="text-gray-400" />
+                  <a
+                    href={`mailto:${displayEmail}`}
+                    className="hover:text-gray-900 hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {displayEmail}
+                  </a>
+                </span>
+              )}
+
               {(order.registration?.phone || order.user.phone) && (
                 <span className="flex items-center gap-1.5">
                   <Phone size={13} className="text-gray-400" />
@@ -251,7 +300,6 @@ export function OrderCard({
               </span>
             </div>
           </div>
-
           {/* ─── Registration Details ─── */}
           {order.registration && (
             <div>
@@ -340,7 +388,6 @@ export function OrderCard({
               )}
             </div>
           )}
-
           {/* ─── Package & Payment ─── */}
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
@@ -408,7 +455,6 @@ export function OrderCard({
               )}
             </div>
           </div>
-
           {/* ─── Status Actions ─── */}
           <div className="flex items-center justify-between pt-2">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">

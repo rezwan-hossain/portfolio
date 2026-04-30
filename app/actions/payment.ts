@@ -17,14 +17,14 @@ export async function initiateShurjoPayPayment({
   customerPhone: string;
 }) {
   // Auth check
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // const supabase = await createClient();
+  // const {
+  //   data: { user },
+  // } = await supabase.auth.getUser();
 
-  if (!user) {
-    return { success: false, error: "You must be logged in", checkoutUrl: "" };
-  }
+  // if (!user) {
+  //   return { success: false, error: "You must be logged in", checkoutUrl: "" };
+  // }
 
   try {
     // ✅ Get client IP at the start

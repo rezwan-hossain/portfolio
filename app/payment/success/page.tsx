@@ -96,12 +96,12 @@ async function PaymentSuccessContent({
 
   if (!orderId) redirect("/events");
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // const supabase = await createClient();
+  // const {
+  //   data: { user },
+  // } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  // if (!user) redirect("/login");
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },
@@ -344,7 +344,7 @@ async function PaymentSuccessContent({
         {/* ── Action Buttons ── */}
         <div className="mt-6 flex flex-col sm:flex-row gap-3">
           <Link
-            href="/dashboard"
+            href="/login"
             className="flex-1 group relative inline-flex items-center justify-center gap-2 py-3.5 bg-gray-900 text-white rounded-xl font-semibold text-sm hover:bg-gray-800 transition-all duration-200 shadow-lg shadow-gray-900/10"
           >
             Go to Dashboard
