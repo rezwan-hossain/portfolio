@@ -1,14 +1,26 @@
-const sponsors = [
-  "RiseX Limited",
-  // "T-Sports",
-  // "SQUARE PHARMA",
-  // "ROBI AXIATA",
-  // "PRAN GROUP",
-  // "DUTCH-BANGLA BANK",
-  // "BASHUNDHARA",
-  // "TRANSCOM",
-];
+// const sponsors = [
+//   "RiseX Limited",
+//   // "T-Sports",
+//   // "SQUARE PHARMA",
+//   // "ROBI AXIATA",
+//   // "PRAN GROUP",
+//   // "DUTCH-BANGLA BANK",
+//   // "BASHUNDHARA",
+//   // "TRANSCOM",
+// ];
 
+import Image from "next/image";
+
+const sponsors = [
+  {
+    name: "RiseX Limited",
+    logo: "https://res.cloudinary.com/ddea6u6xh/image/upload/v1777657921/thumb_65a43e21ef5f4170526262_p5fqqm.png",
+  },
+  {
+    name: "T-Sports",
+    logo: "https://res.cloudinary.com/ddea6u6xh/image/upload/v1777657921/1775322618367-cwcidx_b0ypvj.png",
+  },
+];
 export default function Sponsors() {
   return (
     <section id="sponsors" className=" bg-white px-[5%] py-20 ">
@@ -32,9 +44,16 @@ export default function Sponsors() {
           {[...sponsors, ...sponsors].map((sponsor, i) => (
             <div
               key={i}
-              className="min-w-[180px] whitespace-nowrap border border-gray-200 px-10 py-6 text-center text-xl tracking-[3px] text-gray-400 transition hover:border-gray-400 hover:text-gray-800"
+              className="min-w-[180px] whitespace-nowrap border border-gray-200 px-10 py-6 text-center text-xl tracking-[3px] text-gray-400 transition hover:border-gray-400 hover:text-gray-800 rounded-sm"
             >
-              {sponsor}
+              {/* {sponsor} */}
+              <Image
+                src={sponsor.logo}
+                alt={sponsor.name}
+                width={200}
+                height={100}
+                className="h-12 object-contain w-auto"
+              />
             </div>
           ))}
         </div>
