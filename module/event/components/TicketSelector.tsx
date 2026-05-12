@@ -106,7 +106,7 @@ const TicketSelector = ({
       </div>
 
       {/* Slots Left Info */}
-      <div className="mb-4">
+      {/* <div className="mb-4">
         <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
           <span>{slotsLeft} slots remaining</span>
           <span>{selectedPackage.availableSlots} total</span>
@@ -136,7 +136,7 @@ const TicketSelector = ({
         {slotsLeft === 0 && (
           <p className="text-xs text-red-500 mt-1.5 font-medium">❌ Sold out</p>
         )}
-      </div>
+      </div> */}
 
       {/* Price Display */}
       <div className="bg-neon-lime rounded-lg px-4 py-4 sm:px-6 sm:py-5 mb-4">
