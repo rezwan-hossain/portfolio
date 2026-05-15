@@ -279,7 +279,7 @@ export const AwardsRenderer = ({ items }: { items: string[] }) => {
       {/* ② Card-style distance groups */}
       {groups.length > 0 && (
         <div>
-          <h4 className="font-display text-sm font-semibold text-foreground mb-3 leading-2 tracking-wide">
+          <h4 className="font-display text-sm font-semibold text-foreground mb-3 leading-2 tracking-wider">
             Prize Money Breakdown:
           </h4>
 
@@ -287,7 +287,7 @@ export const AwardsRenderer = ({ items }: { items: string[] }) => {
             {groups.map((group, i) => (
               <div key={`group-${i}`} className="space-y-2">
                 {/* Group title */}
-                <h5 className="font-display text-sm sm:text-base font-bold text-foreground leading-2 tracking-wide">
+                <h5 className="font-display text-sm sm:text-base font-bold text-foreground leading-2 tracking-wider">
                   {group.title}
                   {group.subtitle && (
                     <span className="font-body font-normal text-foreground">

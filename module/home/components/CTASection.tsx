@@ -3,7 +3,7 @@ import { Facebook, ArrowRight, Users, Trophy, MapPin } from "lucide-react";
 
 const stats = [
   { icon: Users, value: "5,000+", label: "Expectators" },
-  { icon: MapPin, value: "3500+", label: "Runners" },
+  { icon: MapPin, value: "2,000+", label: "Runners" },
   { icon: Trophy, value: "5+", label: "Events" },
 ];
 
