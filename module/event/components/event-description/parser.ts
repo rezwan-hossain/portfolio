@@ -132,6 +132,28 @@ const parseCategory = (text: string): Omit<ParsedCategory, "id"> | null => {
   return null;
 };
 
+//  detect cut-off time lines
+export const parseCutOffTime = (text: string): string | null => {
+  // Strip ALL common bullet prefixes before checking
+  const cleaned = text.replace(/^[*•\-–—▸▹→➤➜✔✅☑✓]\s*/, "").trim();
+
+  // "No Cut off Time" / "No Cutoff Time" / "No Cut-off Time"
+  if (/^no\s+cut[\s\-]?off\s+time/i.test(cleaned)) {
+    return "No Cut-off";
+  }
+
+  // "Cut off Time : 1:30 Hours" / "Cut-off Time: 1:30 Hours" / "Cutoff Time: 1:30"
+  const match = cleaned.match(
+    /^cut[\s\-]?off\s+time\s*[:\-]?\s*(\d{1,2}:\d{2}(?:\s*hours?)?)/i,
+  );
+  if (match) {
+    // Normalize: "1:30 Hours" → "1:30 hrs" or keep as-is
+    return match[1].trim();
+  }
+
+  return null;
+};
+
 // ─── LINE EXTRACTION ────────────────────────────────────────────────────────
 
 const extractLines = (html: string): string[] => {
@@ -265,6 +287,36 @@ export function parseDescription(description: string): ParsedData {
       const cleaned = cleanText(rawText);
       if (!cleaned) continue;
 
+      if (activeConfigId === "categories") {
+        // ✅ Check for cut-off time line first (e.g. "* Cut off Time : 1:30 Hours")
+        const cutOff = parseCutOffTime(rawText);
+        if (cutOff !== null) {
+          // Attach cut-off to the most recently parsed category
+          if (result.categories.length > 0) {
+            result.categories[result.categories.length - 1].cutOffTime = cutOff;
+            console.log(
+              `⏱ Cut-off "${cutOff}" → "${result.categories[result.categories.length - 1].name}"`,
+            );
+          }
+          continue; // ✅ Done with this line
+        }
+
+        // ✅ Try to parse as a category entry (e.g. "* 10KM – BDT 1299")
+        const cat = parseCategory(rawText);
+        if (cat) {
+          result.categories.push({
+            id: `cat-${result.categories.length}`,
+            ...cat,
+          });
+          continue; // ✅ Done with this line
+        }
+
+        // ✅ Line is inside categories section but matches nothing — skip it
+        // (prevents it falling into shouldExit or addItem below)
+        console.warn(`❓ Unmatched categories line: "${rawText}"`);
+        continue;
+      }
+
       // FIX: Improved section-exit heuristic
       // Only exit if:
       // 1. We have items AND
@@ -291,6 +343,17 @@ export function parseDescription(description: string): ParsedData {
 
       // Category-specific parsing
       if (activeConfigId === "categories") {
+        const cutOff = parseCutOffTime(rawText);
+        if (cutOff !== null) {
+          if (result.categories.length > 0) {
+            result.categories[result.categories.length - 1].cutOffTime = cutOff;
+            console.log(
+              `⏱ Cut-off "${cutOff}" → "${result.categories[result.categories.length - 1].name}"`,
+            );
+          }
+          continue;
+        }
+
         const cat = parseCategory(rawText);
         if (cat) {
           result.categories.push({

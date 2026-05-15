@@ -30,6 +30,26 @@ export const SECTION_CONFIGS: SectionConfigData[] = [
     iconColor: "text-event-gold",
   },
   {
+    id: "facilities",
+    title: "RUNNERS FACILITIES",
+    iconName: "Tent", // or "Building2", "Warehouse", "Home" — pick your preference
+    headerPatterns: [
+      /^runner.?s?\s+facilit(?:y|ies)[:\s]*$/i, // "Runners Facilities", "Runner's Facility"
+      /^facilit(?:y|ies)[:\s]*$/i, // "Facilities"
+      /^event\s+facilit(?:y|ies)[:\s]*$/i, // "Event Facilities"
+      /^race\s+facilit(?:y|ies)[:\s]*$/i, // "Race Facilities"
+      /^on[\s\-]?site\s+facilit(?:y|ies)[:\s]*$/i, // "On-site Facilities"
+      /^venue\s+facilit(?:y|ies)[:\s]*$/i, // "Venue Facilities"
+      /^amenities[:\s]*$/i, // "Amenities"
+      /^runner.?s?\s+amenities[:\s]*$/i, // "Runner's Amenities"
+      /^services?\s+(?:&|and)\s+facilit(?:y|ies)[:\s]*$/i, // "Services & Facilities"
+    ],
+    bgColor: "bg-teal-50",
+    iconColor: "text-teal-600",
+    autoAssignPrefixes: ["🚿", "🚻", "🅿️", "🏥", "💧", "🍌"], // shower, restroom, parking, medical, water, food
+  },
+
+  {
     id: "benefits",
     title: "WHAT YOU'LL GET",
     iconName: "Gift",

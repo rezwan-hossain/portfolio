@@ -23,6 +23,7 @@ export type ParsedCategory = {
   name: string;
   price: string;
   distance?: string;
+  cutOffTime?: string;
 };
 
 export type ParsedSection = {

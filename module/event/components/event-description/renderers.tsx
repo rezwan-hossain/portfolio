@@ -90,20 +90,64 @@ export const EventInfoCard = ({ info }: { info: ParsedEventInfo }) => {
 
 // ─── CATEGORY CARD ──────────────────────────────────────────────────────────
 
+// export const CategoryCard = ({ category }: { category: ParsedCategory }) => (
+//   <div className="relative flex items-center justify-between border border-border rounded-xl p-4 hover:border-neon-lime hover:shadow-md transition group overflow-hidden">
+//     <div className="absolute top-0 right-0 w-20 h-20 bg-neon-lime/5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500" />
+//     <div className="relative">
+//       <span className="font-body text-sm sm:text-base font-medium text-foreground">
+//         {category.name}
+//       </span>
+//       {category.distance && (
+//         <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+//           {category.distance}
+//         </span>
+//       )}
+//     </div>
+//     <span className="relative font-display text-lg sm:text-xl text-neon-lime">
+//       {category.price}
+//     </span>
+//   </div>
+// );
+
 export const CategoryCard = ({ category }: { category: ParsedCategory }) => (
   <div className="relative flex items-center justify-between border border-border rounded-xl p-4 hover:border-neon-lime hover:shadow-md transition group overflow-hidden">
     <div className="absolute top-0 right-0 w-20 h-20 bg-neon-lime/5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500" />
-    <div className="relative">
-      <span className="font-body text-sm sm:text-base font-medium text-foreground">
-        {category.name}
-      </span>
-      {category.distance && (
-        <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-          {category.distance}
+
+    {/* Left: name + distance + cut-off */}
+    <div className="relative flex flex-col gap-1">
+      <div className="flex items-center flex-wrap gap-1">
+        <span className="font-body text-sm sm:text-base font-medium text-foreground">
+          {category.name}
         </span>
+        {category.distance && (
+          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+            {category.distance}
+          </span>
+        )}
+      </div>
+
+      {/* ✅ Cut-off time badge */}
+      {category.cutOffTime && (
+        <div className="flex items-center gap-1 mt-1">
+          <span
+            className={`text-xs px-2 py-1 rounded-md font-medium
+              ${
+                category.cutOffTime === "No Cut-off"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-amber-100 text-amber-700"
+              }`}
+          >
+            ⏱{" "}
+            {category.cutOffTime === "No Cut-off"
+              ? "No Cut-off Time"
+              : `Cut-off: ${category.cutOffTime}`}
+          </span>
+        </div>
       )}
     </div>
-    <span className="relative font-display text-lg sm:text-xl text-neon-lime">
+
+    {/* Right: price */}
+    <span className="relative font-display text-lg sm:text-xl text-neon-lime self-start">
       {category.price}
     </span>
   </div>
