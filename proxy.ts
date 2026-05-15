@@ -1,8 +1,8 @@
-// middleware.ts (project root — same level as package.json)
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function proxy(request: NextRequest) {
+  // 1. Create the initial response
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -16,14 +16,13 @@ export async function proxy(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
+          // Update the request cookies
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
 
-          supabaseResponse = NextResponse.next({
-            request,
-          });
-
+          // 2. IMPORTANT: Just update the existing response object
+          // Don't re-create 'NextResponse.next()' here
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           );
@@ -32,6 +31,7 @@ export async function proxy(request: NextRequest) {
     },
   );
 
+  // This triggers the cookie logic above
   await supabase.auth.getUser();
 
   return supabaseResponse;
