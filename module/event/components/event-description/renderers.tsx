@@ -17,9 +17,11 @@ import {
   Shield,
   Sparkles,
   Phone,
+  Tent,
   type LucideIcon,
 } from "lucide-react";
 import type { ParsedEventInfo, ParsedCategory, ParsedSection } from "./types";
+import { parseAwardsItems } from "./parser";
 
 // ─── ICON MAP ───────────────────────────────────────────────────────────────
 
@@ -41,6 +43,7 @@ export const ICON_MAP: Record<string, LucideIcon> = {
   Shield,
   Sparkles,
   Phone,
+  Tent,
 };
 
 export const getIcon = (iconName: string): LucideIcon => {
@@ -153,6 +156,24 @@ export const CategoryCard = ({ category }: { category: ParsedCategory }) => (
   </div>
 );
 
+export const FacilitiesRenderer = ({ items }: { items: string[] }) => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+    {items.map((item, i) => (
+      <div
+        key={`facility-${i}`}
+        className="flex items-start gap-3 bg-teal-50 border border-teal-100 rounded-lg p-3 sm:p-4 hover:border-teal-300 transition group/item"
+      >
+        <CheckCircle
+          size={18}
+          className="text-teal-600 flex-shrink-0 mt-0.5 group-hover/item:scale-110 transition"
+        />
+        <p className="font-body text-sm text-teal-800 leading-relaxed">
+          {item}
+        </p>
+      </div>
+    ))}
+  </div>
+);
 // ─── SECTION RENDERERS ──────────────────────────────────────────────────────
 
 export const BenefitsRenderer = ({ items }: { items: string[] }) => (
@@ -174,30 +195,150 @@ export const BenefitsRenderer = ({ items }: { items: string[] }) => (
   </div>
 );
 
+// export const AwardsRenderer = ({ items }: { items: string[] }) => {
+//   const { intro, listItems } = splitIntroAndItems(items);
+//   return (
+//     <div className="space-y-3">
+//       {intro && (
+//         <p className="font-body text-sm text-amber-800 italic mb-1">{intro}</p>
+//       )}
+//       {listItems.map((item, i) => (
+//         <div
+//           key={`award-${i}`}
+//           className="flex items-start gap-3 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-lg p-3 sm:p-4 hover:shadow-md transition"
+//         >
+//           <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+//             {i === 0 ? (
+//               <Medal size={16} className="text-amber-600" />
+//             ) : (
+//               <Star size={16} className="text-amber-500" />
+//             )}
+//           </div>
+//           <p className="font-body text-sm text-amber-900 leading-relaxed">
+//             {item}
+//           </p>
+//         </div>
+//       ))}
+//     </div>
+//   );
+// };
+
 export const AwardsRenderer = ({ items }: { items: string[] }) => {
-  const { intro, listItems } = splitIntroAndItems(items);
-  return (
-    <div className="space-y-3">
-      {intro && (
-        <p className="font-body text-sm text-amber-800 italic mb-1">{intro}</p>
-      )}
-      {listItems.map((item, i) => (
-        <div
-          key={`award-${i}`}
-          className="flex items-start gap-3 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-lg p-3 sm:p-4 hover:shadow-md transition"
-        >
-          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-            {i === 0 ? (
-              <Medal size={16} className="text-amber-600" />
-            ) : (
-              <Star size={16} className="text-amber-500" />
-            )}
-          </div>
-          <p className="font-body text-sm text-amber-900 leading-relaxed">
-            {item}
+  const { introLines, groups, bullets } = parseAwardsItems(items);
+
+  const hasStructuredContent = groups.length > 0 || bullets.length > 0;
+
+  // Fallback for plain awards lists
+  if (!hasStructuredContent) {
+    const { intro, listItems } = splitIntroAndItems(items);
+
+    return (
+      <div className="space-y-3">
+        {intro && (
+          <p className="font-body text-sm text-amber-800 italic mb-1">
+            {intro}
           </p>
+        )}
+        {listItems.map((item, i) => (
+          <div
+            key={`award-${i}`}
+            className="flex items-start gap-3 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-lg p-3 sm:p-4"
+          >
+            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+              {i === 0 ? (
+                <Medal size={16} className="text-amber-600" />
+              ) : (
+                <Star size={16} className="text-amber-500" />
+              )}
+            </div>
+            <p className="font-body text-sm text-amber-900 leading-relaxed">
+              {item}
+            </p>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* ① Intro lines */}
+      {introLines.length > 0 && (
+        <div className="space-y-2">
+          {introLines.map((line, i) => (
+            <p
+              key={`intro-${i}`}
+              className="font-body text-sm text-foreground leading-relaxed"
+            >
+              {line}
+            </p>
+          ))}
         </div>
-      ))}
+      )}
+
+      {/* ② Card-style distance groups */}
+      {groups.length > 0 && (
+        <div>
+          <h4 className="font-display text-sm font-semibold text-foreground mb-3 leading-2 tracking-wide">
+            Prize Money Breakdown:
+          </h4>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
+            {groups.map((group, i) => (
+              <div key={`group-${i}`} className="space-y-2">
+                {/* Group title */}
+                <h5 className="font-display text-sm sm:text-base font-bold text-foreground leading-2 tracking-wide">
+                  {group.title}
+                  {group.subtitle && (
+                    <span className="font-body font-normal text-foreground">
+                      {" "}
+                      ({group.subtitle})
+                    </span>
+                  )}
+                </h5>
+
+                {/* Prize rows */}
+                <ul className="space-y-1">
+                  {group.prizes.map((prize, j) => (
+                    <li
+                      key={`prize-${i}-${j}`}
+                      className="flex items-start gap-2 font-body text-sm text-foreground"
+                    >
+                      <span className="text-amber-600 flex-shrink-0">▶</span>
+                      <span>
+                        <span className="font-medium">{prize.label}:</span>{" "}
+                        {prize.value}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ③ Bullet-style categories (Kids Run, Veteran) */}
+      {bullets.length > 0 && (
+        <ul className="space-y-2">
+          {bullets.map((bullet, i) => (
+            <li key={`bullet-${i}`} className="space-y-1">
+              <div className="flex items-start gap-2 font-body text-sm">
+                <span className="text-amber-600 flex-shrink-0 mt-0.5">▶</span>
+                <span className="font-bold text-foreground">
+                  {bullet.title}
+                  {bullet.subtitle && <span> ({bullet.subtitle})</span>}:
+                </span>
+              </div>
+              {bullet.description && (
+                <p className="font-body text-sm text-foreground pl-5 leading-relaxed">
+                  — {bullet.description}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };
@@ -348,6 +489,7 @@ export const SECTION_RENDERERS: Record<
 > = {
   benefits: BenefitsRenderer,
   awards: AwardsRenderer,
+  facilities: FacilitiesRenderer,
   whyJoin: WhyJoinRenderer,
   rules: RulesRenderer,
   disqualification: DisqualificationRenderer,

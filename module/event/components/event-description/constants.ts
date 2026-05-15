@@ -32,21 +32,33 @@ export const SECTION_CONFIGS: SectionConfigData[] = [
   {
     id: "facilities",
     title: "RUNNERS FACILITIES",
-    iconName: "Tent", // or "Building2", "Warehouse", "Home" — pick your preference
+    iconName: "Tent",
     headerPatterns: [
-      /^runner.?s?\s+facilit(?:y|ies)[:\s]*$/i, // "Runners Facilities", "Runner's Facility"
-      /^facilit(?:y|ies)[:\s]*$/i, // "Facilities"
-      /^event\s+facilit(?:y|ies)[:\s]*$/i, // "Event Facilities"
-      /^race\s+facilit(?:y|ies)[:\s]*$/i, // "Race Facilities"
-      /^on[\s\-]?site\s+facilit(?:y|ies)[:\s]*$/i, // "On-site Facilities"
-      /^venue\s+facilit(?:y|ies)[:\s]*$/i, // "Venue Facilities"
-      /^amenities[:\s]*$/i, // "Amenities"
-      /^runner.?s?\s+amenities[:\s]*$/i, // "Runner's Amenities"
-      /^services?\s+(?:&|and)\s+facilit(?:y|ies)[:\s]*$/i, // "Services & Facilities"
+      /^runner.?s?\s+facilit(?:y|ies)[:\s]*$/i,
+      /^facilit(?:y|ies)[:\s]*$/i,
+      /^event\s+facilit(?:y|ies)[:\s]*$/i,
+      /^race\s+facilit(?:y|ies)[:\s]*$/i,
+      /^on[\s\-]?site\s+facilit(?:y|ies)[:\s]*$/i,
+      /^venue\s+facilit(?:y|ies)[:\s]*$/i,
+      /^amenities[:\s]*$/i,
+      /^runner.?s?\s+amenities[:\s]*$/i,
+      /^services?\s+(?:&|and)\s+facilit(?:y|ies)[:\s]*$/i,
     ],
     bgColor: "bg-teal-50",
     iconColor: "text-teal-600",
-    autoAssignPrefixes: ["🚿", "🚻", "🅿️", "🏥", "💧", "🍌"], // shower, restroom, parking, medical, water, food
+    // ✅ ADD ✔️ (with variation selector) as autoAssignPrefix
+    // so lines starting with ✔️ outside a section header
+    // are auto-assigned to facilities
+    autoAssignPrefixes: [
+      "✔️", // ← THIS is what your text uses ("✔️ Accurate Chip Timing...")
+      "🚿",
+      "🚻",
+      "🅿️",
+      "🏥",
+      "💧",
+      "🍌",
+      "🎉",
+    ],
   },
 
   {
@@ -183,6 +195,7 @@ export const ALL_ITEM_PREFIXES = [
   "➜",
   "-",
   "✔",
+  "✔️",
   "✅",
   "☑",
   "✓",
@@ -197,4 +210,5 @@ export const ALL_ITEM_PREFIXES = [
   "🏅",
   "🌟",
   "⭐",
+  "🎉",
 ];

@@ -5,6 +5,8 @@ import type {
   ParsedSection,
   ParsedEventInfo,
   ParsedCategory,
+  AwardGroup,
+  AwardBullet,
 } from "./types";
 import {
   SECTION_CONFIGS,
@@ -34,7 +36,7 @@ const cleanText = (text: string): string =>
       /^[\u{2600}-\u{27BF}\u{2B50}-\u{2B55}\u{1F300}-\u{1FAFF}\u{FE0E}\u{FE0F}]+\s*/gu,
       "",
     )
-    .replace(/^[*•▸▹→➤➜✔✅☑✓\-–—]+\s*/g, "")
+    .replace(/^[*•▸▹→➤➜✔✅✔️☑✓\-–—]+\s*/g, "")
     .trim();
 
 const matchSectionHeader = (rawText: string): SectionConfigData | null => {
@@ -79,6 +81,14 @@ const shouldSkipLine = (text: string): boolean => {
   if (!trimmed) return true;
   return /^and\s+many\s+more/i.test(cleanText(trimmed));
 };
+// const shouldSkipLine = (text: string): boolean => {
+//   const trimmed = text.trim();
+//   if (!trimmed) return true;
+
+//   const cleaned = cleanText(trimmed); // strips emoji + bullet prefix
+//   // ✅ FIX: check cleaned text so emoji-prefixed "And many more..." is also skipped
+//   return /^and\s+many\s+more/i.test(cleaned);
+// };
 
 /**
  * FIX: More comprehensive list item detection
@@ -404,3 +414,90 @@ export function parseDescription(description: string): ParsedData {
 
   return result;
 }
+
+// ✅ Distance group ONLY: "21.1KM (Male & Female)", "15KM", "7.5KM"
+const AWARD_DISTANCE_GROUP_HEADER_REGEX =
+  /^(\d+(?:\.\d+)?\s*(?:KM|K))(?:\s*\(([^)]+)\))?\s*:?\s*$/i;
+
+// ✅ Non-distance bullet category: "1K kids run", "Veteran Category (21.1K only, Age 45+):"
+// These get bullet style, NOT card style
+const AWARD_BULLET_GROUP_HEADER_REGEX =
+  /^(1K\s+kids?\s+run|Veteran\s+Category)(?:\s*\(([^)]+)\))?\s*:?\s*$/i;
+
+// ✅ Prize row: "Champion: 10,000 BDT", "1st Runners up : 7,000 BDT"
+// Note: "Runners up" (with s) and "Runner Up" both supported
+const AWARD_PRIZE_ROW_REGEX =
+  /^(Champion|(?:\d+(?:st|nd|rd|th))\s+Runners?\s+[Uu]p)\s*:\s*(.+)$/i;
+
+export const parseAwardsItems = (
+  items: string[],
+): {
+  introLines: string[];
+  groups: AwardGroup[]; // ✅ Card-style (distance categories)
+  bullets: AwardBullet[]; // ✅ Bullet-style (kids run, veteran)
+} => {
+  const introLines: string[] = [];
+  const groups: AwardGroup[] = [];
+  const bullets: AwardBullet[] = [];
+
+  let currentGroup: AwardGroup | null = null;
+  let currentBullet: AwardBullet | null = null;
+
+  for (const rawItem of items) {
+    const item = rawItem.replace(/^[—–-]\s*/, "").trim();
+
+    if (!item) continue;
+
+    // Skip helper label
+    if (/^prize\s+money\s+breakdown[:\s]*$/i.test(item)) {
+      continue;
+    }
+
+    // ✅ Distance group → card style
+    const distanceMatch = item.match(AWARD_DISTANCE_GROUP_HEADER_REGEX);
+    if (distanceMatch) {
+      currentGroup = {
+        title: distanceMatch[1].toUpperCase(),
+        subtitle: distanceMatch[2]?.trim(),
+        prizes: [],
+      };
+      groups.push(currentGroup);
+      currentBullet = null; // reset bullet context
+      continue;
+    }
+
+    // ✅ Bullet group → bullet list style
+    const bulletMatch = item.match(AWARD_BULLET_GROUP_HEADER_REGEX);
+    if (bulletMatch) {
+      currentBullet = {
+        title: bulletMatch[1],
+        subtitle: bulletMatch[2]?.trim(),
+        description: "",
+      };
+      bullets.push(currentBullet);
+      currentGroup = null; // reset card context
+      continue;
+    }
+
+    // ✅ Prize row → goes into current card group
+    const prizeMatch = item.match(AWARD_PRIZE_ROW_REGEX);
+    if (prizeMatch && currentGroup) {
+      currentGroup.prizes.push({
+        label: prizeMatch[1].trim(),
+        value: prizeMatch[2].trim(),
+      });
+      continue;
+    }
+
+    // ✅ Description for current bullet group
+    if (currentBullet && !currentBullet.description) {
+      currentBullet.description = item;
+      continue;
+    }
+
+    // ✅ Otherwise = intro text
+    introLines.push(item);
+  }
+
+  return { introLines, groups, bullets };
+};

@@ -44,3 +44,21 @@ export type ParsedData = {
   sections: ParsedSection[];
   other: string[];
 };
+
+export type AwardPrizeRow = {
+  label: string;
+  value: string;
+};
+
+export type AwardGroup = {
+  title: string;
+  subtitle?: string;
+  prizes: AwardPrizeRow[];
+};
+
+// ✅ NEW: Bullet items for non-distance categories
+export type AwardBullet = {
+  title: string;
+  subtitle?: string;
+  description: string;
+};
