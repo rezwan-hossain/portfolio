@@ -258,9 +258,27 @@ export function parseDescription(description: string): ParsedData {
     if (!config) return;
     const section = getOrCreateSection(config);
     // Avoid duplicates
+    // if (!section.items.includes(item)) {
+    //   section.items.push(item);
+    //   console.log(`  ✅ Added to [${configId}]: "${item.substring(0, 40)}..."`);
+    // }
+    // section.items.push(item);
+    // console.log(`  ✅ Added to [${configId}]: "${item.substring(0, 40)}..."`);
+
+    if (configId === "awards") {
+      section.items.push(item);
+      console.log(`  ✅ Added to [${configId}]: "${item.substring(0, 40)}..."`);
+      return;
+    }
+
+    // Default: skip duplicates
     if (!section.items.includes(item)) {
       section.items.push(item);
       console.log(`  ✅ Added to [${configId}]: "${item.substring(0, 40)}..."`);
+    } else {
+      console.log(
+        `  ⏭️ Skip duplicate in [${configId}]: "${item.substring(0, 40)}..."`,
+      );
     }
   };
 
