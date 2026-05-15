@@ -21,6 +21,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "assets.merchcommunication.com", // Added
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "cruip-tutorials.vercel.app",
         pathname: "/**", // allow all paths
       },
