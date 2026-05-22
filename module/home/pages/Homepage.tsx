@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import StatsCounter from "../components/StatsCounter";
 import CourseHighlights from "../components/CourseHighlights";
+import Ambassador from "../components/Ambassador";
 
 // ✅ Lazy load everything below the fold
 const UpcomingEvents = dynamic(() => import("../components/UpcomingEvent"), {
@@ -41,6 +42,12 @@ export default async function Homepage() {
       <Suspense fallback={<div className="h-96" />}>
         <section aria-label="Event Schedule">
           <EventSchedule />
+        </section>
+      </Suspense>
+
+      <Suspense fallback={<div className="h-96" />}>
+        <section aria-label="Event Schedule">
+          <Ambassador />
         </section>
       </Suspense>
 
