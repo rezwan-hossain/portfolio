@@ -46,7 +46,7 @@ const sponsors = [
   },
   {
     name: "Mans World",
-    logo: "https://assets.merchcommunication.com/logo/mans-world.jpg",
+    logo: "https://assets.merchcommunication.com/logo/mens-world.jpg",
   },
   {
     name: "T-Sports",
