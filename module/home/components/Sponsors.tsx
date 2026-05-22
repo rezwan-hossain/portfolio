@@ -20,6 +20,30 @@ const sponsors = [
     name: "T-Sports",
     logo: "https://res.cloudinary.com/ddea6u6xh/image/upload/v1777657921/1775322618367-cwcidx_b0ypvj.png",
   },
+  {
+    name: "GTV",
+    logo: "https://assets.merchcommunication.com/logo/GTV.png",
+  },
+  {
+    name: "Akij bicycle",
+    logo: "https://assets.merchcommunication.com/logo/akij-bycyle.png",
+  },
+  {
+    name: "Babuland",
+    logo: "https://assets.merchcommunication.com/logo/babuland.png",
+  },
+  {
+    name: "DEKKO Foods",
+    logo: "https://assets.merchcommunication.com/logo/dekko-foods.jpg",
+  },
+  {
+    name: "Fresh Cola",
+    logo: "https://assets.merchcommunication.com/logo/fresh-cola.png",
+  },
+  {
+    name: "maggi",
+    logo: "https://assets.merchcommunication.com/logo/maggi.jpg",
+  },
 ];
 export default function Sponsors() {
   return (
