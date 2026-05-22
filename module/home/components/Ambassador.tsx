@@ -7,14 +7,14 @@ type ScheduleItem = {
 import TeamMemberCard from "@/module/team/components/TeamMemberCard";
 import type { TeamMember } from "@/types/team";
 
-export const fakeTeamMembers: TeamMember[] = [
+export const ambassador: TeamMember[] = [
   {
     id: "1",
-    name: "Rezwan Hossain",
-    role: "Full Stack Developer",
-    bio: "Passionate about building scalable web applications with Next.js, NestJS, and modern cloud infrastructure.",
+    name: "Syed Abid Hussain Sami",
+    role: "Cricketer, Cricket Analyst,Commentator",
+    // bio: "Passionate about building scalable web applications with Next.js, NestJS, and modern cloud infrastructure.",
     image:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1200&auto=format&fit=crop",
+      "https://assets.merchcommunication.com/ambassador/ambassador-sami.jpeg",
     sortOrder: 1,
     category: "ADMIN",
     isActive: true,
@@ -26,19 +26,17 @@ export const fakeTeamMembers: TeamMember[] = [
     twitterUrl: "https://twitter.com/rezwan",
 
     socials: {
-      linkedin: "https://linkedin.com/in/rezwan",
-      github: "https://github.com/rezwan",
-      twitter: "https://twitter.com/rezwan",
+      facebook: "https://www.facebook.com/syed.a.sami.77",
     },
   },
 
   {
     id: "2",
-    name: "Sarah Johnson",
-    role: "UI/UX Designer",
-    bio: "Designing clean and modern user experiences focused on accessibility, usability, and conversion.",
+    name: "Salma Khatun",
+    role: "Former Captain bangladesh national women’s cricket team",
+    // bio: "Designing clean and modern user experiences focused on accessibility, usability, and conversion.",
     image:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1200&auto=format&fit=crop",
+      "https://assets.merchcommunication.com/ambassador/ambassador-salma.jpeg",
     sortOrder: 2,
     category: "ADVISOR",
     isActive: true,
@@ -50,19 +48,17 @@ export const fakeTeamMembers: TeamMember[] = [
     facebookUrl: "https://facebook.com/sarahjohnson",
 
     socials: {
-      linkedin: "https://linkedin.com/in/sarahjohnson",
-      instagram: "https://instagram.com/sarahdesigns",
-      facebook: "https://facebook.com/sarahjohnson",
+      facebook: "https://www.facebook.com/share/1E4LHwfnwT/",
     },
   },
 
   {
     id: "3",
-    name: "Michael Chen",
-    role: "Backend Engineer",
-    bio: "Focused on API architecture, database optimization, and secure backend systems.",
+    name: "Fahim Rahman",
+    role: "famous Sports Journalist",
+    // bio: "Focused on API architecture, database optimization, and secure backend systems.",
     image:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=1200&auto=format&fit=crop",
+      "https://assets.merchcommunication.com/ambassador/ambassador-fahim.jpeg",
     sortOrder: 3,
     category: "ORGANIZER",
     isActive: true,
@@ -73,18 +69,17 @@ export const fakeTeamMembers: TeamMember[] = [
     linkedinUrl: "https://linkedin.com/in/michaelchen",
 
     socials: {
-      github: "https://github.com/michaelchen",
-      linkedin: "https://linkedin.com/in/michaelchen",
+      facebook: "https://www.facebook.com/share/1Bmd573nNn/",
     },
   },
 
   {
     id: "4",
-    name: "Emily Davis",
-    role: "Marketing Specialist",
-    bio: "Helping brands grow through data-driven digital marketing and strategic storytelling.",
+    name: "Fahad Hossain",
+    role: "Teacher , Fahad's Tutorial",
+    // bio: "Helping brands grow through data-driven digital marketing and strategic storytelling.",
     image:
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=1200&auto=format&fit=crop",
+      "https://assets.merchcommunication.com/ambassador/ambassador-fahad.jpeg",
     sortOrder: 4,
     category: "ADMIN",
     isActive: true,
@@ -95,18 +90,17 @@ export const fakeTeamMembers: TeamMember[] = [
     instagramUrl: "https://instagram.com/emilydavis",
 
     socials: {
-      twitter: "https://twitter.com/emilydavis",
-      instagram: "https://instagram.com/emilydavis",
+      facebook: "https://www.facebook.com/share/1LEKiQt5v1/",
     },
   },
 
   {
     id: "5",
-    name: "David Wilson",
-    role: "DevOps Engineer",
-    bio: "Automating deployments, scaling infrastructure, and improving CI/CD pipelines.",
+    name: "RJ Auhona",
+    role: "famous Television Anchor, Radio Jockey",
+    // bio: "Automating deployments, scaling infrastructure, and improving CI/CD pipelines.",
     image:
-      "https://images.unsplash.com/photo-1502685104226-ee32379fefbe?q=80&w=1200&auto=format&fit=crop",
+      "https://assets.merchcommunication.com/ambassador/ambassador-auhona.jpeg",
     sortOrder: 5,
     category: "ADVISOR",
     isActive: true,
@@ -117,18 +111,17 @@ export const fakeTeamMembers: TeamMember[] = [
     githubUrl: "https://github.com/davidwilson",
 
     socials: {
-      linkedin: "https://linkedin.com/in/davidwilson",
-      github: "https://github.com/davidwilson",
+      facebook: "https://www.facebook.com/share/#/",
     },
   },
 
   {
     id: "6",
-    name: "Sophia Martinez",
-    role: "Project Manager",
-    bio: "Leading agile teams and delivering high-quality digital products on time.",
+    name: "Mohammad Mohasin",
+    role: "Captain Bangladesh Wheelchair Cricket Team",
+    // bio: "Leading agile teams and delivering high-quality digital products on time.",
     image:
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1200&auto=format&fit=crop",
+      "https://assets.merchcommunication.com/ambassador/ambassador-mohasin.jpeg",
     sortOrder: 6,
     category: "ORGANIZER",
     isActive: true,
@@ -139,8 +132,7 @@ export const fakeTeamMembers: TeamMember[] = [
     facebookUrl: "https://facebook.com/sophiamartinez",
 
     socials: {
-      linkedin: "https://linkedin.com/in/sophiamartinez",
-      facebook: "https://facebook.com/sophiamartinez",
+      facebook: "https://www.facebook.com/share/#/",
     },
   },
 ];
@@ -162,12 +154,30 @@ export default function Ambassador() {
         </div>
 
         <div className="space-y-4">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl md:text-4xl font-bold uppercase leading-relaxed text-gray-800 ">
+              ambassador
+            </h2>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-            {fakeTeamMembers.map((member, index) => (
+            {ambassador.map((member, index) => (
               <TeamMemberCard key={member.id} member={member} index={index} />
             ))}
           </div>
         </div>
+
+        {/* <div className="space-y-4 mt-16">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl md:text-4xl font-bold uppercase leading-relaxed text-gray-800 ">
+              infulancer
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+            {ambassador.map((member, index) => (
+              <TeamMemberCard key={member.id} member={member} index={index} />
+            ))}
+          </div>
+        </div> */}
       </div>
     </section>
   );
