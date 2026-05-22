@@ -30,7 +30,7 @@ const sponsors = [
   },
   {
     name: "Babuland",
-    logo: "https://assets.merchcommunication.com/logo/babuland.png",
+    logo: "https://assets.merchcommunication.com/logo/babuland.jpg",
   },
   {
     name: "DEKKO Foods",
@@ -38,11 +38,35 @@ const sponsors = [
   },
   {
     name: "Fresh Cola",
-    logo: "https://assets.merchcommunication.com/logo/fresh-cola.png",
+    logo: "https://assets.merchcommunication.com/logo/fresh-cola.jpg",
   },
   {
     name: "maggi",
     logo: "https://assets.merchcommunication.com/logo/maggi.jpg",
+  },
+  {
+    name: "Mans World",
+    logo: "https://assets.merchcommunication.com/logo/mans-world.jpg",
+  },
+  {
+    name: "T-Sports",
+    logo: "https://assets.merchcommunication.com/logo/t-sports.jpg",
+  },
+  {
+    name: "Pizza Hut",
+    logo: "https://assets.merchcommunication.com/logo/pizza-hut.jpg",
+  },
+  {
+    name: "ICE TODAY",
+    logo: "https://assets.merchcommunication.com/logo/ice-today.jpg",
+  },
+  {
+    name: "Business Times",
+    logo: "https://assets.merchcommunication.com/logo/business-times.jpg",
+  },
+  {
+    name: "clove chocolate",
+    logo: "https://assets.merchcommunication.com/logo/clove-chocolate.jpg",
   },
 ];
 export default function Sponsors() {
