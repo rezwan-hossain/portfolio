@@ -55,7 +55,7 @@ export const ambassador: TeamMember[] = [
   {
     id: "3",
     name: "Fahim Rahman",
-    role: "famous Sports Journalist",
+    role: "Famous Sports Journalist",
     // bio: "Focused on API architecture, database optimization, and secure backend systems.",
     image:
       "https://assets.merchcommunication.com/ambassador/ambassador-fahim.jpeg",
@@ -97,7 +97,7 @@ export const ambassador: TeamMember[] = [
   {
     id: "5",
     name: "RJ Auhona",
-    role: "famous Television Anchor, Radio Jockey",
+    role: "Famous Television Anchor, Radio Jockey",
     // bio: "Automating deployments, scaling infrastructure, and improving CI/CD pipelines.",
     image:
       "https://assets.merchcommunication.com/ambassador/ambassador-auhona.jpeg",
@@ -143,7 +143,7 @@ export default function Ambassador() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
-          <div className="text-sm uppercase tracking-widest text-gray-500">
+          <div className="text-lg uppercase tracking-widest text-gray-500">
             Face of
           </div>
 
