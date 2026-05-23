@@ -154,11 +154,11 @@ export default function Ambassador() {
         </div>
 
         <div className="space-y-4">
-          <div className="text-center mb-6">
+          {/* <div className="text-center mb-6">
             <h2 className="text-2xl md:text-4xl font-bold uppercase leading-relaxed text-gray-800 ">
               ambassador
             </h2>
-          </div>
+          </div> */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
             {ambassador.map((member, index) => (
               <TeamMemberCard key={member.id} member={member} index={index} />
