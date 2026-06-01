@@ -9,6 +9,7 @@ import type { EventData } from "@/types/event";
 import EventInfoCard from "../components/EventInfoCard";
 import EventDescription3 from "../components/EventDescription3";
 import { formatEventTime, formatEventTimeUTC } from "@/utils/date";
+import { ViewContentTracker } from "@/components/tracking/ViewContentTracker";
 
 // Dynamic imports for non-critical components
 const TicketSelector = dynamic(() => import("../components/TicketSelector"), {
@@ -61,8 +62,26 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
   // const formattedTime = formatEventTime(event.time);
   const formattedTime = formatEventTimeUTC(event.time);
 
+  // If user selects different package, that is fine
+  // InitiateCheckout will fire with exact package on checkout page
+  const firstPackage = event.packages?.[0];
+
   return (
     <div className="min-h-screen bg-background">
+      {/* ✅ Fires ViewContent on page load */}
+
+      {firstPackage && (
+        <ViewContentTracker
+          product={{
+            id: String(firstPackage.id),
+            name: event.name,
+            price: Number(firstPackage.price),
+            packageName: firstPackage.name,
+            distance: firstPackage.distance,
+          }}
+        />
+      )}
+
       <div className="mt-42">
         <HeroText
           title={event.name}

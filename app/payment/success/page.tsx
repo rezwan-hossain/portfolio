@@ -19,6 +19,7 @@ import {
   Shirt,
   Heart,
 } from "lucide-react";
+import { PurchaseTracker } from "@/components/tracking/PurchaseTracker";
 
 type SearchParams = Promise<{ orderId?: string }>;
 
@@ -130,8 +131,23 @@ async function PaymentSuccessContent({
     minute: "2-digit",
   });
 
+  //for tracking purpose
+  const purchaseData = {
+    orderId: order.id,
+    value: order.payment?.amount ?? Number(order.package.price),
+    product: {
+      id: String(order.package.id),
+      name: order.event.name,
+      price: order.payment?.amount ?? Number(order.package.price),
+      packageName: order.package.name,
+      distance: order.package.distance,
+    },
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/60 via-white to-gray-50 flex items-start justify-center px-4 py-12 sm:py-20">
+      // ✅ Fires Purchase tracker on page load
+      <PurchaseTracker data={purchaseData} />
       <div className="mt-20 max-w-xl w-full">
         {/* ── Animated Success Header ── */}
         <div className="text-center mb-8">

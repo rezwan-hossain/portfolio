@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Anton, Inter } from "next/font/google";
 import "./globals.css";
 import AppLayout from "@/components/layout/AppLayout";
+import { Suspense } from "react";
+import { TrackingScripts } from "@/components/tracking/TrackingScripts";
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -72,6 +74,10 @@ export default function RootLayout({
         /> */}
       </head>
       <body className={`${anton.variable} ${inter.variable} antialiased`}>
+        <Suspense fallback={null}>
+          <TrackingScripts />
+        </Suspense>
+
         <AppLayout>{children}</AppLayout>
       </body>
     </html>

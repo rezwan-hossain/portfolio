@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import CheckoutPage from "@/module/checkout/pages/CheckoutPage";
 import { redirect } from "next/navigation";
 import { getCheckoutData } from "../actions/checkout";
+import { InitiateCheckoutTracker } from "@/components/tracking/InitiateCheckoutTracker";
 
 type SearchParams = Promise<{
   package?: string;
@@ -46,11 +47,23 @@ async function CheckoutContent({
   };
 
   return (
-    <CheckoutPage
-      item={checkoutItem}
-      userEmail={user?.email ?? ""}
-      userName={user?.user_metadata?.full_name ?? ""}
-    />
+    <>
+      {/* ✅ Fires InitiateCheckout tracker on page load */}
+      <InitiateCheckoutTracker
+        product={{
+          id: String(pkg.id),
+          name: pkg.event.name,
+          price: Number(pkg.price),
+          packageName: pkg.name,
+          distance: pkg.distance,
+        }}
+      />
+      <CheckoutPage
+        item={checkoutItem}
+        userEmail={user?.email ?? ""}
+        userName={user?.user_metadata?.full_name ?? ""}
+      />
+    </>
   );
 }
 
