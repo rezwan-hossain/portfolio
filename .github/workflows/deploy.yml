@@ -1,0 +1,33 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main # Triggers when you push to main branch
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          timeout: 30s
+          script_stop: true
+          script: |
+            bash /var/www/myapp/portfolio/deploy.sh
+
+      - name: Test Connection
+        run: |
+          ssh -p ${{ secrets.PORT }} \
+            ${{ secrets.USERNAME }}@${{ secrets.HOST }} \
+            "whoami"
