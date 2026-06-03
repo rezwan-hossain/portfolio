@@ -21,7 +21,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          timeout: 30s
+          timeout: 60s
           script_stop: true
           script: |
             git config --global --add safe.directory /var/www/myapp/portfolio
