@@ -27,8 +27,8 @@ jobs:
             git config --global --add safe.directory /var/www/myapp/portfolio
             bash /var/www/myapp/portfolio/deploy.sh
 
-      - name: Test Connection
-        run: |
-          ssh -p ${{ secrets.PORT }} \
-            ${{ secrets.USERNAME }}@${{ secrets.HOST }} \
-            "whoami"
+      # - name: Test Connection
+      #   run: |
+      #     ssh -p ${{ secrets.PORT }} \
+      #       ${{ secrets.USERNAME }}@${{ secrets.HOST }} \
+      #       "whoami"
