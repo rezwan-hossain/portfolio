@@ -4,27 +4,28 @@ module.exports = {
       name: "nextjs-app",
       cwd: "/var/www/myapp/portfolio",
 
-      script: "./node_modules/next/dist/bin/next",
+      script: "npm",
       args: "start",
 
-      instances: 2,
-      exec_mode: "cluster",
+      instances: 1,
+      exec_mode: "fork",
 
       autorestart: true,
       watch: false,
 
-      max_memory_restart: "500M",
+      max_memory_restart: "700M",
       restart_delay: 5000,
+
+      env: {
+        NODE_ENV: "production",
+        PORT: 3000,
+        NODE_OPTIONS: "--max-old-space-size=1536",
+      },
 
       out_file: "/var/www/myapp/logs/output.log",
       error_file: "/var/www/myapp/logs/error.log",
       merge_logs: true,
       time: true,
-
-      env: {
-        NODE_ENV: "production",
-        PORT: 3000,
-      },
     },
   ],
 };
