@@ -14,8 +14,13 @@ import { formatBDPhone, getPaymentConfirmationSMS, sendSMS } from "@/lib/sms";
 import { NextRequest, NextResponse } from "next/server";
 
 import { applyCoupon } from "@/app/actions/coupon";
+import { getRequestId } from "@/utils/requestUtils";
+import { logger } from "@/lib/logger";
 
 export async function GET(request: NextRequest) {
+  const requestId = await getRequestId();
+  const start = Date.now();
+
   const { searchParams } = new URL(request.url);
 
   // ✅ Check multiple possible parameter names
@@ -31,33 +36,69 @@ export async function GET(request: NextRequest) {
     allParams: Object.fromEntries(searchParams.entries()),
   });
 
+  const log = logger.child({
+    requestId,
+    action: "shurjopay:callback",
+    spOrderId,
+  });
+
+  log.info(
+    {
+      params: {
+        order_id: searchParams.get("order_id"),
+        sp_order_id: searchParams.get("sp_order_id"),
+      },
+    },
+    "payment:callback_received",
+  );
+
   if (!spOrderId) {
     console.error("❌ No order_id in callback");
+    log.error("payment:callback — missing order_id param");
+
     return NextResponse.redirect(
       `${origin}/payment/failed?reason=missing_order`,
     );
   }
 
   try {
+    log.info(
+      { externalApi: { service: "shurjopay", operation: "verify" }, spOrderId },
+      "external_api:start",
+    );
     // ─── Verify payment with ShurjoPay ──────────────
     console.log("🔍 Verifying payment with ShurjoPay...");
+
+    const verifyStart = Date.now();
 
     let verifyData;
     try {
       verifyData = await verifyShurjoPayPayment(spOrderId);
     } catch (verifyError: any) {
+      log.error(
+        {
+          externalApi: {
+            service: "shurjopay",
+            operation: "verify",
+            durationMs: Date.now() - verifyStart,
+          },
+          err: verifyError,
+        },
+        "external_api:failure — verify threw",
+      );
       console.error("❌ Verification API error:", verifyError?.message);
 
       // Find payment and keep as PENDING for manual review
-      const paymentBySpOrderId = await prisma.payment.findFirst({
+      const orphanPayment = await prisma.payment.findFirst({
         where: { paymentId: spOrderId },
       });
 
-      if (paymentBySpOrderId) {
-        console.log(
-          "⚠️ Payment marked for manual review:",
-          paymentBySpOrderId.id,
+      if (orphanPayment) {
+        log.warn(
+          { paymentId: orphanPayment.id, orderId: orphanPayment.orderId },
+          "payment:pending_manual_review",
         );
+        console.log("⚠️ Payment marked for manual review:", orphanPayment.id);
       }
 
       return NextResponse.redirect(
@@ -66,6 +107,16 @@ export async function GET(request: NextRequest) {
     }
 
     if (!verifyData || verifyData.length === 0) {
+      log.error(
+        {
+          externalApi: {
+            service: "shurjopay",
+            operation: "verify",
+            durationMs: Date.now() - verifyStart,
+          },
+        },
+        "external_api:failure — empty response",
+      );
       console.error("❌ Verification returned empty data");
       return NextResponse.redirect(
         `${origin}/payment/failed?reason=verification_failed`,
@@ -88,6 +139,8 @@ export async function GET(request: NextRequest) {
     });
 
     // ─── Find payment in DB ─────────────────────────
+    const dbStart = Date.now();
+
     const payment = await prisma.payment.findFirst({
       where: {
         OR: [
@@ -102,7 +155,21 @@ export async function GET(request: NextRequest) {
       include: { order: true },
     });
 
+    const dbDuration = Date.now() - dbStart;
+
     if (!payment) {
+      log.error(
+        {
+          db: {
+            model: "Payment",
+            operation: "findFirst",
+            durationMs: dbDuration,
+          },
+          spOrderId,
+          value1: paymentInfo.value1,
+        },
+        "db:not_found",
+      );
       console.error("❌ Payment not found in DB:", {
         spOrderId,
         value1: paymentInfo.value1,
@@ -112,10 +179,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    log.info(
+      {
+        db: {
+          model: "Payment",
+          operation: "findFirst",
+          durationMs: dbDuration,
+        },
+        paymentId: payment.id,
+        orderId: payment.orderId,
+      },
+      "db:success",
+    );
     console.log("📦 Found payment:", payment.id, "for order:", payment.orderId);
 
     // ✅ Idempotency check
     if (payment.status === "PAID") {
+      log.warn(
+        { paymentId: payment.id, orderId: payment.orderId },
+        "payment:duplicate_callback — already PAID, redirecting",
+      );
+
       console.log("ℹ️ Payment already PAID, redirecting to success");
       return NextResponse.redirect(
         `${origin}/payment/success?orderId=${payment.orderId}`,
@@ -134,9 +218,15 @@ export async function GET(request: NextRequest) {
 
     // ✅ SUCCESS: sp_code === 1000
     if (spCode === SP_CODE.SUCCESS) {
+      log.info({ spCode, orderId: payment.orderId }, "payment:success");
+
       console.log("✅ Payment SUCCESS (sp_code=1000) — updating DB...");
 
+      const txStart = Date.now();
+
       await prisma.$transaction(async (tx) => {
+        log.info({ orderId: payment.orderId }, "tx:payment.update → PAID");
+
         await tx.payment.update({
           where: { id: payment.id },
           data: {
@@ -149,11 +239,20 @@ export async function GET(request: NextRequest) {
           },
         });
 
+        log.info({ orderId: payment.orderId }, "tx:order.update → CONFIRMED");
+
         await tx.order.update({
           where: { id: payment.orderId },
           data: { status: "CONFIRMED" },
         });
       });
+      log.info(
+        {
+          orderId: payment.orderId,
+          db: { operation: "transaction", durationMs: Date.now() - txStart },
+        },
+        "db:transaction_success — order CONFIRMED",
+      );
 
       // ─── Coupon Application ───────────────────────
       try {
@@ -173,6 +272,11 @@ export async function GET(request: NextRequest) {
           orderForCoupon.discount > 0 &&
           !orderForCoupon.couponUsage
         ) {
+          log.info(
+            { couponId: orderForCoupon.couponId, orderId: orderForCoupon.id },
+            "coupon:applying_usage",
+          );
+
           console.log("🎟️ Applying coupon usage...");
           const couponResult = await applyCoupon({
             couponId: orderForCoupon.couponId,
@@ -182,12 +286,25 @@ export async function GET(request: NextRequest) {
           });
 
           if (couponResult.success) {
+            log.info(
+              { couponId: orderForCoupon.couponId },
+              "coupon:usage_recorded",
+            );
             console.log("✅ Coupon usage recorded");
           } else {
+            log.error(
+              {
+                couponId: orderForCoupon.couponId,
+                couponError: couponResult.error,
+              },
+              "coupon:usage_failed",
+            );
             console.error("⚠️ Coupon failed:", couponResult.error);
           }
         }
       } catch (couponError: any) {
+        log.error({ err: couponError }, "coupon:error — non-fatal");
+
         console.error("⚠️ Coupon error:", couponError?.message);
       }
 
@@ -235,8 +352,24 @@ export async function GET(request: NextRequest) {
               tshirtSize: order.registration?.tshirtSize ?? undefined,
               bloodGroup: order.registration?.bloodGroup ?? undefined,
             });
-            if (emailResult.success) console.log("✅ Email sent");
+            // if (emailResult.success) console.log("✅ Email sent");
+            if (emailResult.success) {
+              log.info(
+                { notification: { type: "email" }, orderId: order.id },
+                "notification:sent",
+              );
+            } else {
+              log.error(
+                { notification: { type: "email" }, orderId: order.id },
+                "notification:failed",
+              );
+            }
           } catch (e: any) {
+            log.error(
+              { err: e, notification: { type: "email" }, orderId: order.id },
+              "notification:error — non-fatal",
+            );
+
             console.error("⚠️ Email error:", e?.message);
           }
 
@@ -258,9 +391,32 @@ export async function GET(request: NextRequest) {
                 number: formattedPhone,
                 message: smsMessage,
               });
-              if (smsResult.success) console.log("✅ SMS sent");
+              if (smsResult.success) {
+                log.info(
+                  { notification: { type: "sms" }, orderId: order.id },
+                  "notification:sent",
+                );
+              } else {
+                log.error(
+                  { notification: { type: "sms" }, orderId: order.id },
+                  "notification:failed",
+                );
+              }
+            } else {
+              log.warn(
+                {
+                  notification: { type: "sms", reason: "no_phone_number" },
+                  orderId: order.id,
+                },
+                "notification:skipped",
+              );
             }
           } catch (e: any) {
+            log.error(
+              { err: e, notification: { type: "sms" }, orderId: order.id },
+              "notification:error — non-fatal",
+            );
+
             console.error("⚠️ SMS error:", e?.message);
           }
 
@@ -269,10 +425,16 @@ export async function GET(request: NextRequest) {
           // }
         }
       } catch (e: any) {
+        log.error({ err: e }, "payment:post_processing_error — non-fatal");
         console.error("⚠️ Post-payment processing error:", e?.message);
       }
 
       console.log("✅ Order confirmed, redirecting to success");
+
+      log.info(
+        { orderId: payment.orderId, durationMs: Date.now() - start },
+        "action:success",
+      );
       return NextResponse.redirect(
         `${origin}/payment/success?orderId=${payment.orderId}`,
       );
@@ -280,6 +442,8 @@ export async function GET(request: NextRequest) {
 
     // ✅ CANCELLED: sp_code === 1002
     if (spCode === SP_CODE.CANCELLED_BY_CUSTOMER) {
+      log.warn({ spCode, orderId: payment.orderId }, "payment:cancelled");
+
       console.log("⚠️ Payment CANCELLED (sp_code=1002)");
       await prisma.payment.update({
         where: { id: payment.id },
@@ -289,6 +453,7 @@ export async function GET(request: NextRequest) {
           paymentGateway: "shurjopay",
         },
       });
+      log.info({ orderId: payment.orderId }, "db:payment_updated → FAILED");
 
       return NextResponse.redirect(
         `${origin}/payment/failed?orderId=${payment.orderId}&reason=cancelled`,
@@ -297,6 +462,11 @@ export async function GET(request: NextRequest) {
 
     // ✅ DECLINED: sp_code === 1001
     if (spCode === SP_CODE.DECLINED_BY_BANK) {
+      log.error(
+        { spCode, orderId: payment.orderId },
+        "payment:declined — bank declined",
+      );
+
       console.log("❌ Payment DECLINED by bank (sp_code=1001)");
       await prisma.payment.update({
         where: { id: payment.id },
@@ -306,6 +476,8 @@ export async function GET(request: NextRequest) {
           paymentGateway: "shurjopay",
         },
       });
+
+      log.info({ orderId: payment.orderId }, "db:payment_updated → FAILED");
 
       return NextResponse.redirect(
         `${origin}/payment/failed?orderId=${payment.orderId}&reason=declined`,
@@ -318,6 +490,11 @@ export async function GET(request: NextRequest) {
       sp_message: paymentInfo.sp_message,
     });
 
+    log.error(
+      { spCode, spMessage: paymentInfo.sp_message, orderId: payment.orderId },
+      "payment:unknown_sp_code — keeping PENDING for manual review",
+    );
+
     // Keep as PENDING for manual review
     await prisma.payment.update({
       where: { id: payment.id },
@@ -327,11 +504,18 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    log.info({ orderId: payment.orderId }, "db:payment_updated → PENDING");
+
     return NextResponse.redirect(
       `${origin}/payment/failed?orderId=${payment.orderId}&reason=unknown_status`,
     );
   } catch (error: any) {
     console.error("❌ Callback error:", error?.message);
+
+    log.error(
+      { err: error, durationMs: Date.now() - start },
+      "action:error — unhandled",
+    );
     return NextResponse.redirect(
       `${origin}/payment/failed?reason=server_error`,
     );
@@ -339,9 +523,21 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const requestId = await getRequestId();
+
+  const log = logger.child({
+    requestId,
+    action: "shurjopay:callback:post",
+  });
+
   try {
     const body = await request.json().catch(() => ({}));
     console.log("📥 ShurjoPay POST callback body:", body);
+
+    log.info(
+      { hasOrderId: !!(body.order_id || body.sp_order_id) },
+      "payment:post_callback_received",
+    );
 
     if (body.order_id || body.sp_order_id) {
       const url = new URL(request.url);
