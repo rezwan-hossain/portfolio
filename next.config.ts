@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
-import { withAxiom } from "next-axiom";
+// import { withAxiom } from "next-axiom";
 
 const nextConfig: NextConfig = {
   /* config options here */
   compress: true,
+  serverExternalPackages: ["pino", "pino-pretty", "@axiomhq/pino"],
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
@@ -199,6 +200,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-// export default nextConfig;
+export default nextConfig;
 
-export default withAxiom(nextConfig);
+// export default withAxiom(nextConfig);
