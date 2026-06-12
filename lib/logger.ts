@@ -1,117 +1,76 @@
+// lib/logger.ts
 import "server-only";
-import pino, { type Logger, type TransportSingleOptions } from "pino";
+import { Logger } from "next-axiom";
 
-const isDev = process.env.NODE_ENV === "development";
-
-const REDACTED_PATHS = [
-  // Auth / secrets
-  "password",
-  "confirmPassword",
-  "token",
-  "accessToken",
-  "refreshToken",
-  "authorization",
-  "cookie",
-  "headers.authorization",
-  "headers.cookie",
-
-  // API credentials
-  "apiKey",
-  "secret",
-  "clientSecret",
-  "stripeSecretKey",
-  "headers.x-api-key",
-
-  // Personal data
-  "email",
-  "phone",
-  "customerEmail",
-  "customerPhone",
-  "user.email",
-
-  // Nested query data
-  "db.query.email",
-  "db.query.phone",
-  "db.query.customerEmail",
-  "db.query.customerPhone",
-
-  // Form / request body
-  "formData.email",
-  "formData.phone",
-  "body.email",
-  "body.password",
-  "body.token",
-
-  // User objects
-  "user.password",
-] as const;
-
-function buildTransport(): ReturnType<typeof pino.transport> | undefined {
-  if (isDev) {
-    return pino.transport({
-      target: "pino-pretty",
-      options: {
-        colorize: true,
-        translateTime: "SYS:standard",
-        ignore: "pid,hostname",
-      },
-    });
-  }
-
-  const token = process.env.AXIOM_TOKEN?.trim();
-  const dataset = process.env.AXIOM_DATASET?.trim();
-
-  if (token && dataset) {
-    // Prevent aggressive static analysis by bundlers
-    const target: TransportSingleOptions["target"] = "@axiomhq/pino";
-
-    return pino.transport({
-      target,
-      options: {
-        token,
-        dataset,
-      },
-    });
-  }
-
-  // Fallback: structured JSON logs to stdout
-  // Vercel and most platforms automatically capture these.
-  return undefined;
+export interface ChildLogger {
+  info(obj: object, msg?: string): void;
+  info(msg: string): void;
+  warn(obj: object, msg?: string): void;
+  warn(msg: string): void;
+  error(obj: object, msg?: string): void;
+  error(msg: string): void;
+  debug(obj: object, msg?: string): void;
+  debug(msg: string): void;
+  child(bindings: Record<string, unknown>): ChildLogger;
+  flush(): Promise<void>;
 }
 
-let transport: ReturnType<typeof pino.transport> | undefined;
+function createShim(axiomLogger: Logger): ChildLogger {
+  function normalizeArgs(
+    objOrMsg: object | string,
+    msg?: string,
+  ): [string, Record<string, unknown>] {
+    if (typeof objOrMsg === "string") {
+      return [objOrMsg, {}];
+    }
+    return [msg ?? "", objOrMsg as Record<string, unknown>];
+  }
 
-try {
-  transport = buildTransport();
-} catch (error) {
-  console.error("Failed to initialize logger transport:", error);
+  return {
+    info(objOrMsg: object | string, msg?: string) {
+      const [message, fields] = normalizeArgs(objOrMsg, msg);
+      axiomLogger.info(message, fields);
+    },
+
+    warn(objOrMsg: object | string, msg?: string) {
+      const [message, fields] = normalizeArgs(objOrMsg, msg);
+      axiomLogger.warn(message, fields);
+    },
+
+    error(objOrMsg: object | string, msg?: string) {
+      const [message, fields] = normalizeArgs(objOrMsg, msg);
+      axiomLogger.error(message, fields);
+    },
+
+    debug(objOrMsg: object | string, msg?: string) {
+      const [message, fields] = normalizeArgs(objOrMsg, msg);
+      axiomLogger.debug(message, fields);
+    },
+
+    child(bindings: Record<string, unknown>): ChildLogger {
+      return createShim(axiomLogger.with(bindings));
+    },
+
+    async flush() {
+      await axiomLogger.flush();
+    },
+  };
 }
 
-export const logger: Logger = pino(
-  {
-    level: process.env.LOG_LEVEL ?? "info",
+// Correct: Logger() takes no config for fields,
+// use .with() to attach global fields instead
+const axiomRoot = new Logger().with({
+  service: "marathon-registration-app",
+  env: process.env.NODE_ENV,
+});
 
-    base: {
-      service: "race-registration-app",
-      env: process.env.NODE_ENV,
-    },
+export const logger: ChildLogger = createShim(axiomRoot);
 
-    redact: {
-      paths: [...REDACTED_PATHS],
-      censor: "[REDACTED]",
-    },
-
-    timestamp: pino.stdTimeFunctions.isoTime,
-  },
-  transport,
-);
-
-// Optional helper for request-scoped logging
 export function createRequestLogger(
   requestId: string,
   action: string,
   userId?: string,
-) {
+): ChildLogger {
   return logger.child({
     requestId,
     action,

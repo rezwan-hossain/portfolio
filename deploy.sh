@@ -22,7 +22,8 @@ echo "🔨 Building application..."
 npm run build
 
 echo "♻️ Restarting application..."
-pm2 restart nextjs-app || pm2 start ecosystem.config.js
+pm2 startOrRestart ecosystem.config.js --update-env
+
 
 echo "========================================"
 echo "✅ Deployment complete at $(date)"

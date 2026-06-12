@@ -250,5 +250,7 @@ export async function initiateShurjoPayPayment({
       error: "Failed to initiate payment. Please try again.",
       checkoutUrl: "",
     };
+  } finally {
+    await log.flush();
   }
 }

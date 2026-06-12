@@ -63,6 +63,8 @@ export async function getCheckoutData(packageId: number) {
 
     console.error("Failed to fetch checkout data:", error);
     return { package: null, error: "Failed to fetch checkout data" };
+  } finally {
+    await log.flush();
   }
 }
 
@@ -211,6 +213,8 @@ export async function placeOrder(formData: {
 
       console.error("Failed to create guest user:", error);
       return { error: "Failed to process checkout. Please try again." };
+    } finally {
+      await log.flush();
     }
   }
 
@@ -563,5 +567,8 @@ export async function placeOrder(formData: {
     );
     console.error("Failed to place order:", error);
     return { error: "Failed to place order. Please try again." };
+  } finally {
+    await log.flush();
+    await logWithUser.flush();
   }
 }

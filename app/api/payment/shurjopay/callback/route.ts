@@ -104,6 +104,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(
         `${origin}/payment/failed?reason=verification_error`,
       );
+    } finally {
+      await log.flush();
     }
 
     if (!verifyData || verifyData.length === 0) {
@@ -306,6 +308,8 @@ export async function GET(request: NextRequest) {
         log.error({ err: couponError }, "coupon:error — non-fatal");
 
         console.error("⚠️ Coupon error:", couponError?.message);
+      } finally {
+        await log.flush();
       }
 
       // ─── BIB, Email, SMS ──────────────────────────
@@ -371,6 +375,8 @@ export async function GET(request: NextRequest) {
             );
 
             console.error("⚠️ Email error:", e?.message);
+          } finally {
+            await log.flush();
           }
 
           // SMS
@@ -418,6 +424,8 @@ export async function GET(request: NextRequest) {
             );
 
             console.error("⚠️ SMS error:", e?.message);
+          } finally {
+            await log.flush();
           }
 
           // if (bibNumber) {
@@ -427,6 +435,8 @@ export async function GET(request: NextRequest) {
       } catch (e: any) {
         log.error({ err: e }, "payment:post_processing_error — non-fatal");
         console.error("⚠️ Post-payment processing error:", e?.message);
+      } finally {
+        await log.flush();
       }
 
       console.log("✅ Order confirmed, redirecting to success");
@@ -519,6 +529,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(
       `${origin}/payment/failed?reason=server_error`,
     );
+  } finally {
+    await log.flush();
   }
 }
 
@@ -550,6 +562,8 @@ export async function POST(request: NextRequest) {
     }
   } catch (e) {
     console.log("POST body parse failed, using GET params");
+  } finally {
+    await log.flush();
   }
 
   return GET(request);
