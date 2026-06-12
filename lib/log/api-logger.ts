@@ -1,6 +1,5 @@
 // lib/log/api-logger.ts
-import { logger } from "@/lib/logger";
-import type { Logger } from "pino";
+import { logger, type ChildLogger } from "@/lib/logger";
 
 type ExternalApiContext = {
   service: string;
@@ -11,11 +10,14 @@ type ExternalApiContext = {
   extra?: Record<string, unknown>;
 };
 
-function getLog(log?: Logger) {
+function getLog(log?: ChildLogger): ChildLogger {
   return log ?? logger;
 }
 
-export function logExternalApiStart(ctx: ExternalApiContext, log?: Logger) {
+export function logExternalApiStart(
+  ctx: ExternalApiContext,
+  log?: ChildLogger,
+) {
   getLog(log).info(
     {
       requestId: ctx.requestId,
@@ -33,7 +35,7 @@ export function logExternalApiStart(ctx: ExternalApiContext, log?: Logger) {
 
 export function logExternalApiSuccess(
   ctx: ExternalApiContext & { statusCode?: number; durationMs: number },
-  log?: Logger,
+  log?: ChildLogger,
 ) {
   getLog(log).info(
     {
@@ -58,7 +60,7 @@ export function logExternalApiFailure(
     durationMs: number;
     error: unknown;
   },
-  log?: Logger,
+  log?: ChildLogger,
 ) {
   getLog(log).error(
     {
@@ -78,11 +80,10 @@ export function logExternalApiFailure(
   );
 }
 
-// convenience wrapper for any fetch call
 export async function fetchWithLog<T>(
   ctx: ExternalApiContext,
   fetchFn: () => Promise<Response>,
-  log?: Logger,
+  log?: ChildLogger,
 ): Promise<T> {
   const start = Date.now();
   logExternalApiStart(ctx, log);

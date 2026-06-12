@@ -1,6 +1,5 @@
 // lib/log/notification-logger.ts
-import { logger } from "@/lib/logger";
-import type { Logger } from "pino";
+import { logger, type ChildLogger } from "@/lib/logger";
 
 type NotificationContext = {
   requestId?: string;
@@ -9,11 +8,14 @@ type NotificationContext = {
   type: "email" | "sms";
 };
 
-function getLog(log?: Logger) {
+function getLog(log?: ChildLogger): ChildLogger {
   return log ?? logger;
 }
 
-export function logNotificationSuccess(ctx: NotificationContext, log?: Logger) {
+export function logNotificationSuccess(
+  ctx: NotificationContext,
+  log?: ChildLogger,
+) {
   getLog(log).info(
     {
       requestId: ctx.requestId,
@@ -30,7 +32,7 @@ export function logNotificationSuccess(ctx: NotificationContext, log?: Logger) {
 export function logNotificationFailure(
   ctx: NotificationContext,
   error: unknown,
-  log?: Logger,
+  log?: ChildLogger,
 ) {
   getLog(log).error(
     {
@@ -49,7 +51,7 @@ export function logNotificationFailure(
 export function logNotificationSkipped(
   ctx: NotificationContext,
   reason: string,
-  log?: Logger,
+  log?: ChildLogger,
 ) {
   getLog(log).warn(
     {

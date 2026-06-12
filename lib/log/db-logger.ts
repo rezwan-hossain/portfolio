@@ -1,6 +1,5 @@
 // lib/log/db-logger.ts
-import { logger } from "@/lib/logger";
-import type { Logger } from "pino";
+import { logger, type ChildLogger } from "@/lib/logger";
 
 type DbContext = {
   model: string;
@@ -10,13 +9,13 @@ type DbContext = {
   query?: Record<string, unknown>;
 };
 
-// use child logger from action if available
-// or fallback to root logger
-function getLog(log?: Logger) {
+// ── use ChildLogger instead of pino Logger ────────────────────────────────────
+
+function getLog(log?: ChildLogger): ChildLogger {
   return log ?? logger;
 }
 
-export function logDbStart(ctx: DbContext, log?: Logger) {
+export function logDbStart(ctx: DbContext, log?: ChildLogger) {
   getLog(log).info(
     {
       requestId: ctx.requestId,
@@ -31,7 +30,11 @@ export function logDbStart(ctx: DbContext, log?: Logger) {
   );
 }
 
-export function logDbSuccess(ctx: DbContext, durationMs: number, log?: Logger) {
+export function logDbSuccess(
+  ctx: DbContext,
+  durationMs: number,
+  log?: ChildLogger,
+) {
   getLog(log).info(
     {
       requestId: ctx.requestId,
@@ -46,7 +49,7 @@ export function logDbSuccess(ctx: DbContext, durationMs: number, log?: Logger) {
   );
 }
 
-export function logDbNotFound(ctx: DbContext, log?: Logger) {
+export function logDbNotFound(ctx: DbContext, log?: ChildLogger) {
   getLog(log).warn(
     {
       requestId: ctx.requestId,
@@ -61,7 +64,7 @@ export function logDbNotFound(ctx: DbContext, log?: Logger) {
   );
 }
 
-export function logDbError(ctx: DbContext, error: unknown, log?: Logger) {
+export function logDbError(ctx: DbContext, error: unknown, log?: ChildLogger) {
   getLog(log).error(
     {
       requestId: ctx.requestId,
@@ -81,7 +84,7 @@ export function logDbSlow(
   ctx: DbContext,
   durationMs: number,
   threshold = 1000,
-  log?: Logger,
+  log?: ChildLogger,
 ) {
   if (durationMs > threshold) {
     getLog(log).warn(
@@ -91,7 +94,6 @@ export function logDbSlow(
         db: {
           model: ctx.model,
           operation: ctx.operation,
-          query: ctx.query,
           durationMs,
           threshold,
         },
@@ -101,11 +103,10 @@ export function logDbSlow(
   }
 }
 
-// convenience wrapper — runs your db call and logs everything
 export async function withDbLog<T>(
   ctx: DbContext,
   fn: () => Promise<T>,
-  log?: Logger,
+  log?: ChildLogger,
 ): Promise<T> {
   const start = Date.now();
   logDbStart(ctx, log);
@@ -116,7 +117,7 @@ export async function withDbLog<T>(
 
     logDbSlow(ctx, durationMs, 1000, log);
 
-    if (result === null || result === undefined) {
+    if (result === null) {
       logDbNotFound(ctx, log);
     } else {
       logDbSuccess(ctx, durationMs, log);

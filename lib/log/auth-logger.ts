@@ -1,6 +1,5 @@
 // lib/log/auth-logger.ts
-import { logger } from "@/lib/logger";
-import type { Logger } from "pino";
+import { logger, type ChildLogger } from "@/lib/logger";
 
 type AuthFailureReason =
   | "no_session"
@@ -21,11 +20,11 @@ type AuthContext = {
   extra?: Record<string, unknown>;
 };
 
-function getLog(log?: Logger) {
+function getLog(log?: ChildLogger): ChildLogger {
   return log ?? logger;
 }
 
-export function logAuthFailure(ctx: AuthContext, log?: Logger) {
+export function logAuthFailure(ctx: AuthContext, log?: ChildLogger) {
   getLog(log).warn(
     {
       requestId: ctx.requestId,
@@ -47,7 +46,7 @@ export function logAuthSuccess(
     action?: string;
     isGuest?: boolean;
   },
-  log?: Logger,
+  log?: ChildLogger,
 ) {
   getLog(log).info(
     {
@@ -68,7 +67,7 @@ export function logAuthGuestCreated(
     guestUserId: string;
     action?: string;
   },
-  log?: Logger,
+  log?: ChildLogger,
 ) {
   getLog(log).info(
     {
