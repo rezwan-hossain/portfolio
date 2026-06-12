@@ -3,6 +3,8 @@ set -e
 
 APP_DIR="/var/www/myapp/portfolio"
 
+
+
 echo "========================================"
 echo "🚀 Deployment started at $(date)"
 echo "========================================"
@@ -16,7 +18,7 @@ git pull origin main
 
 
 echo "📚 Installing dependencies..."
-npm install
+npm ci
 
 echo "🔨 Building application..."
 npm run build
