@@ -188,7 +188,11 @@ export function EventOrdersModal({ event, onClose }: Props) {
       `"${order.registration?.phone || order.user.phone || ""}"`,
       order.registration?.gender || "",
       order.registration?.ageCategory || "",
-      order.registration?.birthDate || "",
+      order.registration?.birthDate
+        ? new Date(order.registration.birthDate)
+            .toLocaleDateString("en-GB")
+            .replace(/\//g, "-")
+        : "",
       order.registration?.bloodGroup || "",
       order.registration?.tshirtSize || "",
       order.registration?.runnerCategory || "",
