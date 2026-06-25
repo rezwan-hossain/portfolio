@@ -14,6 +14,14 @@ type Props = {
   onClose: () => void;
 };
 
+const formatBirthDate = (date: Date | string): string => {
+  const d = new Date(date);
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const year = d.getUTCFullYear();
+  return `${day}-${month}-${year}`;
+};
+
 export function EventOrdersModal({ event, onClose }: Props) {
   const [orders, setOrders] = useState<EventOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -189,10 +197,9 @@ export function EventOrdersModal({ event, onClose }: Props) {
       order.registration?.gender || "",
       order.registration?.ageCategory || "",
       order.registration?.birthDate
-        ? new Date(order.registration.birthDate)
-            .toLocaleDateString("en-GB")
-            .replace(/\//g, "-")
+        ? formatBirthDate(order.registration.birthDate)
         : "",
+      ,
       order.registration?.bloodGroup || "",
       order.registration?.tshirtSize || "",
       order.registration?.runnerCategory || "",
