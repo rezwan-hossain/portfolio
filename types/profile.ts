@@ -133,6 +133,7 @@ export type EventOrder = {
     emergencyContactNumber: string | null;
     bibNumber: string | null;
     email: string | null;
+    birthDate: string | null;
   } | null;
   payment: {
     id: string;

@@ -409,6 +409,7 @@ export async function getEventOrders(eventId: string) {
             emergencyContactNumber: true,
             bibNumber: true,
             email: true,
+            birthDate: true,
           },
         },
         payment: {
