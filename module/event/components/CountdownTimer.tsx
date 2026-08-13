@@ -48,7 +48,8 @@ const CountdownTimer = ({ targetDate }: CountdownTimerProps) => {
     return (
       <div className="bg-[#1a1a1a] rounded-2xl p-8 flex items-center justify-center">
         <span className="text-white text-xl font-bold tracking-widest">
-          EVENT HAS STARTED
+          {/* EVENT HAS STARTED */}
+          EVENT COMPLETED
         </span>
       </div>
     );

@@ -57,6 +57,8 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
     (searchParams?.view as ViewMode) === "unstyled" ? "unstyled" : "styled";
   const isUnstyled = view === "unstyled";
 
+  const isCompleted = event.status === "COMPLETED";
+
   // Pre-compute on server
   const formattedDate = formatEventDate(event.date);
   // const formattedTime = formatEventTime(event.time);
@@ -91,7 +93,12 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
         />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+      <div
+        // className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12"
+        className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 ${
+          isCompleted ? "grayscale opacity-60" : ""
+        }`}
+      >
         {/* Desktop Banner - LCP Element */}
         <div className="hidden md:block relative rounded-xl overflow-hidden mt-4 mb-8">
           {/* <Image
@@ -115,7 +122,8 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
             quality={75}
             blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAUH/8QAIhAAAgEDAwUBAAAAAAAAAAAAAQIDBAURAAYhEiIxQVFh/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAYEQEBAQEBAAAAAAAAAAAAAAABAgADEf/aAAwDAQACEQMRAD8Aw+3bdu9ru1BXQ26eSGnqIpZFRVZmVXBIAHknGmG/rjPuC4Uu4J6SajgqIPTjp8qV7Y0H3A5Azk8f2mms0Bui5NdXe//Z"
           />
-          <EventTypeBadge eventType={event.eventType} />
+          {/* <EventTypeBadge eventType={event.eventType} /> */}
+          <StatusRibbon status={event.status} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 lg:gap-12">

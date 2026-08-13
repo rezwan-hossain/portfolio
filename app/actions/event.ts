@@ -88,3 +88,36 @@ export async function getUpcomingEvents(limit: number = 3) {
     return { events: [], error: "Failed to fetch upcoming events" };
   }
 }
+
+export async function getPreviousEvents(limit: number = 3) {
+  "use cache";
+  cacheLife("days");
+  cacheTag("events", "previous-events");
+
+  try {
+    const events = await prisma.event.findMany({
+      where: {
+        // isActive: false,
+        // isArchived: false,
+        status: "COMPLETED",
+        // ✅ Only fetch events where the date is in the past
+        date: { lt: new Date() },
+      },
+      include: {
+        organizer: true,
+        packages: {
+          where: { isActive: true },
+          orderBy: { price: "asc" },
+        },
+      },
+      // ✅ Sort by date descending (most recently finished events first)
+      orderBy: { date: "desc" },
+      take: limit,
+    });
+
+    return { events };
+  } catch (error) {
+    console.error("Failed to fetch previous events:", error);
+    return { events: [], error: "Failed to fetch previous events" };
+  }
+}
