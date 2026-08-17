@@ -117,68 +117,72 @@ const EventsPage = ({
         })}
       </div>
 
-      <div className="max-w-7xl mx-auto space-y-10 mt-20">
-        <div className="text-center mb-16">
-          <div className="text-lg uppercase tracking-widest text-gray-500">
-            our
+      {previousEvents?.length ? (
+        <div className="max-w-7xl mx-auto space-y-10 mt-20">
+          <div className="text-center mb-16">
+            <div className="text-lg uppercase tracking-widest text-gray-500">
+              our
+            </div>
+
+            <h2 className="text-4xl md:text-6xl font-bold uppercase leading-tighter text-gray-900 ">
+              previous <br />
+              <span className="text-neon-lime">events</span>
+            </h2>
           </div>
 
-          <h2 className="text-4xl md:text-6xl font-bold uppercase leading-tighter text-gray-900 ">
-            previous <br />
-            <span className="text-neon-lime">events</span>
-          </h2>
-        </div>
+          {previousEvents.map((event, index) => {
+            const formattedEvent = {
+              slug: event.slug,
+              title: event.name,
+              description: event.description,
+              shortDesc: event.shortDesc,
+              // time: new Date(event.time).toLocaleTimeString("en-US", {
+              //   hour: "2-digit",
+              //   minute: "2-digit",
+              // }),
+              time: formatEventTimeUTC(event.time),
+              date: new Date(event.date)
+                .toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "2-digit",
+                  year: "numeric",
+                })
+                .toUpperCase(),
+              location: event.address.toUpperCase(),
+              // pricing:
+              //   event.packages.length > 0
+              //     ? event.packages
+              //         .map((pkg) => `${pkg.name} ৳${pkg.price}`)
+              //         .join(" / ")
+              //     : "No packages available",
 
-        {previousEvents.map((event, index) => {
-          const formattedEvent = {
-            slug: event.slug,
-            title: event.name,
-            description: event.description,
-            shortDesc: event.shortDesc,
-            // time: new Date(event.time).toLocaleTimeString("en-US", {
-            //   hour: "2-digit",
-            //   minute: "2-digit",
-            // }),
-            time: formatEventTimeUTC(event.time),
-            date: new Date(event.date)
-              .toLocaleDateString("en-US", {
-                month: "short",
-                day: "2-digit",
-                year: "numeric",
-              })
-              .toUpperCase(),
-            location: event.address.toUpperCase(),
-            // pricing:
-            //   event.packages.length > 0
-            //     ? event.packages
-            //         .map((pkg) => `${pkg.name} ৳${pkg.price}`)
-            //         .join(" / ")
-            //     : "No packages available",
-
-            pricing:
-              event.packages.length > 0 ? (
-                <>
-                  {event.packages.map((pkg, i) => (
-                    <span key={i}>
-                      {pkg.name}{" "}
-                      <span className="font-semibold text-neon-lime">
-                        ৳{pkg.price}
+              pricing:
+                event.packages.length > 0 ? (
+                  <>
+                    {event.packages.map((pkg, i) => (
+                      <span key={i}>
+                        {pkg.name}{" "}
+                        <span className="font-semibold text-neon-lime">
+                          ৳{pkg.price}
+                        </span>
+                        {i !== event.packages.length - 1 && " / "}
                       </span>
-                      {i !== event.packages.length - 1 && " / "}
-                    </span>
-                  ))}
-                </>
-              ) : (
-                "No packages available"
-              ),
-            image: event.bannerImage,
-            eventType: event.eventType,
-            highlighted: index === 0,
-          };
+                    ))}
+                  </>
+                ) : (
+                  "No packages available"
+                ),
+              image: event.bannerImage,
+              eventType: event.eventType,
+              highlighted: index === 0,
+            };
 
-          return <EventCard key={event.id} event={formatEvent(event, index)} />;
-        })}
-      </div>
+            return (
+              <EventCard key={event.id} event={formatEvent(event, index)} />
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 };

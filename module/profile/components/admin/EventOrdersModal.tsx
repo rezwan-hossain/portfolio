@@ -199,7 +199,6 @@ export function EventOrdersModal({ event, onClose }: Props) {
       order.registration?.birthDate
         ? formatBirthDate(order.registration.birthDate)
         : "",
-      ,
       order.registration?.bloodGroup || "",
       order.registration?.tshirtSize || "",
       order.registration?.runnerCategory || "",
