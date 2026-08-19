@@ -14,13 +14,19 @@ type CheckoutPageProps = {
   item: CheckoutItem;
   userEmail: string;
   userName: string;
+  eventType: string;
 };
 
 // Bangladeshi phone number regex for validation
 const BD_PHONE_REGEX = /^(?:\+?880|0)1[3-9]\d{8}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
+const CheckoutPage = ({
+  item,
+  userEmail,
+  userName,
+  eventType,
+}: CheckoutPageProps) => {
   const router = useRouter();
   const billingFormRef = useRef<BillingFormRef>(null);
 
@@ -60,8 +66,11 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
       "birthDate",
       "ageCategory",
       "bloodGroup",
-      "tshirtSize",
+      // "tshirtSize",
       "runnerCategory",
+      ...(eventType !== "VIRTUAL"
+        ? ["tshirtSize" as keyof BillingFormData]
+        : []),
     ];
 
     // Check if all required fields have values
@@ -101,7 +110,7 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
     }
 
     return true;
-  }, [formData]);
+  }, [formData, eventType]);
 
   const updateField = (field: keyof BillingFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -144,7 +153,7 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
           birthDate: formData.birthDate,
           ageCategory: formData.ageCategory,
           bloodGroup: formData.bloodGroup,
-          tshirtSize: formData.tshirtSize,
+          tshirtSize: eventType === "VIRTUAL" ? "VIRTUAL" : formData.tshirtSize,
           emergencyContactName: formData.emergencyContactName || "",
           emergencyContactNumber: formData.emergencyContactNumber || "",
           communityName: formData.communityName || "",
@@ -233,6 +242,7 @@ const CheckoutPage = ({ item, userEmail, userName }: CheckoutPageProps) => {
               ref={billingFormRef}
               formData={formData}
               updateField={updateField}
+              eventType={eventType}
             />
           </div>
 

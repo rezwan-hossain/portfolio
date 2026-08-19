@@ -16,12 +16,14 @@ import {
   forwardRef,
   useImperativeHandle,
   useCallback,
+  useMemo,
 } from "react";
 
 type BillingFormProps = {
   formData: BillingFormData;
   updateField: (field: keyof BillingFormData, value: string) => void;
   onValidationChange?: (isValid: boolean) => void;
+  eventType: string;
 };
 
 export type BillingFormRef = {
@@ -40,23 +42,44 @@ type ValidationErrors = {
   [key in keyof BillingFormData]?: string;
 };
 
-// Required fields in order
-const REQUIRED_FIELDS: (keyof BillingFormData)[] = [
-  "fullName",
-  "email",
-  "phone",
-  "gender",
-  "birthDate",
-  "ageCategory",
-  "bloodGroup",
-  "tshirtSize",
-  "runnerCategory",
-];
-
 export const BillingForm = forwardRef<BillingFormRef, BillingFormProps>(
-  ({ formData, updateField, onValidationChange }, ref) => {
+  ({ formData, updateField, onValidationChange, eventType }, ref) => {
     const [errors, setErrors] = useState<ValidationErrors>({});
     const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
+
+    // Required fields in order
+    // const REQUIRED_FIELDS: (keyof BillingFormData)[] = [
+    //   "fullName",
+    //   "email",
+    //   "phone",
+    //   "gender",
+    //   "birthDate",
+    //   "ageCategory",
+    //   "bloodGroup",
+    //   // "tshirtSize",
+
+    //   "runnerCategory",
+    //   ...(eventType !== "VIRTUAL"
+    //     ? ["tshirtSize" as keyof BillingFormData]
+    //     : []),
+    // ];
+
+    const REQUIRED_FIELDS = useMemo<(keyof BillingFormData)[]>(
+      () => [
+        "fullName",
+        "email",
+        "phone",
+        "gender",
+        "birthDate",
+        "ageCategory",
+        "bloodGroup",
+        "runnerCategory",
+        ...(eventType !== "VIRTUAL"
+          ? ["tshirtSize" as keyof BillingFormData]
+          : []),
+      ],
+      [eventType],
+    );
 
     // Refs for all input fields
     const inputRefs = {
@@ -121,7 +144,10 @@ export const BillingForm = forwardRef<BillingFormRef, BillingFormProps>(
             return "";
 
           case "tshirtSize":
-            if (!value) return "T-Shirt size is required";
+            // if (!value) return "T-Shirt size is required";
+            if (eventType !== "VIRTUAL" && !value)
+              return "T-Shirt size is required";
+
             return "";
 
           case "runnerCategory":
@@ -151,7 +177,7 @@ export const BillingForm = forwardRef<BillingFormRef, BillingFormProps>(
         if (error) return false;
       }
       return true;
-    }, [formData, validateField]);
+    }, [formData, validateField, REQUIRED_FIELDS]);
 
     // Notify parent about validation state changes
     const notifyValidationChange = useCallback(() => {
@@ -207,7 +233,7 @@ export const BillingForm = forwardRef<BillingFormRef, BillingFormProps>(
       }
 
       return Object.keys(newErrors).length === 0;
-    }, [formData, validateField]);
+    }, [formData, validateField, REQUIRED_FIELDS]);
 
     // Expose validateAndFocus method to parent
     useImperativeHandle(
@@ -436,38 +462,42 @@ export const BillingForm = forwardRef<BillingFormRef, BillingFormProps>(
             </Select>
             <ErrorMessage field="bloodGroup" />
           </div>
-          <div>
-            <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-neutral-800">
-              T-Shirt Size <span className="text-red-500 font-semibold">*</span>
-            </label>
 
-            <Select
-              value={formData.tshirtSize}
-              onValueChange={(val) => handleSelectChange("tshirtSize", val)}
-            >
-              <SelectTrigger
-                ref={inputRefs.tshirtSize}
-                className={`h-10 sm:h-11 rounded-md border ${
-                  touched.tshirtSize && errors.tshirtSize
-                    ? "border-red-500"
-                    : "border-gray-200"
-                } bg-background text-sm sm:text-base`}
+          {eventType !== "VIRTUAL" && (
+            <div>
+              <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-neutral-800">
+                T-Shirt Size{" "}
+                <span className="text-red-500 font-semibold">*</span>
+              </label>
+
+              <Select
+                value={formData.tshirtSize}
+                onValueChange={(val) => handleSelectChange("tshirtSize", val)}
               >
-                <SelectValue placeholder="Select T-Shirt Size" />
-              </SelectTrigger>
+                <SelectTrigger
+                  ref={inputRefs.tshirtSize}
+                  className={`h-10 sm:h-11 rounded-md border ${
+                    touched.tshirtSize && errors.tshirtSize
+                      ? "border-red-500"
+                      : "border-gray-200"
+                  } bg-background text-sm sm:text-base`}
+                >
+                  <SelectValue placeholder="Select T-Shirt Size" />
+                </SelectTrigger>
 
-              <SelectContent className="bg-white border border-gray-200">
-                {tshirtSizes.map((size) => (
-                  <SelectItem key={size.value} value={size.value}>
-                    {size.chest && size.length
-                      ? `${size.value} (Chest: ${size.chest}", Length: ${size.length}")`
-                      : size.value}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <ErrorMessage field="tshirtSize" />
-          </div>
+                <SelectContent className="bg-white border border-gray-200">
+                  {tshirtSizes.map((size) => (
+                    <SelectItem key={size.value} value={size.value}>
+                      {size.chest && size.length
+                        ? `${size.value} (Chest: ${size.chest}", Length: ${size.length}")`
+                        : size.value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <ErrorMessage field="tshirtSize" />
+            </div>
+          )}
         </div>
 
         <div className="mb-4 sm:mb-5 grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2">
