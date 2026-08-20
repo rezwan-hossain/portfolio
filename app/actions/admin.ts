@@ -1,29 +1,12 @@
 // app/actions/admin.ts
 "use server";
 
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 
 // ─── Auth helper ────────────────────────────────────
-async function requireAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { error: "Not authenticated", user: null, dbUser: null };
-
-  const dbUser = await prisma.user.findUnique({
-    where: { authId: user.id },
-  });
-
-  if (!dbUser) return { error: "User not found", user: null, dbUser: null };
-  if (dbUser.role !== "ADMIN")
-    return { error: "Unauthorized — Admin only", user: null, dbUser: null };
-
-  return { error: null, user, dbUser };
-}
 
 // ─── Get All Events (Admin) ─────────────────────────
 export async function getAdminEvents() {
@@ -435,7 +418,70 @@ export async function getEventOrders(eventId: string) {
   }
 }
 
-// ─── Update Order Status ────────────────────────────
+// ─── Update Order Status old version ────────────────────────────
+// export async function updateOrderStatus(
+//   orderId: string,
+//   orderStatus: string,
+//   paymentStatus: string,
+// ) {
+//   const { error } = await requireAdmin();
+//   if (error) return { success: false, error };
+
+//   try {
+//     // Update order status
+//     const order = await prisma.order.update({
+//       where: { id: orderId },
+//       data: {
+//         status: orderStatus as "PENDING" | "CONFIRMED" | "CANCELLED",
+//       },
+//       select: {
+//         eventId: true,
+//         event: { select: { slug: true } },
+//         payment: { select: { id: true } },
+//         packageId: true,
+//         qty: true,
+//         status: true,
+//       },
+//     });
+
+//     // Update payment status if payment exists
+//     if (order.payment) {
+//       await prisma.payment.update({
+//         where: { id: order.payment.id },
+//         data: {
+//           status: paymentStatus as "PENDING" | "PAID" | "FAILED" | "REFUNDED",
+//         },
+//       });
+//     }
+
+//     // If order is cancelled, free up the used slots
+//     if (orderStatus === "CANCELLED") {
+//       await prisma.package.update({
+//         where: { id: order.packageId },
+//         data: {
+//           usedSlots: { decrement: order.qty },
+//         },
+//       });
+//     }
+
+//     // If order is confirmed from cancelled, re-occupy slots
+//     if (orderStatus === "CONFIRMED") {
+//       // Only increment if it was previously not confirmed
+//       // This is a safeguard — the UI should prevent double-confirming
+//     }
+
+//     revalidatePath("/profile");
+//     revalidatePath("/events");
+//     revalidatePath(`/events/${order.event.slug}`);
+
+//     return { success: true, error: null };
+//   } catch (err: any) {
+//     console.error("Update order status error:", err?.message);
+//     return { success: false, error: "Failed to update order status" };
+//   }
+// }
+
+// ─── Update Order Status  new version────────────────────────────
 export async function updateOrderStatus(
   orderId: string,
   orderStatus: string,
@@ -445,54 +491,87 @@ export async function updateOrderStatus(
   if (error) return { success: false, error };
 
   try {
-    // Update order status
-    const order = await prisma.order.update({
-      where: { id: orderId },
-      data: {
-        status: orderStatus as "PENDING" | "CONFIRMED" | "CANCELLED",
-      },
-      select: {
-        eventId: true,
-        event: { select: { slug: true } },
-        payment: { select: { id: true } },
-        packageId: true,
-        qty: true,
-        status: true,
-      },
+    // Everything runs in one transaction so we can never end up with the
+    // order updated but the slot count wrong.
+    const slug = await prisma.$transaction(async (tx) => {
+      // 1. Read the CURRENT status before we change anything.
+      //    This is the key fix — we decide what to do based on the change
+      //    (old → new), not just on the new value.
+      const current = await tx.order.findUnique({
+        where: { id: orderId },
+        select: {
+          status: true,
+          packageId: true,
+          qty: true,
+          event: { select: { slug: true } },
+          payment: { select: { id: true } },
+        },
+      });
+      if (!current) throw new Error("NOT_FOUND");
+
+      // "Is this order occupying a slot right now?" — anything that isn't
+      // cancelled is holding one.
+      const held = current.status !== "CANCELLED";
+      const willHold = orderStatus !== "CANCELLED";
+
+      if (held && !willHold) {
+        // CONFIRMED/PENDING → CANCELLED : give the slot back
+        await tx.package.update({
+          where: { id: current.packageId },
+          data: { usedSlots: { decrement: current.qty } },
+        });
+      } else if (!held && willHold) {
+        // CANCELLED → CONFIRMED/PENDING : take a slot again, but only if
+        // the package hasn't filled up while this order was cancelled.
+        const pkg = await tx.package.findUnique({
+          where: { id: current.packageId },
+          select: { availableSlots: true },
+        });
+
+        const claimed = await tx.package.updateMany({
+          where: {
+            id: current.packageId,
+            usedSlots: { lte: pkg!.availableSlots - current.qty },
+          },
+          data: { usedSlots: { increment: current.qty } },
+        });
+
+        // updateMany matched nothing = the guard failed = package is full
+        if (claimed.count === 0) throw new Error("NO_SLOTS");
+      }
+      // held === willHold → nothing changed, leave usedSlots alone.
+      // This is what makes saving the same status twice safe.
+
+      // 2. Update the order itself
+      await tx.order.update({
+        where: { id: orderId },
+        data: { status: orderStatus as "PENDING" | "CONFIRMED" | "CANCELLED" },
+      });
+
+      // 3. Update the payment, if there is one
+      if (current.payment) {
+        await tx.payment.update({
+          where: { id: current.payment.id },
+          data: {
+            status: paymentStatus as "PENDING" | "PAID" | "FAILED" | "REFUNDED",
+          },
+        });
+      }
+
+      return current.event.slug;
     });
-
-    // Update payment status if payment exists
-    if (order.payment) {
-      await prisma.payment.update({
-        where: { id: order.payment.id },
-        data: {
-          status: paymentStatus as "PENDING" | "PAID" | "FAILED" | "REFUNDED",
-        },
-      });
-    }
-
-    // If order is cancelled, free up the used slots
-    if (orderStatus === "CANCELLED") {
-      await prisma.package.update({
-        where: { id: order.packageId },
-        data: {
-          usedSlots: { decrement: order.qty },
-        },
-      });
-    }
-
-    // If order is confirmed from cancelled, re-occupy slots
-    if (orderStatus === "CONFIRMED") {
-      // Only increment if it was previously not confirmed
-      // This is a safeguard — the UI should prevent double-confirming
-    }
 
     revalidatePath("/profile");
     revalidatePath("/events");
-    revalidatePath(`/events/${order.event.slug}`);
+    revalidatePath(`/events/${slug}`);
 
     return { success: true, error: null };
   } catch (err: any) {
+    if (err?.message === "NOT_FOUND")
+      return { success: false, error: "Order not found" };
+    if (err?.message === "NO_SLOTS")
+      return { success: false, error: "No slots left to reinstate this order" };
+
     console.error("Update order status error:", err?.message);
     return { success: false, error: "Failed to update order status" };
   }
