@@ -25,9 +25,9 @@ model User {
   forcePasswordChange Boolean       @default(false)
   isActive            Boolean       @default(true)
   isArchived          Boolean       @default(false)
-  isGuest             Boolean       @default(false)
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
+  isGuest             Boolean       @default(false)
   couponUsages        CouponUsage[]
   orders              Order[]
 
@@ -111,6 +111,12 @@ model Order {
   packageId    Int
   eventId      String
   couponId     String?
+
+  source       OrderSource   @default(ONLINE)  // ONLINE = normal checkout, MANUAL = admin entered
+  createdById  String?                          // which admin created it (User.id)
+  adminNote    String?                          // "cash at booth", "sponsor comp", etc.
+
+
   couponUsage  CouponUsage?
   coupon       Coupon?       @relation(fields: [couponId], references: [id])
   event        Event         @relation(fields: [eventId], references: [id])
@@ -140,10 +146,9 @@ model Registration {
   runnerCategory         String
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
+  email                  String?
   event                  Event    @relation(fields: [eventId], references: [id])
   order                  Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  email                  String?
 
   @@unique([eventId, bibNumber])
   @@map("registrations")
@@ -298,4 +303,9 @@ enum TeamCategory {
   ADMIN
   ADVISOR
   ORGANIZER
+}
+
+enum OrderSource {
+  ONLINE
+  MANUAL
 }
