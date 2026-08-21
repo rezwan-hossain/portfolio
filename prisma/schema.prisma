@@ -125,6 +125,9 @@ model Order {
   payment      Payment?
   registration Registration?
 
+  @@index([eventId, createdAt])   // default sort: newest first, per event
+  @@index([eventId, status])      // status filter and the stats groupBy
+
   @@map("orders")
 }
 

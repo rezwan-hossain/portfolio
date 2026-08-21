@@ -99,11 +99,62 @@ export type PackageFormData = {
   availableSlots: string;
 };
 
+// ─── Manual registration ────────────────────────────
+
+export type OrderSource = "ONLINE" | "MANUAL";
+
+/** Live package data for the manual registration form. */
+export type ManualPackage = {
+  id: number;
+  name: string;
+  distance: string;
+  price: number;
+  availableSlots: number;
+  usedSlots: number;
+  isActive: boolean;
+  status: string;
+};
+
+/**
+ * Payload for createManualRegistration.
+ * orderStatus excludes CANCELLED on purpose — see MANUAL_ORDER_STATUSES
+ * in lib/registration-options.ts.
+ */
+export type ManualRegistrationInput = {
+  eventId: string;
+  packageId: number;
+  qty: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  gender: string;
+  birthDate: string;
+  ageCategory: string;
+  bloodGroup: string;
+  tshirtSize: string;
+  runnerCategory: string;
+  communityName: string;
+  emergencyContactName: string;
+  emergencyContactNumber: string;
+  bibNumber: string;
+  discount: number;
+  orderStatus: "PENDING" | "CONFIRMED";
+  adminNote: string;
+};
+
+// ─── Orders ─────────────────────────────────────────
+
 export type EventOrder = {
   id: string;
   status: string;
   qty: number;
   createdAt: string;
+  source: OrderSource;
+  subtotal: number;
+  discount: number;
+  total: number;
+  adminNote: string | null;
+  createdById: string | null;
   user: {
     id: string;
     firstName: string | null;
@@ -151,6 +202,7 @@ export type OrderFilterState = {
   search: string;
   paymentStatus: string;
   orderStatus: string;
+  source: "all" | OrderSource;
   sortBy: "newest" | "oldest" | "amount_high" | "amount_low";
 };
 
@@ -162,6 +214,8 @@ export type OrderStats = {
   totalRevenue: number;
   paidRevenue: number;
 };
+
+// ─── Activity ───────────────────────────────────────
 
 export type ActivityItem = {
   id: string;
@@ -185,8 +239,9 @@ export type ActivityItem = {
     registrationName: string | null;
     tshirtSize: string | null;
     runnerCategory: string | null;
-    eventName?: string; // ← ADD (optional — only in global view)
-    eventSlug?: string; // ← ADD (optional — only in global view)
+    eventName?: string; // only in global view
+    eventSlug?: string; // only in global view
+    source?: OrderSource; // set if you pass it through getEventActivity
   };
   timestamp: string;
 };

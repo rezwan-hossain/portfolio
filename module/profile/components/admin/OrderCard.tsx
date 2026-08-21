@@ -237,6 +237,15 @@ export function OrderCard({
             </span>
           )}
 
+          {order.source === "MANUAL" && (
+            <span
+              className="px-1.5 py-1 text-[9px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700 rounded-full"
+              title="Registered manually by an admin"
+            >
+              Manual
+            </span>
+          )}
+
           {expanded ? (
             <ChevronUp size={16} className="text-gray-400" />
           ) : (
@@ -250,12 +259,17 @@ export function OrderCard({
         <div className="border-t border-gray-200/60 px-4 pb-4 pt-3 space-y-4">
           {/* ─── Guest Notice ─── */}
           {isGuest && (
-            <div className="flex items-center gap-2 p-2.5 bg-amber-100 border border-amber-200 rounded-lg">
+            <div className="flex items-center gap-2 p-2.5 bg-amber-100 border border-amber-200 rounded-lg ">
               <UserX size={14} className="text-amber-600 flex-shrink-0" />
               <p className="text-xs text-amber-700 font-medium">
                 Guest checkout — no account associated with this order
               </p>
             </div>
+          )}
+          {order.adminNote && (
+            <p className="text-xs text-gray-500 italic mt-2">
+              Note: {order.adminNote}
+            </p>
           )}
           {/* ─── Contact Info ─── */}
           <div>

@@ -116,6 +116,21 @@ export function OrderFilters({
           <option value="amount_low">Amount: Low → High</option>
         </select>
 
+        <select
+          value={filters.source}
+          onChange={(e) =>
+            onChange({
+              ...filters,
+              source: e.target.value as OrderFilterState["source"],
+            })
+          }
+          className="h-9 px-3 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-700 cursor-pointer focus:outline-none focus:border-gray-900"
+        >
+          <option value="all">All sources</option>
+          <option value="ONLINE">Online</option>
+          <option value="MANUAL">Manual</option>
+        </select>
+
         {/* Result count */}
         <span className="ml-auto text-xs text-gray-400">
           {resultCount === totalCount
@@ -132,6 +147,7 @@ export function OrderFilters({
                 paymentStatus: "all",
                 orderStatus: "all",
                 sortBy: "newest",
+                source: "all",
               })
             }
             className="text-xs font-bold text-red-500 hover:text-red-700 cursor-pointer"
