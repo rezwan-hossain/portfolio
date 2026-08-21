@@ -4,7 +4,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   getEventOrdersPaged,
-  getEventOrderStats,
   getEventOrdersForExport,
 } from "@/app/actions/event-orders";
 import type {
@@ -96,7 +95,7 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
     return () => clearTimeout(t);
   }, [filters.search]);
 
-  // ─── Load a page ─────────────────────────────────
+  // ─── Load a page (orders + total + stats in one call) ───
   const loadPage = useCallback(async () => {
     const id = ++requestId.current;
     setFetching(true);
@@ -114,11 +113,10 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
     // A newer request already started — throw this result away.
     if (id !== requestId.current) return;
 
-    if (result.error) setError(result.error);
-    else setError("");
-
+    setError(result.error ?? "");
     setOrders(result.orders);
     setTotal(result.total);
+    if (result.stats) setStats(result.stats);
     setFetching(false);
     setFirstLoad(false);
   }, [
@@ -134,17 +132,6 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
   useEffect(() => {
     void loadPage();
   }, [loadPage]);
-
-  // ─── Load stats ──────────────────────────────────
-  // Whole-event figures, so they don't change when filters do.
-  const loadStats = useCallback(async () => {
-    const { stats: data } = await getEventOrderStats(event.id);
-    if (data) setStats(data);
-  }, [event.id]);
-
-  useEffect(() => {
-    void loadStats();
-  }, [loadStats]);
 
   // ─── Close on Escape ─────────────────────────────
   useEffect(() => {
@@ -175,18 +162,17 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
     setPage(1);
   };
 
-  const handleRefresh = async () => {
-    await Promise.all([loadPage(), loadStats()]);
-  };
+  const handleRefresh = () => void loadPage();
 
   const handleManualSuccess = async () => {
     setView("list");
     setFilters(DEFAULT_FILTERS);
     setPage(1);
-    await Promise.all([loadPage(), loadStats()]);
+    await loadPage();
   };
 
-  // Optimistic row update, then re-pull the stats since the counts moved.
+  // Update the row immediately so it feels instant, then resync from the
+  // server — the status counts and revenue totals have moved too.
   const handleStatusChange = (
     orderId: string,
     newOrderStatus: string,
@@ -205,7 +191,7 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
           : o,
       ),
     );
-    void loadStats();
+    void loadPage();
   };
 
   // ─── CSV Export ───────────────────────────────────

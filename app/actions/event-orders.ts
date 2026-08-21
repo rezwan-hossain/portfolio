@@ -66,10 +66,7 @@ const DEFAULT_QUERY: OrderQuery = {
 
 /**
  * Translate the UI filter state into a Prisma `where`.
- *
- * Everything here runs in Postgres, so the browser only ever receives the
- * rows it's about to draw. `mode: "insensitive"` is Postgres-only, which is
- * what you're on.
+ * `mode: "insensitive"` is Postgres-only, which is what you're on.
  */
 function buildWhere(eventId: string, q: OrderQuery) {
   const where: any = { eventId, isArchived: false };
@@ -82,7 +79,6 @@ function buildWhere(eventId: string, q: OrderQuery) {
 
   const term = q.search.trim();
   if (term) {
-    // Same fields the old client-side search covered, but as one OR clause.
     where.OR = [
       { id: { contains: term, mode: "insensitive" } },
       {
@@ -119,10 +115,9 @@ function buildWhere(eventId: string, q: OrderQuery) {
 /**
  * Sort by `payment.amount` rather than `Order.total`.
  *
- * `total` was added to the schema later and defaults to 0, so orders created
+ * `total` was added to the schema later with @default(0), so orders created
  * before that migration would all sort as free. Every order gets a Payment
- * row (both from placeOrder and from manual entry), so amount is the value
- * that's actually populated everywhere.
+ * row, so amount is the value that's actually populated everywhere.
  */
 function buildOrderBy(sortBy: OrderQuery["sortBy"]) {
   switch (sortBy) {
@@ -138,7 +133,27 @@ function buildOrderBy(sortBy: OrderQuery["sortBy"]) {
   }
 }
 
-// ─── Paged order list ───────────────────────────────
+/** Whole-event aggregates. Three queries, run alongside the page query. */
+function statsQueries(eventId: string) {
+  const base = { eventId, isArchived: false };
+  return [
+    prisma.order.groupBy({
+      by: ["status"],
+      where: base,
+      _count: { _all: true },
+    }),
+    prisma.payment.aggregate({
+      where: { order: base },
+      _sum: { amount: true },
+    }),
+    prisma.payment.aggregate({
+      where: { order: base, status: "PAID" },
+      _sum: { amount: true },
+    }),
+  ] as const;
+}
+
+// ─── Paged order list + stats ───────────────────────
 export async function getEventOrdersPaged(
   eventId: string,
   query: Partial<OrderQuery> = {},
@@ -150,6 +165,7 @@ export async function getEventOrdersPaged(
       total: 0,
       page: 1,
       pageSize: 25,
+      stats: null as OrderStats | null,
       error,
     };
   }
@@ -160,63 +176,32 @@ export async function getEventOrdersPaged(
 
   try {
     const where = buildWhere(eventId, q);
+    const [countStatus, sumAll, sumPaid] = statsQueries(eventId);
 
-    // One round trip for both the count and the page.
-    const [total, orders] = await prisma.$transaction([
-      prisma.order.count({ where }),
-      prisma.order.findMany({
-        where,
-        orderBy: buildOrderBy(q.sortBy),
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        include: ORDER_INCLUDE,
-      }),
-    ]);
-
-    return {
-      orders: JSON.parse(JSON.stringify(orders)) as EventOrder[],
-      total,
-      page,
-      pageSize,
-      error: null,
-    };
-  } catch (err: any) {
-    console.error("Get paged orders error:", err?.message);
-    return {
-      orders: [] as EventOrder[],
-      total: 0,
-      page: 1,
-      pageSize,
-      error: "Failed to load orders",
-    };
-  }
-}
-
-// ─── Whole-event stats ──────────────────────────────
-// Computed by the database. Nothing is loaded into memory to sum it up, so
-// this stays fast whether the event has 20 orders or 200,000.
-export async function getEventOrderStats(eventId: string) {
-  const { error } = await requireAdmin();
-  if (error) return { stats: null, error };
-
-  try {
-    const base = { eventId, isArchived: false };
-
-    const [byStatus, allPayments, paidPayments] = await prisma.$transaction([
-      prisma.order.groupBy({
-        by: ["status"],
-        where: base,
-        _count: { _all: true },
-      }),
-      prisma.payment.aggregate({
-        where: { order: base },
-        _sum: { amount: true },
-      }),
-      prisma.payment.aggregate({
-        where: { order: base, status: "PAID" },
-        _sum: { amount: true },
-      }),
-    ]);
+    // Promise.all, NOT prisma.$transaction.
+    //
+    // These are read-only, so they don't need a shared snapshot — and the
+    // transaction form costs a BEGIN and a COMMIT round trip *and* forces the
+    // queries to run one after another. Run concurrently, five queries cost
+    // roughly one round trip of wall-clock time instead of five.
+    //
+    // The stats ride along for free here: because they're parallel, folding
+    // them in adds almost nothing, and it saves the client a second server
+    // action (which would pay its own auth check and proxy hop).
+    const [total, orders, byStatus, allPayments, paidPayments] =
+      await Promise.all([
+        prisma.order.count({ where }),
+        prisma.order.findMany({
+          where,
+          orderBy: buildOrderBy(q.sortBy),
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+          include: ORDER_INCLUDE,
+        }),
+        countStatus,
+        sumAll,
+        sumPaid,
+      ]);
 
     const countOf = (status: string) =>
       byStatus.find((g) => g.status === status)?._count._all ?? 0;
@@ -230,17 +215,30 @@ export async function getEventOrderStats(eventId: string) {
       paidRevenue: paidPayments._sum.amount ?? 0,
     };
 
-    return { stats, error: null };
+    return {
+      orders: JSON.parse(JSON.stringify(orders)) as EventOrder[],
+      total,
+      page,
+      pageSize,
+      stats,
+      error: null,
+    };
   } catch (err: any) {
-    console.error("Get order stats error:", err?.message);
-    return { stats: null, error: "Failed to load stats" };
+    console.error("Get paged orders error:", err?.message);
+    return {
+      orders: [] as EventOrder[],
+      total: 0,
+      page: 1,
+      pageSize,
+      stats: null as OrderStats | null,
+      error: "Failed to load orders",
+    };
   }
 }
 
 // ─── Export ─────────────────────────────────────────
-// CSV needs every matching row, not just the visible page. Doing it in its
-// own action means the modal never has to hold them all just in case the
-// admin might click Export.
+// CSV needs every matching row, not just the visible page. Its own action so
+// the modal never holds them all just in case Export gets clicked.
 export async function getEventOrdersForExport(
   eventId: string,
   query: Partial<OrderQuery> = {},
@@ -255,7 +253,7 @@ export async function getEventOrdersForExport(
       where: buildWhere(eventId, q),
       orderBy: buildOrderBy(q.sortBy),
       include: ORDER_INCLUDE,
-      take: 20000, // hard ceiling so a runaway export can't exhaust memory
+      take: 20000, // ceiling so a runaway export can't exhaust memory
     });
 
     return {
