@@ -198,12 +198,19 @@ export type EventOrder = {
   } | null;
 };
 
+/** What the UI holds. Unchanged — the modal turns this into an OrderQuery. */
 export type OrderFilterState = {
   search: string;
   paymentStatus: string;
   orderStatus: string;
   source: "all" | OrderSource;
   sortBy: "newest" | "oldest" | "amount_high" | "amount_low";
+};
+
+/** What gets sent to the server: the filters plus paging. */
+export type OrderQuery = OrderFilterState & {
+  page: number; // 1-based
+  pageSize: number; // capped at 100 server-side
 };
 
 export type OrderStats = {
@@ -241,7 +248,7 @@ export type ActivityItem = {
     runnerCategory: string | null;
     eventName?: string; // only in global view
     eventSlug?: string; // only in global view
-    source?: OrderSource; // set if you pass it through getEventActivity
+    source?: OrderSource;
   };
   timestamp: string;
 };

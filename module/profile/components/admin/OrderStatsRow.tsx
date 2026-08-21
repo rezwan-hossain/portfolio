@@ -1,105 +1,101 @@
 // module/profile/components/admin/OrderStatsRow.tsx
 "use client";
 
-import type { EventOrder, OrderStats } from "@/types/profile";
-import {
-  ShoppingBag,
-  CheckCircle,
-  Clock,
-  XCircle,
-  DollarSign,
-} from "lucide-react";
+import type { OrderStats } from "@/types/profile";
+import { ShoppingBag, CheckCircle2, Clock, XCircle } from "lucide-react";
 
 type Props = {
-  orders: EventOrder[];
+  /** Null while the aggregate query is still in flight. */
+  stats: OrderStats | null;
 };
 
-function computeStats(orders: EventOrder[]): OrderStats {
-  const confirmed = orders.filter((o) => o.status === "CONFIRMED");
-  const pending = orders.filter((o) => o.status === "PENDING");
-  const cancelled = orders.filter((o) => o.status === "CANCELLED");
+/**
+ * Whole-event totals.
+ *
+ * These used to be summed in the browser from every order on the event, which
+ * meant the modal had to download all of them first. They're now computed by
+ * Postgres via groupBy/aggregate, so this component just renders numbers.
+ */
+export function OrderStatsRow({ stats }: Props) {
+  if (!stats) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-[68px] rounded-xl border border-gray-200 bg-gray-50 animate-pulse"
+          />
+        ))}
+      </div>
+    );
+  }
 
-  const paidOrders = orders.filter((o) => o.payment?.status === "PAID");
-
-  const totalRevenue = orders.reduce(
-    (sum, o) => sum + (o.payment?.amount || o.package.price * o.qty),
-    0,
-  );
-  const paidRevenue = paidOrders.reduce(
-    (sum, o) => sum + (o.payment?.amount || 0),
-    0,
-  );
-
-  return {
-    total: orders.length,
-    confirmed: confirmed.length,
-    pending: pending.length,
-    cancelled: cancelled.length,
-    totalRevenue,
-    paidRevenue,
-  };
-}
-
-export function OrderStatsRow({ orders }: Props) {
-  const stats = computeStats(orders);
-
-  const items = [
+  const cards = [
     {
       label: "Total",
-      value: stats.total,
+      value: stats.total.toLocaleString(),
       icon: ShoppingBag,
-      color: "bg-blue-50 text-blue-600",
+      tone: "text-gray-400",
     },
     {
       label: "Confirmed",
-      value: stats.confirmed,
-      icon: CheckCircle,
-      color: "bg-green-50 text-green-600",
+      value: stats.confirmed.toLocaleString(),
+      icon: CheckCircle2,
+      tone: "text-green-500",
     },
     {
       label: "Pending",
-      value: stats.pending,
+      value: stats.pending.toLocaleString(),
       icon: Clock,
-      color: "bg-yellow-50 text-yellow-600",
+      tone: "text-amber-500",
     },
     {
       label: "Cancelled",
-      value: stats.cancelled,
+      value: stats.cancelled.toLocaleString(),
       icon: XCircle,
-      color: "bg-red-50 text-red-600",
-    },
-    {
-      label: "Paid Revenue",
-      value: `৳${stats.paidRevenue.toLocaleString()}`,
-      icon: DollarSign,
-      color: "bg-purple-50 text-purple-600",
-      sub: `of ৳${stats.totalRevenue.toLocaleString()} total`,
+      tone: "text-red-500",
     },
   ];
 
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-5">
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className="flex items-center gap-2.5 p-3 bg-gray-50 rounded-xl border border-gray-100"
-        >
-          <div className={`p-1.5 rounded-lg ${item.color}`}>
-            <item.icon size={14} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-gray-900 leading-tight">
-              {item.value}
+    <div className="mb-4 space-y-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {cards.map((card) => (
+          <div
+            key={card.label}
+            className="rounded-xl border border-gray-200 bg-white p-3"
+          >
+            <div className="flex items-center gap-1.5">
+              <card.icon size={12} className={card.tone} />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                {card.label}
+              </span>
+            </div>
+            <p className="mt-1 text-lg font-bold text-gray-900 tabular-nums">
+              {card.value}
             </p>
-            <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider truncate">
-              {item.label}
-            </p>
-            {"sub" in item && item.sub && (
-              <p className="text-[9px] text-gray-400 truncate">{item.sub}</p>
-            )}
           </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-xl border border-gray-200 bg-white p-3">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+            Collected
+          </span>
+          <p className="mt-1 text-lg font-bold text-green-600 tabular-nums">
+            ৳{stats.paidRevenue.toLocaleString()}
+          </p>
         </div>
-      ))}
+        <div className="rounded-xl border border-gray-200 bg-white p-3">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+            Total value
+          </span>
+          <p className="mt-1 text-lg font-bold text-gray-900 tabular-nums">
+            ৳{stats.totalRevenue.toLocaleString()}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

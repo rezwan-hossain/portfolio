@@ -2,8 +2,17 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getEventOrders } from "@/app/actions/admin";
-import type { AdminEvent, EventOrder, OrderFilterState } from "@/types/profile";
+import {
+  getEventOrdersPaged,
+  getEventOrderStats,
+  getEventOrdersForExport,
+} from "@/app/actions/event-orders";
+import type {
+  AdminEvent,
+  EventOrder,
+  OrderFilterState,
+  OrderStats,
+} from "@/types/profile";
 import { OrderStatsRow } from "./OrderStatsRow";
 import { OrderFilters } from "./OrderFilters";
 import { OrderCard } from "./OrderCard";
@@ -16,6 +25,8 @@ import {
   RefreshCw,
   UserPlus,
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 type View = "list" | "create";
@@ -26,6 +37,9 @@ type Props = {
   /** Open straight into the manual registration form. */
   initialView?: View;
 };
+
+const PAGE_SIZE = 25;
+const SEARCH_DEBOUNCE_MS = 300;
 
 const DEFAULT_FILTERS: OrderFilterState = {
   search: "",
@@ -51,31 +65,88 @@ const esc = (value: unknown): string => {
 
 export function EventOrdersModal({ event, onClose, initialView }: Props) {
   const [view, setView] = useState<View>(initialView ?? "list");
+
+  // ─── Server-driven list state ────────────────────
   const [orders, setOrders] = useState<EventOrder[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [total, setTotal] = useState(0); // rows matching the current filters
+  const [page, setPage] = useState(1);
+  const [stats, setStats] = useState<OrderStats | null>(null);
+
+  const [firstLoad, setFirstLoad] = useState(true);
+  const [fetching, setFetching] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState("");
+
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [filters, setFilters] = useState<OrderFilterState>(DEFAULT_FILTERS);
 
-  const modalRef = useRef<HTMLDivElement>(null);
+  // Typing shouldn't fire a request per keystroke. Dropdowns and page clicks
+  // are instant; only the search box waits.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  // ─── Load Orders ──────────────────────────────────
-  const loadOrders = useCallback(async () => {
-    const { orders: data } = await getEventOrders(event.id);
-    setOrders(data);
+  const modalRef = useRef<HTMLDivElement>(null);
+  // Guards against a slow early request landing after a newer one.
+  const requestId = useRef(0);
+
+  useEffect(() => {
+    const t = setTimeout(
+      () => setDebouncedSearch(filters.search),
+      SEARCH_DEBOUNCE_MS,
+    );
+    return () => clearTimeout(t);
+  }, [filters.search]);
+
+  // ─── Load a page ─────────────────────────────────
+  const loadPage = useCallback(async () => {
+    const id = ++requestId.current;
+    setFetching(true);
+
+    const result = await getEventOrdersPaged(event.id, {
+      search: debouncedSearch,
+      paymentStatus: filters.paymentStatus,
+      orderStatus: filters.orderStatus,
+      source: filters.source,
+      sortBy: filters.sortBy,
+      page,
+      pageSize: PAGE_SIZE,
+    });
+
+    // A newer request already started — throw this result away.
+    if (id !== requestId.current) return;
+
+    if (result.error) setError(result.error);
+    else setError("");
+
+    setOrders(result.orders);
+    setTotal(result.total);
+    setFetching(false);
+    setFirstLoad(false);
+  }, [
+    event.id,
+    debouncedSearch,
+    filters.paymentStatus,
+    filters.orderStatus,
+    filters.source,
+    filters.sortBy,
+    page,
+  ]);
+
+  useEffect(() => {
+    void loadPage();
+  }, [loadPage]);
+
+  // ─── Load stats ──────────────────────────────────
+  // Whole-event figures, so they don't change when filters do.
+  const loadStats = useCallback(async () => {
+    const { stats: data } = await getEventOrderStats(event.id);
+    if (data) setStats(data);
   }, [event.id]);
 
   useEffect(() => {
-    const init = async () => {
-      await loadOrders();
-      setLoading(false);
-    };
-    init();
-  }, [loadOrders]);
+    void loadStats();
+  }, [loadStats]);
 
   // ─── Close on Escape ─────────────────────────────
-  // While the form is open, Escape steps back to the list instead of
-  // discarding everything the admin has typed.
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
@@ -94,22 +165,28 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
     };
   }, []);
 
-  // ─── Refresh ──────────────────────────────────────
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadOrders();
-    setRefreshing(false);
+  // ─── Handlers ────────────────────────────────────
+
+  // Changing a filter must send you back to page 1 — page 4 of the old
+  // result set is meaningless against the new one. Both setters run in the
+  // same handler so React batches them into a single fetch.
+  const handleFilterChange = (next: OrderFilterState) => {
+    setFilters(next);
+    setPage(1);
   };
 
-  // ─── After a manual registration ─────────────────
+  const handleRefresh = async () => {
+    await Promise.all([loadPage(), loadStats()]);
+  };
+
   const handleManualSuccess = async () => {
     setView("list");
-    setRefreshing(true);
-    await loadOrders();
-    setRefreshing(false);
+    setFilters(DEFAULT_FILTERS);
+    setPage(1);
+    await Promise.all([loadPage(), loadStats()]);
   };
 
-  // ─── Optimistic Status Update ────────────────────
+  // Optimistic row update, then re-pull the stats since the counts moved.
   const handleStatusChange = (
     orderId: string,
     newOrderStatus: string,
@@ -128,76 +205,31 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
           : o,
       ),
     );
+    void loadStats();
   };
 
-  // ─── Filter + Sort ───────────────────────────────
-  const filteredOrders = orders
-    .filter((order) => {
-      // Search
-      if (filters.search) {
-        const q = filters.search.toLowerCase();
-        const regName = order.registration?.fullName?.toLowerCase() || "";
-        const userName = `${order.user.firstName || ""} ${
-          order.user.lastName || ""
-        }`.toLowerCase();
-        const match =
-          regName.includes(q) ||
-          userName.includes(q) ||
-          order.registration?.bibNumber?.toLowerCase().includes(q) ||
-          order.user.email.toLowerCase().includes(q) ||
-          (order.user.phone && order.user.phone.includes(q)) ||
-          (order.registration?.phone && order.registration.phone.includes(q)) ||
-          (order.payment?.transactionId &&
-            order.payment.transactionId.toLowerCase().includes(q)) ||
-          order.id.toLowerCase().includes(q);
-        if (!match) return false;
-      }
-
-      // Order status
-      if (
-        filters.orderStatus !== "all" &&
-        order.status !== filters.orderStatus
-      ) {
-        return false;
-      }
-
-      // Source
-      if (filters.source !== "all" && order.source !== filters.source) {
-        return false;
-      }
-
-      // Payment status
-      if (filters.paymentStatus !== "all") {
-        if (!order.payment) return false;
-        if (order.payment.status !== filters.paymentStatus) return false;
-      }
-
-      return true;
-    })
-    .sort((a, b) => {
-      const amountA = a.payment?.amount || a.package.price * a.qty;
-      const amountB = b.payment?.amount || b.package.price * b.qty;
-
-      switch (filters.sortBy) {
-        case "newest":
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-        case "oldest":
-          return (
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-        case "amount_high":
-          return amountB - amountA;
-        case "amount_low":
-          return amountA - amountB;
-        default:
-          return 0;
-      }
-    });
-
   // ─── CSV Export ───────────────────────────────────
-  const exportCSV = () => {
+  // Pulls every row matching the current filters, not just this page.
+  const exportCSV = async () => {
+    setExporting(true);
+
+    const { orders: all, error: exportError } = await getEventOrdersForExport(
+      event.id,
+      {
+        search: debouncedSearch,
+        paymentStatus: filters.paymentStatus,
+        orderStatus: filters.orderStatus,
+        source: filters.source,
+        sortBy: filters.sortBy,
+      },
+    );
+
+    if (exportError) {
+      setError(exportError);
+      setExporting(false);
+      return;
+    }
+
     const headers = [
       "Order ID",
       "Source",
@@ -218,9 +250,6 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
       "Distance",
       "Qty",
       "Package Price",
-      "Subtotal",
-      "Discount",
-      "Total",
       "Payment Amount",
       "Payment Status",
       "Payment Method",
@@ -231,7 +260,7 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
       "Order Date",
     ];
 
-    const rows = filteredOrders.map((order) => [
+    const rows = all.map((order) => [
       order.id,
       order.source,
       order.registration?.bibNumber || "",
@@ -253,9 +282,6 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
       order.package.distance,
       order.qty,
       order.package.price,
-      order.subtotal,
-      order.discount,
-      order.total,
       order.payment?.amount ?? "",
       order.payment?.status || "N/A",
       order.payment?.paymentMethod || "",
@@ -271,8 +297,7 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
       ...rows.map((r) => r.map(esc).join(",")),
     ].join("\r\n");
 
-    // UTF-8 BOM for Excel compatibility
-    const BOM = "\uFEFF";
+    const BOM = "\uFEFF"; // makes Excel read it as UTF-8
     const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -282,15 +307,19 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
     }.csv`;
     link.click();
     URL.revokeObjectURL(url);
+
+    setExporting(false);
   };
 
-  // ─── Calculate footer revenue ────────────────────
-  const filteredRevenue = filteredOrders.reduce(
-    (sum, o) => sum + (o.payment?.amount || o.package.price * o.qty),
-    0,
-  );
-
+  // ─── Derived ─────────────────────────────────────
   const isCreating = view === "create";
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(page * PAGE_SIZE, total);
+
+  // stats.total is the whole event; total is the filtered count. The two
+  // together tell us whether an empty list means "no orders" or "no matches".
+  const eventHasNoOrders = stats !== null && stats.total === 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -301,7 +330,6 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
         onClick={isCreating ? undefined : onClose}
       />
 
-      {/* Modal */}
       <div
         ref={modalRef}
         className="relative bg-white rounded-2xl w-full max-w-3xl mx-4 max-h-[90vh] flex flex-col shadow-2xl"
@@ -322,8 +350,8 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
                 {event.name}
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                Order Management · {orders.length} total order
-                {orders.length !== 1 ? "s" : ""}
+                Order Management ·{" "}
+                {stats ? `${stats.total.toLocaleString()} total orders` : "…"}
               </p>
             </div>
           )}
@@ -331,7 +359,6 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
           <div className="flex items-center gap-2 flex-shrink-0 ml-4">
             {!isCreating && (
               <>
-                {/* Manual registration */}
                 <button
                   onClick={() => setView("create")}
                   className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer uppercase tracking-wider"
@@ -341,33 +368,36 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
                   Manual
                 </button>
 
-                {/* Refresh */}
                 <button
                   onClick={handleRefresh}
-                  disabled={refreshing}
+                  disabled={fetching}
                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
                   title="Refresh orders"
                 >
                   <RefreshCw
                     size={16}
-                    className={refreshing ? "animate-spin" : ""}
+                    className={fetching ? "animate-spin" : ""}
                   />
                 </button>
 
-                {/* Export */}
-                {filteredOrders.length > 0 && (
+                {total > 0 && (
                   <button
                     onClick={exportCSV}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer uppercase tracking-wider"
+                    disabled={exporting}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer uppercase tracking-wider disabled:opacity-50"
+                    title={`Export all ${total.toLocaleString()} matching orders`}
                   >
-                    <Download size={13} />
+                    {exporting ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <Download size={13} />
+                    )}
                     CSV
                   </button>
                 )}
               </>
             )}
 
-            {/* Close */}
             <button
               onClick={onClose}
               className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
@@ -385,12 +415,12 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
               onCancel={() => setView("list")}
               onSuccess={handleManualSuccess}
             />
-          ) : loading ? (
+          ) : firstLoad ? (
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-gray-300 mb-3" />
               <p className="text-sm text-gray-400">Loading orders...</p>
             </div>
-          ) : orders.length === 0 ? (
+          ) : eventHasNoOrders ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
                 <ShoppingBag className="w-8 h-8 text-gray-300" />
@@ -409,33 +439,42 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
             </div>
           ) : (
             <>
-              {/* Stats */}
-              <OrderStatsRow orders={orders} />
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-600 text-xs font-medium">{error}</p>
+                </div>
+              )}
 
-              {/* Filters */}
+              <OrderStatsRow stats={stats} />
+
               <OrderFilters
                 filters={filters}
-                onChange={setFilters}
-                resultCount={filteredOrders.length}
-                totalCount={orders.length}
+                onChange={handleFilterChange}
+                resultCount={total}
+                totalCount={stats?.total ?? total}
               />
 
-              {/* Orders List */}
-              {filteredOrders.length === 0 ? (
+              {total === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-gray-500 font-medium">
                     No orders match your filters
                   </p>
                   <button
-                    onClick={() => setFilters(DEFAULT_FILTERS)}
+                    onClick={() => handleFilterChange(DEFAULT_FILTERS)}
                     className="text-sm text-gray-900 font-bold mt-2 hover:underline cursor-pointer"
                   >
                     Clear filters
                   </button>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {filteredOrders.map((order) => (
+                // Dim rather than blank while a page loads — the list doesn't
+                // jump and the admin keeps their place.
+                <div
+                  className={`space-y-3 transition-opacity ${
+                    fetching ? "opacity-50" : "opacity-100"
+                  }`}
+                >
+                  {orders.map((order) => (
                     <OrderCard
                       key={order.id}
                       order={order}
@@ -455,13 +494,38 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
         </div>
 
         {/* ─── Footer ─── */}
-        {!isCreating && !loading && orders.length > 0 && (
-          <div className="px-6 py-3 border-t border-gray-100 flex items-center justify-between flex-shrink-0 bg-gray-50/50 rounded-b-2xl">
-            <p className="text-xs text-gray-400">
-              Showing {filteredOrders.length} of {orders.length} orders
+        {!isCreating && !firstLoad && !eventHasNoOrders && (
+          <div className="px-6 py-3 border-t border-gray-100 flex items-center justify-between gap-3 flex-shrink-0 bg-gray-50/50 rounded-b-2xl">
+            <p className="text-xs text-gray-400 whitespace-nowrap">
+              {rangeStart}–{rangeEnd} of {total.toLocaleString()}
             </p>
-            <p className="text-xs font-bold text-gray-600">
-              Total: ৳{filteredRevenue.toLocaleString()}
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1 || fetching}
+                  className="p-1.5 text-gray-500 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Previous page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-xs font-bold text-gray-600 px-2 tabular-nums">
+                  {page} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages || fetching}
+                  className="p-1.5 text-gray-500 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Next page"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
+
+            <p className="text-xs font-bold text-gray-600 whitespace-nowrap">
+              Paid: ৳{(stats?.paidRevenue ?? 0).toLocaleString()}
             </p>
           </div>
         )}
