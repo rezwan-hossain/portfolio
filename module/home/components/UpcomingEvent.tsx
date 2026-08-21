@@ -1,6 +1,7 @@
 import { getUpcomingEvents } from "@/app/actions/event";
 import EventCard from "@/module/event/components/EventCard";
 import { formatEventTimeUTC } from "@/utils/date";
+import { stat } from "fs";
 import { ChevronDown } from "lucide-react";
 
 export default async function UpcomingEvents() {
@@ -63,6 +64,7 @@ export default async function UpcomingEvents() {
               image: event.bannerImage,
               eventType: event.eventType,
               highlighted: index === 0,
+              status: event.status,
             };
 
             return <EventCard key={event.id} event={formattedEvent} />;
