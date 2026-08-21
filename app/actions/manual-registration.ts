@@ -99,7 +99,10 @@ export async function getEventPackages(eventId: string) {
       },
     });
 
-    return { packages: JSON.parse(JSON.stringify(packages)), error: null };
+    return {
+      packages: JSON.parse(JSON.stringify(packages)) as ManualPackage[],
+      error: null,
+    };
   } catch (err: any) {
     console.error("Get event packages error:", err?.message);
     return {
