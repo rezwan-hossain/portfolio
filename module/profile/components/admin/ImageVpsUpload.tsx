@@ -155,7 +155,10 @@ export function ImageVpsUpload({
 
       setProgress(100);
       setUploadState("success");
-      onChange(data.path); // ← relative path flows up to your form/DB
+
+      onChange(data.url); // ← absolute URL flows up to your form/DB
+
+      //   onChange(data.path); // ← relative path flows up to your form/DB
 
       // Delete the OLD file only after the NEW one is safely on disk.
       // Deleting first would lose both if the upload then failed.

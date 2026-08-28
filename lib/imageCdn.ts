@@ -44,9 +44,15 @@ export function isOwned(value: string): boolean {
  * Convert an owned value (relative OR absolute) back to the relative path
  * that the DELETE endpoint expects.
  */
+// export function toRelPath(value: string): string {
+//   if (value.startsWith(CDN_BASE)) {
+//     return value.slice(CDN_BASE.length).replace(/^\/+/, "");
+//   }
+//   return value.replace(/^\/+/, "");
+// }
+
 export function toRelPath(value: string): string {
-  if (value.startsWith(CDN_BASE)) {
-    return value.slice(CDN_BASE.length).replace(/^\/+/, "");
-  }
-  return value.replace(/^\/+/, "");
+  return value.startsWith(CDN_BASE)
+    ? value.slice(CDN_BASE.length).replace(/^\/+/, "")
+    : value.replace(/^\/+/, "");
 }

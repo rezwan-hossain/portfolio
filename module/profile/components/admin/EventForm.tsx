@@ -28,6 +28,7 @@ import {
 import { Check, Loader2, Plus, Save, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { formatEventTimeUTC } from "@/utils/date";
+import { ImageVpsUpload } from "./ImageVpsUpload";
 
 const RichTextEditor = dynamic(
   () =>
@@ -449,12 +450,20 @@ export function EventForm({
             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
               Banner Image <span className="text-red-500">*</span>
             </label>
-            <ImageUpload
+            {/* <ImageUpload
               value={form.bannerImage}
               onChange={(url) => updateField("bannerImage", url)}
               bucket="event-images"
               folder="banners"
               label="Upload Banner Image"
+              aspectRatio="aspect-[16/7]"
+              maxSizeMB={5}
+            /> */}
+
+            <ImageVpsUpload
+              value={form.bannerImage}
+              onChange={(url) => updateField("bannerImage", url)}
+              folder="banners"
               aspectRatio="aspect-[16/7]"
               maxSizeMB={5}
             />
@@ -467,12 +476,19 @@ export function EventForm({
                 (optional)
               </span>
             </label>
-            <ImageUpload
+            {/* <ImageUpload
               value={form.thumbImage}
               onChange={(url) => updateField("thumbImage", url)}
               bucket="event-images"
               folder="thumbnails"
               label="Upload Thumbnail"
+              aspectRatio="aspect-square"
+              maxSizeMB={2}
+            /> */}
+            <ImageVpsUpload
+              value={form.thumbImage}
+              onChange={(url) => updateField("thumbImage", url)}
+              folder="thumbnails"
               aspectRatio="aspect-square"
               maxSizeMB={2}
             />
@@ -514,163 +530,169 @@ export function EventForm({
           </div>
         </div>
 
-        {/* ─── Packages Section (Edit Mode Only) ─── */}
-        {/* {isEditing && (
-        )} */}
-        <div className="border-t border-gray-200 pt-6 mt-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-                Packages ({packages.length})
-              </h3>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Click the edit icon to modify a package inline
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowAddPackage(!showAddPackage)}
-              className="text-xs font-bold text-neon-lime uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-1"
-            >
-              {showAddPackage ? (
-                <>
-                  <X size={12} /> Cancel
-                </>
-              ) : (
-                <>
-                  <Plus size={12} /> Add Package
-                </>
-              )}
-            </button>
-          </div>
+        {!isEditing && (
+          <h2 className="text-[20px] text-gray-400 mt-2 text-center">
+            You can add Event packages after you create the event.
+          </h2>
+        )}
 
-          {/* Add Package Form */}
-          {showAddPackage && (
-            <div className="border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                New Package
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Input
-                  value={newPackage.name}
-                  onChange={(e) =>
-                    setNewPackage({ ...newPackage, name: e.target.value })
-                  }
-                  placeholder="Name (e.g. 5K Fun Run)"
-                  className="h-10 border border-gray-200 bg-white rounded-lg"
-                />
-                <Input
-                  value={newPackage.distance}
-                  onChange={(e) =>
-                    setNewPackage({
-                      ...newPackage,
-                      distance: e.target.value,
-                    })
-                  }
-                  placeholder="Distance (e.g. 5K)"
-                  className="h-10 border border-gray-200 bg-white rounded-lg"
-                />
-                <Input
-                  type="number"
-                  value={newPackage.price}
-                  onChange={(e) =>
-                    setNewPackage({ ...newPackage, price: e.target.value })
-                  }
-                  placeholder="Price"
-                  className="h-10 border border-gray-200 bg-white rounded-lg"
-                />
-                <Input
-                  type="number"
-                  value={newPackage.availableSlots}
-                  onChange={(e) =>
-                    setNewPackage({
-                      ...newPackage,
-                      availableSlots: e.target.value,
-                    })
-                  }
-                  placeholder="Slots"
-                  className="h-10 border border-gray-200 bg-white rounded-lg"
-                />
+        {/* ─── Packages Section (Edit Mode Only) ─── */}
+        {isEditing && (
+          <div className="border-t border-gray-200 pt-6 mt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                  Packages ({packages.length})
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Click the edit icon to modify a package inline
+                </p>
               </div>
               <button
                 type="button"
-                onClick={handleAddPackage}
-                disabled={pkgLoading === -1}
-                className="mt-3 flex items-center gap-2 text-xs font-bold bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer disabled:opacity-50"
+                onClick={() => setShowAddPackage(!showAddPackage)}
+                className="text-xs font-bold text-neon-lime uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-1"
               >
-                {pkgLoading === -1 && (
-                  <Loader2 size={12} className="animate-spin" />
+                {showAddPackage ? (
+                  <>
+                    <X size={12} /> Cancel
+                  </>
+                ) : (
+                  <>
+                    <Plus size={12} /> Add Package
+                  </>
                 )}
-                Add Package
               </button>
             </div>
-          )}
 
-          {/* ─── Editable Package Rows ─── */}
-          {packages.length === 0 ? (
-            <div className="border border-dashed border-gray-200 rounded-lg p-8 text-center">
-              <p className="text-sm text-gray-400">No packages yet</p>
-              <p className="text-xs text-gray-300 mt-1">
-                Add a package to get started
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {packages.map((pkg) => (
-                <EditablePackageRow
-                  key={pkg.id}
-                  pkg={pkg}
-                  onUpdate={refreshPackages}
-                  onDelete={() =>
-                    setPackages((prev) => prev.filter((p) => p.id !== pkg.id))
-                  }
-                />
-              ))}
-            </div>
-          )}
+            {/* Add Package Form */}
+            {showAddPackage && (
+              <div className="border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+                  New Package
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <Input
+                    value={newPackage.name}
+                    onChange={(e) =>
+                      setNewPackage({ ...newPackage, name: e.target.value })
+                    }
+                    placeholder="Name (e.g. 5K Fun Run)"
+                    className="h-10 border border-gray-200 bg-white rounded-lg"
+                  />
+                  <Input
+                    value={newPackage.distance}
+                    onChange={(e) =>
+                      setNewPackage({
+                        ...newPackage,
+                        distance: e.target.value,
+                      })
+                    }
+                    placeholder="Distance (e.g. 5K)"
+                    className="h-10 border border-gray-200 bg-white rounded-lg"
+                  />
+                  <Input
+                    type="number"
+                    value={newPackage.price}
+                    onChange={(e) =>
+                      setNewPackage({ ...newPackage, price: e.target.value })
+                    }
+                    placeholder="Price"
+                    className="h-10 border border-gray-200 bg-white rounded-lg"
+                  />
+                  <Input
+                    type="number"
+                    value={newPackage.availableSlots}
+                    onChange={(e) =>
+                      setNewPackage({
+                        ...newPackage,
+                        availableSlots: e.target.value,
+                      })
+                    }
+                    placeholder="Slots"
+                    className="h-10 border border-gray-200 bg-white rounded-lg"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddPackage}
+                  disabled={pkgLoading === -1}
+                  className="mt-3 flex items-center gap-2 text-xs font-bold bg-gray-900 text-white px-4 py-2 rounded-lg cursor-pointer disabled:opacity-50"
+                >
+                  {pkgLoading === -1 && (
+                    <Loader2 size={12} className="animate-spin" />
+                  )}
+                  Add Package
+                </button>
+              </div>
+            )}
 
-          {/* Packages Summary */}
-          {packages.length > 0 && (
-            <div className="mt-4 flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg border border-gray-100">
-              <div className="flex items-center gap-4 text-xs text-gray-500">
-                <span>
-                  <span className="font-bold text-gray-700">
-                    {packages.length}
-                  </span>{" "}
-                  packages
-                </span>
-                <span>
-                  <span className="font-bold text-gray-700">
-                    {packages.reduce((sum, p) => sum + p.availableSlots, 0)}
-                  </span>{" "}
-                  total slots
-                </span>
-                <span>
-                  <span className="font-bold text-gray-700">
-                    {packages.reduce((sum, p) => sum + p.usedSlots, 0)}
-                  </span>{" "}
-                  used
-                </span>
+            {/* ─── Editable Package Rows ─── */}
+            {packages.length === 0 ? (
+              <div className="border border-dashed border-gray-200 rounded-lg p-8 text-center">
+                <p className="text-sm text-gray-400">No packages yet</p>
+                <p className="text-xs text-gray-300 mt-1">
+                  Add a package to get started
+                </p>
               </div>
-              <div className="text-xs text-gray-500">
-                Price range:{" "}
-                <span className="font-bold text-gray-700">
-                  ৳
-                  {Math.min(
-                    ...packages.map((p) => Number(p.price)),
-                  ).toLocaleString()}
-                </span>
-                {" – "}
-                <span className="font-bold text-gray-700">
-                  ৳
-                  {Math.max(
-                    ...packages.map((p) => Number(p.price)),
-                  ).toLocaleString()}
-                </span>
+            ) : (
+              <div className="space-y-2">
+                {packages.map((pkg) => (
+                  <EditablePackageRow
+                    key={pkg.id}
+                    pkg={pkg}
+                    onUpdate={refreshPackages}
+                    onDelete={() =>
+                      setPackages((prev) => prev.filter((p) => p.id !== pkg.id))
+                    }
+                  />
+                ))}
               </div>
-            </div>
-          )}
-        </div>
+            )}
+
+            {/* Packages Summary */}
+            {packages.length > 0 && (
+              <div className="mt-4 flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg border border-gray-100">
+                <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <span>
+                    <span className="font-bold text-gray-700">
+                      {packages.length}
+                    </span>{" "}
+                    packages
+                  </span>
+                  <span>
+                    <span className="font-bold text-gray-700">
+                      {packages.reduce((sum, p) => sum + p.availableSlots, 0)}
+                    </span>{" "}
+                    total slots
+                  </span>
+                  <span>
+                    <span className="font-bold text-gray-700">
+                      {packages.reduce((sum, p) => sum + p.usedSlots, 0)}
+                    </span>{" "}
+                    used
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Price range:{" "}
+                  <span className="font-bold text-gray-700">
+                    ৳
+                    {Math.min(
+                      ...packages.map((p) => Number(p.price)),
+                    ).toLocaleString()}
+                  </span>
+                  {" – "}
+                  <span className="font-bold text-gray-700">
+                    ৳
+                    {Math.max(
+                      ...packages.map((p) => Number(p.price)),
+                    ).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Messages */}
         {error && (
