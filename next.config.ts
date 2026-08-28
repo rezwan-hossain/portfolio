@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   compress: true,
-  serverExternalPackages: ["pino", "pino-pretty", "@axiomhq/pino"],
+  serverExternalPackages: ["pino", "pino-pretty", "@axiomhq/pino", "sharp"],
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
