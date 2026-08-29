@@ -335,7 +335,7 @@ export async function GET(request: NextRequest) {
           // Email
           try {
             const emailResult = await sendPaymentConfirmationEmail({
-              to: order.user.email,
+              to: order.registration?.email || order.user.email,
               runnerName:
                 order.registration?.fullName ||
                 order.user.firstName ||
