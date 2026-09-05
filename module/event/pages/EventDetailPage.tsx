@@ -54,7 +54,7 @@ function formatEventDate(date: string | Date): string {
 
 const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
   const view: ViewMode =
-    (searchParams?.view as ViewMode) === "unstyled" ? "unstyled" : "styled";
+    (searchParams?.view as ViewMode) === "styled" ? "styled" : "unstyled";
   const isUnstyled = view === "unstyled";
 
   const isCompleted = event.status === "COMPLETED";
