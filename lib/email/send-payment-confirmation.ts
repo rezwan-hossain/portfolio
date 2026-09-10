@@ -1,7 +1,7 @@
 // lib/email/send-payment-confirmation.ts
 import { Resend } from "resend";
 import { getPaymentConfirmationEmailHTML } from "./templates/payment-confirmation";
-import { prisma } from "@/lib/prisma";
+// import { prisma } from "@/lib/prisma";
 
 type OrderStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
 type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED";
@@ -95,7 +95,7 @@ export async function sendPaymentConfirmationEmail(
     const { data, error } = await resend.emails.send({
       from:
         process.env.RESEND_ORDER_CONFIRMATION_FROM_EMAIL ||
-        "Marathon Events <noreply@merchcommunication.com>", // Change in production
+        "Marathon Events <info@merchcommunication.com>", // Change in production
       to: [params.to],
       subject: `✅ Registration Confirmed - ${params.eventName}`,
       html: html,
