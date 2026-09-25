@@ -3,7 +3,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath, revalidateTag, cacheLife, cacheTag } from "next/cache";
+import { revalidatePath, updateTag, cacheLife, cacheTag } from "next/cache";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -57,6 +57,12 @@ export async function getAllHeroes() {
   }
 }
 
+const DEFAULT_COUNTDOWN_COLOR = "#374151";
+
+function normalizeHexColor(color: string) {
+  return /^#[0-9a-fA-F]{6}$/.test(color) ? color : DEFAULT_COUNTDOWN_COLOR;
+}
+
 // ─── Create Hero ────────────────────────────────────
 export async function createHero(formData: {
   title: string;
@@ -65,6 +71,7 @@ export async function createHero(formData: {
   slug: string;
   eventDate: string;
   showCountdown: boolean;
+  countdownColor: string;
   showSlugButton: boolean;
 }) {
   const { error } = await requireAdmin();
@@ -84,6 +91,7 @@ export async function createHero(formData: {
         slug: formData.slug || null,
         eventDate: formData.eventDate ? new Date(formData.eventDate) : null,
         showCountdown: formData.showCountdown,
+        countdownColor: normalizeHexColor(formData.countdownColor),
         showSlugButton: formData.showSlugButton,
         isActive: true,
       },
@@ -93,7 +101,7 @@ export async function createHero(formData: {
     revalidatePath("/profile");
     revalidatePath("/");
     revalidatePath("/profile");
-    revalidateTag("hero-section", "active-hero");
+    updateTag("hero-section");
 
     return { success: true, error: null };
   } catch (err: any) {
@@ -112,6 +120,7 @@ export async function updateHero(
     slug: string;
     eventDate: string;
     showCountdown: boolean;
+    countdownColor: string;
     showSlugButton: boolean;
   },
 ) {
@@ -128,6 +137,7 @@ export async function updateHero(
         slug: formData.slug || null,
         eventDate: formData.eventDate ? new Date(formData.eventDate) : null,
         showCountdown: formData.showCountdown,
+        countdownColor: normalizeHexColor(formData.countdownColor),
         showSlugButton: formData.showSlugButton,
       },
     });
@@ -136,7 +146,7 @@ export async function updateHero(
     revalidatePath("/profile");
     revalidatePath("/");
     revalidatePath("/profile");
-    revalidateTag("hero-section", "active-hero");
+    updateTag("hero-section");
 
     return { success: true, error: null };
   } catch (err: any) {
@@ -161,7 +171,7 @@ export async function setActiveHero(heroId: string) {
     revalidatePath("/profile");
     revalidatePath("/");
     revalidatePath("/profile");
-    revalidateTag("hero-section", "active-hero");
+    updateTag("hero-section");
 
     return { success: true, error: null };
   } catch {
@@ -181,7 +191,7 @@ export async function deleteHero(heroId: string) {
     revalidatePath("/profile");
     revalidatePath("/");
     revalidatePath("/profile");
-    revalidateTag("hero-section", "active-hero");
+    updateTag("hero-section");
 
     return { success: true, error: null };
   } catch {

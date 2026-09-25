@@ -6,6 +6,7 @@ export type HeroSectionData = {
   slug: string | null;
   eventDate: string | null;
   showCountdown: boolean;
+  countdownColor: string;
   showSlugButton: boolean;
   isActive: boolean;
   createdAt: string;
@@ -19,5 +20,6 @@ export type HeroFormData = {
   slug: string;
   eventDate: string;
   showCountdown: boolean;
+  countdownColor: string;
   showSlugButton: boolean;
 };

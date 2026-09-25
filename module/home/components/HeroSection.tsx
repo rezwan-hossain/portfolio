@@ -27,6 +27,7 @@ const HeroSection = ({ hero }: Props) => {
   const desktopImage = hero?.desktopImage || FALLBACK.desktopImage;
   const mobileImage = hero?.mobileImage;
   const showCountdown = hero?.showCountdown ?? true;
+  const countdownColor = hero?.countdownColor || "#374151";
   const showSlugButton = hero?.showSlugButton ?? true;
   const slug = hero?.slug || "/register";
 
@@ -77,7 +78,9 @@ const HeroSection = ({ hero }: Props) => {
       )}
 
       {/* ─── Countdown ─── */}
-      {showCountdown && countdown && <Countdown countdown={countdown} />}
+      {showCountdown && countdown && (
+        <Countdown countdown={countdown} color={countdownColor} />
+      )}
     </section>
   );
 };

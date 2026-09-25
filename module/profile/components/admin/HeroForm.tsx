@@ -30,6 +30,7 @@ export function HeroForm({ hero, onSuccess, onCancel }: Props) {
       ? new Date(hero.eventDate).toISOString().slice(0, 16)
       : "",
     showCountdown: hero?.showCountdown ?? true,
+    countdownColor: hero?.countdownColor || "#374151",
     showSlugButton: hero?.showSlugButton ?? true,
   });
 
@@ -49,6 +50,10 @@ export function HeroForm({ hero, onSuccess, onCancel }: Props) {
 
     if (!form.title) {
       setError("Title is required");
+      return;
+    }
+    if (!/^#[0-9a-fA-F]{6}$/.test(form.countdownColor)) {
+      setError("Countdown color must be a hex color like #374151");
       return;
     }
     if (!form.desktopImage) {
@@ -193,6 +198,33 @@ export function HeroForm({ hero, onSuccess, onCancel }: Props) {
             checked={form.showCountdown}
             onChange={(val) => updateField("showCountdown", val)}
           />
+          {form.showCountdown && (
+            <div className="flex items-center justify-between gap-4 p-3 border border-gray-200 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  Countdown Color
+                </p>
+                <p className="text-xs text-gray-500">
+                  Color of the countdown numbers and labels
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={form.countdownColor}
+                  onChange={(e) => updateField("countdownColor", e.target.value)}
+                  className="h-9 w-12 cursor-pointer rounded border border-gray-200 bg-white p-0.5"
+                  aria-label="Countdown color"
+                />
+                <Input
+                  value={form.countdownColor}
+                  onChange={(e) => updateField("countdownColor", e.target.value)}
+                  maxLength={7}
+                  className="h-9 w-24 border border-gray-200 bg-gray-50 rounded-lg font-mono text-xs uppercase"
+                />
+              </div>
+            </div>
+          )}
           <ToggleSwitch
             label="Show Register Button"
             description="CTA button linking to the slug URL"

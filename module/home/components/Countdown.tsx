@@ -10,9 +10,10 @@ interface CountdownProps {
     minutes: number;
     seconds: number;
   };
+  color?: string;
 }
 
-const Countdown = ({ countdown }: CountdownProps) => {
+const Countdown = ({ countdown, color = "#374151" }: CountdownProps) => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -60,11 +61,11 @@ const Countdown = ({ countdown }: CountdownProps) => {
               {/* Number - Only render actual value after mount */}
               <div
                 suppressHydrationWarning
+                style={{ color }}
                 className="
                   text-2xl sm:text-3xl md:text-4xl lg:text-5xl
                   font-bold 
                   tracking-tight 
-                  text-gray-700 
                   leading-none 
                   mb-1 sm:mb-1.5
                 "
@@ -74,11 +75,12 @@ const Countdown = ({ countdown }: CountdownProps) => {
 
               {/* Label */}
               <div
+                style={{ color }}
                 className="
                   text-[8px] sm:text-[10px] md:text-xs
                   uppercase 
                   tracking-wider sm:tracking-widest 
-                  text-gray-700/60 sm:text-gray-700/70 
+                  opacity-60 sm:opacity-70
                   font-medium sm:font-semibold
                 "
               >

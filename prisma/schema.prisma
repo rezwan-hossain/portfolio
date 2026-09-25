@@ -182,6 +182,7 @@ model HeroSection {
   slug           String?
   eventDate      DateTime?
   showCountdown  Boolean   @default(true)
+  countdownColor String    @default("#374151")
   showSlugButton Boolean   @default(true)
   isActive       Boolean   @default(true)
   createdAt      DateTime  @default(now())
