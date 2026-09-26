@@ -39,14 +39,33 @@ const ATTENTION = new Set([
 // Chip style by what kind of change it was — colour plus the verb as text.
 function chip(action: string) {
   const verb = action.split(".")[1] ?? action;
-  if (ATTENTION.has(action)) return { text: "needs attention", cls: "bg-red-50 text-red-700 border-red-200" };
-  if (/created|manual_created|duplicated|activated$/.test(verb) && verb !== "deactivated")
-    return { text: verb.replace("_", " "), cls: "bg-green-50 text-green-700 border-green-200" };
+  if (ATTENTION.has(action))
+    return {
+      text: "needs attention",
+      cls: "bg-red-50 text-red-700 border-red-200",
+    };
+  if (
+    /created|manual_created|duplicated|activated$/.test(verb) &&
+    verb !== "deactivated"
+  )
+    return {
+      text: verb.replace("_", " "),
+      cls: "bg-green-50 text-green-700 border-green-200",
+    };
   if (/deleted|cancelled|declined|deactivated|hold_expired/.test(verb))
-    return { text: verb.replace("_", " "), cls: "bg-gray-100 text-gray-700 border-gray-200" };
+    return {
+      text: verb.replace("_", " "),
+      cls: "bg-gray-100 text-gray-700 border-gray-200",
+    };
   if (action.startsWith("payment.confirmed"))
-    return { text: "paid", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
-  return { text: verb.replace("_", " "), cls: "bg-blue-50 text-blue-700 border-blue-200" };
+    return {
+      text: "paid",
+      cls: "bg-amber-50 text-amber-700 border-amber-200",
+    };
+  return {
+    text: verb.replace("_", " "),
+    cls: "bg-blue-50 text-blue-700 border-blue-200",
+  };
 }
 
 const isSystem = (e: AuditEntry) => e.actorLabel.startsWith("System");
@@ -67,7 +86,11 @@ const dhakaTime = (iso: string) =>
   });
 
 const show = (v: unknown) =>
-  v === null || v === undefined || v === "" ? "—" : typeof v === "object" ? JSON.stringify(v) : String(v);
+  v === null || v === undefined || v === ""
+    ? "—"
+    : typeof v === "object"
+      ? JSON.stringify(v)
+      : String(v);
 
 export function AdminAuditLogPanel({ events }: Props) {
   const [filters, setFilters] = useState<AuditFilters>({
@@ -137,20 +160,26 @@ export function AdminAuditLogPanel({ events }: Props) {
       <div>
         <h2 className="text-xl font-bold text-gray-900">Audit Log</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Who changed what, and when. Admin changes, orders, payments and system actions.
+          Who changed what, and when. Admin changes, orders, payments and system
+          actions.
         </p>
       </div>
 
       {/* Filters — one row */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[12rem]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <label htmlFor="audit-search" className="sr-only">Search</label>
+          <Search
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+          <label htmlFor="audit-search" className="sr-only">
+            Search
+          </label>
           <input
             id="audit-search"
             value={filters.search}
             onChange={(e) => update({ search: e.target.value }, true)}
-            placeholder="Search name, email, order ID, coupon…"
+            placeholder="Search runner name, phone, email, order ID, coupon…"
             className="w-full h-9 pl-9 pr-8 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900"
           />
           {filters.search && (
@@ -163,7 +192,9 @@ export function AdminAuditLogPanel({ events }: Props) {
             </button>
           )}
         </div>
-        <label htmlFor="audit-event" className="sr-only">Event</label>
+        <label htmlFor="audit-event" className="sr-only">
+          Event
+        </label>
         <select
           id="audit-event"
           value={filters.eventId}
@@ -172,7 +203,9 @@ export function AdminAuditLogPanel({ events }: Props) {
         >
           <option value="all">All events</option>
           {events.map((e) => (
-            <option key={e.id} value={e.id}>{e.name}</option>
+            <option key={e.id} value={e.id}>
+              {e.name}
+            </option>
           ))}
         </select>
         <button
@@ -199,7 +232,9 @@ export function AdminAuditLogPanel({ events }: Props) {
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
-            {c.value === "attention" && <AlertTriangle size={11} className="inline -mt-0.5 mr-1" />}
+            {c.value === "attention" && (
+              <AlertTriangle size={11} className="inline -mt-0.5 mr-1" />
+            )}
             {c.label}
           </button>
         ))}
@@ -215,20 +250,27 @@ export function AdminAuditLogPanel({ events }: Props) {
       {loading && entries.length === 0 ? (
         <div className="space-y-2 animate-pulse">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-14 bg-white border border-gray-200 rounded-xl" />
+            <div
+              key={i}
+              className="h-14 bg-white border border-gray-200 rounded-xl"
+            />
           ))}
         </div>
       ) : entries.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl py-16 text-center">
           <p className="text-gray-900 font-bold">Nothing logged yet</p>
           <p className="text-gray-400 text-sm mt-1">
-            {filters.search || filters.category !== "all" || filters.eventId !== "all"
+            {filters.search ||
+            filters.category !== "all" ||
+            filters.eventId !== "all"
               ? "No entries match these filters."
               : "Entries appear here as soon as anyone changes something."}
           </p>
         </div>
       ) : (
-        <div className={`space-y-5 transition-opacity ${loading ? "opacity-60" : ""}`}>
+        <div
+          className={`space-y-5 transition-opacity ${loading ? "opacity-60" : ""}`}
+        >
           {groups.map((g) => (
             <section key={g.day}>
               <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2">
@@ -251,30 +293,66 @@ export function AdminAuditLogPanel({ events }: Props) {
                         </span>
                         <span className="flex-1 min-w-0">
                           <span className="flex flex-wrap items-center gap-2">
-                            <span className={`text-[10px] font-bold uppercase tracking-wider border rounded px-1.5 py-0.5 ${c.cls}`}>
+                            <span
+                              className={`text-[10px] font-bold uppercase tracking-wider border rounded px-1.5 py-0.5 ${c.cls}`}
+                            >
                               {c.text}
                             </span>
                             <span className="text-[11px] text-gray-400 uppercase tracking-wider">
                               {e.entityType}
                             </span>
-                            {e.eventId && eventName.get(e.eventId) && filters.eventId === "all" && (
-                              <span className="text-[11px] text-gray-400 truncate">
-                                · {eventName.get(e.eventId)}
-                              </span>
-                            )}
+                            {e.eventId &&
+                              eventName.get(e.eventId) &&
+                              filters.eventId === "all" && (
+                                <span className="text-[11px] text-gray-400 truncate">
+                                  · {eventName.get(e.eventId)}
+                                </span>
+                              )}
                           </span>
                           <span className="block text-sm text-gray-900 mt-1 break-words">
                             {e.summary}
                           </span>
+                          {e.subject && (
+                            <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 rounded-md bg-gray-50 border border-gray-100 px-2 py-1 text-xs">
+                              <span className="font-semibold text-gray-900">
+                                {e.subject.name}
+                              </span>
+                              {e.subject.phone && (
+                                <span className="text-gray-600 tabular-nums select-all">
+                                  {e.subject.phone}
+                                </span>
+                              )}
+                              {e.subject.email && (
+                                <span className="text-gray-600 break-all select-all">
+                                  {e.subject.email}
+                                </span>
+                              )}
+                              <span className="text-gray-400">
+                                {e.subject.packageName}
+                                {filters.eventId === "all" &&
+                                  ` · ${e.subject.eventName}`}
+                              </span>
+                            </span>
+                          )}
                           <span className="flex items-center gap-1 text-[11px] text-gray-500 mt-1">
-                            {isSystem(e) ? <Bot size={11} /> : <User size={11} />}
+                            {isSystem(e) ? (
+                              <Bot size={11} />
+                            ) : (
+                              <User size={11} />
+                            )}
                             {e.actorLabel}
                           </span>
                         </span>
                         {expanded ? (
-                          <ChevronDown size={14} className="text-gray-400 mt-1 flex-shrink-0" />
+                          <ChevronDown
+                            size={14}
+                            className="text-gray-400 mt-1 flex-shrink-0"
+                          />
                         ) : (
-                          <ChevronRight size={14} className="text-gray-400 mt-1 flex-shrink-0" />
+                          <ChevronRight
+                            size={14}
+                            className="text-gray-400 mt-1 flex-shrink-0"
+                          />
                         )}
                       </button>
 
@@ -285,39 +363,80 @@ export function AdminAuditLogPanel({ events }: Props) {
                               <table className="w-full text-xs">
                                 <thead>
                                   <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-100">
-                                    <th className="font-bold py-1.5 pr-3">Field</th>
-                                    <th className="font-bold py-1.5 pr-3">Before</th>
+                                    <th className="font-bold py-1.5 pr-3">
+                                      Field
+                                    </th>
+                                    <th className="font-bold py-1.5 pr-3">
+                                      Before
+                                    </th>
                                     <th className="font-bold py-1.5">After</th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {changeRows.map(([field, [before, after]]) => (
-                                    <tr key={field} className="border-b border-gray-50 last:border-0 align-top">
-                                      <td className="py-1.5 pr-3 font-semibold text-gray-700 whitespace-nowrap">{field}</td>
-                                      <td className="py-1.5 pr-3 text-gray-500 line-through decoration-gray-300 break-all">{show(before)}</td>
-                                      <td className="py-1.5 text-gray-900 break-all">{show(after)}</td>
-                                    </tr>
-                                  ))}
+                                  {changeRows.map(
+                                    ([field, [before, after]]) => (
+                                      <tr
+                                        key={field}
+                                        className="border-b border-gray-50 last:border-0 align-top"
+                                      >
+                                        <td className="py-1.5 pr-3 font-semibold text-gray-700 whitespace-nowrap">
+                                          {field}
+                                        </td>
+                                        <td className="py-1.5 pr-3 text-gray-500 line-through decoration-gray-300 break-all">
+                                          {show(before)}
+                                        </td>
+                                        <td className="py-1.5 text-gray-900 break-all">
+                                          {show(after)}
+                                        </td>
+                                      </tr>
+                                    ),
+                                  )}
                                 </tbody>
                               </table>
                             </div>
                           )}
                           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+                            {e.subject && (
+                              <>
+                                <dt className="text-gray-400">Order</dt>
+                                <dd className="font-mono text-gray-700 break-all select-all">
+                                  {e.subject.orderId}
+                                  <span className="font-sans text-gray-400">
+                                    {" "}
+                                    · now {e.subject.orderStatus.toLowerCase()},
+                                    payment{" "}
+                                    {(
+                                      e.subject.paymentStatus ?? "none"
+                                    ).toLowerCase()}
+                                  </span>
+                                </dd>
+                              </>
+                            )}
                             <dt className="text-gray-400">Action</dt>
-                            <dd className="font-mono text-gray-700">{e.action}</dd>
+                            <dd className="font-mono text-gray-700">
+                              {e.action}
+                            </dd>
                             <dt className="text-gray-400">{e.entityType} ID</dt>
-                            <dd className="font-mono text-gray-700 break-all select-all">{e.entityId}</dd>
+                            <dd className="font-mono text-gray-700 break-all select-all">
+                              {e.entityId}
+                            </dd>
                             {e.requestId && (
                               <>
                                 <dt className="text-gray-400">Request</dt>
-                                <dd className="font-mono text-gray-700 break-all select-all" title="Search this in Axiom to see the full request logs">
+                                <dd
+                                  className="font-mono text-gray-700 break-all select-all"
+                                  title="Search this in Axiom to see the full request logs"
+                                >
                                   {e.requestId}
                                 </dd>
                               </>
                             )}
                             <dt className="text-gray-400">Exact time</dt>
                             <dd className="text-gray-700">
-                              {new Date(e.createdAt).toLocaleString("en-GB", { timeZone: "Asia/Dhaka" })} (Dhaka)
+                              {new Date(e.createdAt).toLocaleString("en-GB", {
+                                timeZone: "Asia/Dhaka",
+                              })}{" "}
+                              (Dhaka)
                             </dd>
                           </dl>
                         </div>

@@ -17,6 +17,12 @@ import { applyCoupon } from "@/lib/coupon/apply-coupon";
 import { getRequestId } from "@/utils/requestUtils";
 import { logger } from "@/lib/logger";
 import { audit, SYSTEM } from "@/lib/audit";
+
+// ShurjoPay sends amounts as strings like "1299.0000".
+const fmtAmount = (v: unknown) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n.toLocaleString("en-IN") : String(v);
+};
 import { confirmPaidOrder, releaseHold } from "@/lib/slot-hold";
 import { revalidateTag } from "next/cache";
 
@@ -226,7 +232,7 @@ export async function GET(request: NextRequest) {
           entityType: "payment",
           entityId: payment.orderId,
           eventId: payment.order.eventId,
-          summary: `REFUND NEEDED: second payment ${spOrderId} (৳${paymentInfo.amount}) succeeded for an order already paid via ${payment.paymentId}`,
+          summary: `REFUND NEEDED: second payment ${spOrderId} (৳${fmtAmount(paymentInfo.amount)}) succeeded for an order already paid via ${payment.paymentId}`,
         });
       } else {
         log.warn(
@@ -299,7 +305,7 @@ export async function GET(request: NextRequest) {
           entityType: "payment",
           entityId: payment.orderId,
           eventId: payment.order.eventId,
-          summary: `NEEDS REVIEW: ${spOrderId} reported ৳${paymentInfo.amount}, expected ৳${payment.amount}${orderMismatch ? ` (for order ${paymentInfo.value1})` : ""}. Not confirmed.`,
+          summary: `NEEDS REVIEW: ${spOrderId} reported ৳${fmtAmount(paymentInfo.amount)}, expected ৳${payment.amount}${orderMismatch ? ` (for order ${paymentInfo.value1})` : ""}. Not confirmed.`,
           changes: { amount: [payment.amount, paymentInfo.amount] },
         });
         // Keep the slot held for manual review; payment stays unpaid here.
@@ -369,7 +375,7 @@ export async function GET(request: NextRequest) {
           entityType: "payment",
           entityId: payment.orderId,
           eventId: payment.order.eventId,
-          summary: `REFUND NEEDED: ${spOrderId} paid ৳${paymentInfo.amount} but the order has no slot (${outcome === "PAID_BUT_SOLD_OUT" ? "hold expired and package sold out" : "order cancelled by an admin"})`,
+          summary: `REFUND NEEDED: ${spOrderId} paid ৳${fmtAmount(paymentInfo.amount)} but the order has no slot (${outcome === "PAID_BUT_SOLD_OUT" ? "hold expired and package sold out" : "order cancelled by an admin"})`,
         });
         return NextResponse.redirect(
           `${origin}/payment/failed?orderId=${payment.orderId}&reason=paid_no_slot`,
@@ -567,7 +573,7 @@ export async function GET(request: NextRequest) {
         entityType: "payment",
         entityId: payment.orderId,
         eventId: payment.order.eventId,
-        summary: `Payment ${spOrderId} confirmed · ৳${paymentInfo.amount}${paymentInfo.method ? ` via ${paymentInfo.method}` : ""}`,
+        summary: `Payment ${spOrderId} confirmed · ৳${fmtAmount(paymentInfo.amount)}${paymentInfo.method ? ` via ${paymentInfo.method}` : ""}`,
         changes: { status: [payment.status, "PAID"], order: [payment.order.status, "CONFIRMED"] },
       });
 

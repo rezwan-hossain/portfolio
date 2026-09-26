@@ -27,4 +27,17 @@ export type AuditEntry = {
   summary: string;
   changes: Record<string, [unknown, unknown]> | null;
   requestId: string | null;
+  /** The runner behind an order/payment/registration entry, looked up at read time. */
+  subject: AuditSubject | null;
+};
+
+export type AuditSubject = {
+  orderId: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  packageName: string;
+  eventName: string;
+  orderStatus: string;
+  paymentStatus: string | null;
 };
