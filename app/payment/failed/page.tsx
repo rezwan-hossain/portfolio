@@ -20,7 +20,15 @@ export default async function PaymentFailedPage({
     missing_order: "Order information is missing",
     server_error: "A server error occurred",
     unknown: "An unknown error occurred",
+    declined: "Payment was declined by your bank",
+    verification_error: "We couldn't verify your payment yet",
+    unknown_status: "Your payment is being reviewed",
+    paid_no_slot:
+      "Your payment was received, but your reservation expired and this package is now full. We'll refund you — please contact support with your order ID.",
   };
+
+  // Money may already have been taken for these — retrying could charge twice.
+  const noRetryReasons = ["paid_no_slot", "unknown_status"];
 
   const message = reason
     ? reasonMessages[reason] || "Payment was not completed"
@@ -52,7 +60,7 @@ export default async function PaymentFailedPage({
 
         {/* Actions */}
         <div className="flex flex-col gap-3">
-          {orderId && (
+          {orderId && !noRetryReasons.includes(reason ?? "") && (
             <Link
               href={`/payment/retry?orderId=${orderId}`}
               className="w-full py-3 bg-neutral-900 text-white rounded-full font-semibold text-sm hover:opacity-90 transition-opacity inline-block text-center"

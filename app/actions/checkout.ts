@@ -20,6 +20,12 @@ import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestId } from "@/utils/requestUtils";
+import { revalidateTag } from "next/cache";
+import {
+  claimSlots,
+  newHoldExpiry,
+  releaseExpiredHolds,
+} from "@/lib/slot-hold";
 
 // ─── GET CHECKOUT DATA ─────────────────────────────────────
 // UNCHANGED.
@@ -211,6 +217,8 @@ async function getOrCreateGuestUser(params: {
   }
 }
 
+const MAX_QTY_PER_ORDER = 10;
+
 // ─── PLACE ORDER ───────────────────────────────────────────
 export async function placeOrder(formData: {
   packageId: number;
@@ -245,6 +253,18 @@ export async function placeOrder(formData: {
   });
 
   log.info("action:start");
+
+  // qty drives both price and slot math — a 0/negative/fractional value would
+  // create a free order or hand slots back.
+  if (
+    !Number.isInteger(formData.qty) ||
+    formData.qty < 1 ||
+    formData.qty > MAX_QTY_PER_ORDER
+  ) {
+    log.warn({ qty: formData.qty }, "order:invalid_qty");
+    await log.flush();
+    return { error: "Invalid ticket quantity" };
+  }
 
   // ─── RESOLVE USER (logged-in OR guest) ─────────────────
   const supabase = await createClient();
@@ -379,14 +399,30 @@ export async function placeOrder(formData: {
       "db:success",
     );
 
-    // ─── SLOT CHECK ────────────────────────────────────────
-    const slotsLeft = pkg.availableSlots - pkg.usedSlots;
-    if (slotsLeft < formData.qty) {
+    if (pkg.eventId !== formData.eventId || !pkg.isActive) {
       logWithUser.warn(
-        { slotsLeft, requestedQty: formData.qty },
-        "order:slot_limit_exceeded",
+        { pkgEventId: pkg.eventId, pkgActive: pkg.isActive },
+        "order:package_not_available",
       );
-      return { error: `Only ${slotsLeft} slots remaining` };
+      return { error: "This package is not available" };
+    }
+
+    // ─── FREE EXPIRED HOLDS ────────────────────────────────
+    // Abandoned checkouts on this package past their hold go back to the pool
+    // before we check availability.
+    try {
+      // No gateway check here (keeps checkout fast): orders that reached
+      // ShurjoPay are only released by the background sweep after verifying.
+      const { slugs: releasedSlugs } = await releaseExpiredHolds({
+        packageId: pkg.id,
+      });
+      if (releasedSlugs.length > 0) {
+        logWithUser.info({ releasedSlugs }, "slots:expired_holds_released");
+        for (const slug of releasedSlugs) revalidateTag(`event-${slug}`, "max");
+      }
+    } catch (err) {
+      // Non-fatal: the claim below is still authoritative.
+      logWithUser.error({ err }, "slots:release_expired_failed");
     }
 
     // ─── CALCULATE PRICING ─────────────────────────────────
@@ -533,6 +569,7 @@ export async function placeOrder(formData: {
           total,
           status: "PENDING",
           couponId,
+          holdExpiresAt: newHoldExpiry(),
         },
       });
 
@@ -580,10 +617,10 @@ export async function placeOrder(formData: {
         "tx:package.usedSlots.increment",
       );
 
-      await tx.package.update({
-        where: { id: formData.packageId },
-        data: { usedSlots: { increment: formData.qty } },
-      });
+      // Atomic claim: two buyers racing for the last slot can't both pass.
+      if (!(await claimSlots(tx, formData.packageId, formData.qty))) {
+        throw new Error("NO_SLOTS"); // rolls back the whole order
+      }
 
       return newOrder;
     });
@@ -611,6 +648,10 @@ export async function placeOrder(formData: {
       isGuest,
     };
   } catch (error) {
+    if (error instanceof Error && error.message === "NO_SLOTS") {
+      logWithUser.warn({ qty: formData.qty }, "order:slot_limit_exceeded");
+      return { error: "Sorry, not enough slots left for this package" };
+    }
     logWithUser.error(
       { err: error, durationMs: Date.now() - start },
       "action:error",

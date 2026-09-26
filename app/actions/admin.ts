@@ -509,6 +509,20 @@ export async function updateOrderStatus(
       });
       if (!current) throw new Error("NOT_FOUND");
 
+      // Lock in the transition first, guarded on the status we just read.
+      // The conditional update row-locks the order, so a concurrent slot-hold
+      // sweep or payment callback can't also move it and double-apply the
+      // slot change below. holdExpiresAt is cleared: an admin decision is
+      // never auto-released or auto-reclaimed.
+      const moved = await tx.order.updateMany({
+        where: { id: orderId, status: current.status },
+        data: {
+          status: orderStatus as "PENDING" | "CONFIRMED" | "CANCELLED",
+          holdExpiresAt: null,
+        },
+      });
+      if (moved.count === 0) throw new Error("CONFLICT");
+
       // "Is this order occupying a slot right now?" — anything that isn't
       // cancelled is holding one.
       const held = current.status !== "CANCELLED";
@@ -542,12 +556,6 @@ export async function updateOrderStatus(
       // held === willHold → nothing changed, leave usedSlots alone.
       // This is what makes saving the same status twice safe.
 
-      // 2. Update the order itself
-      await tx.order.update({
-        where: { id: orderId },
-        data: { status: orderStatus as "PENDING" | "CONFIRMED" | "CANCELLED" },
-      });
-
       // 3. Update the payment, if there is one
       if (current.payment) {
         await tx.payment.update({
@@ -569,6 +577,11 @@ export async function updateOrderStatus(
   } catch (err: any) {
     if (err?.message === "NOT_FOUND")
       return { success: false, error: "Order not found" };
+    if (err?.message === "CONFLICT")
+      return {
+        success: false,
+        error: "This order just changed — refresh and try again",
+      };
     if (err?.message === "NO_SLOTS")
       return { success: false, error: "No slots left to reinstate this order" };
 

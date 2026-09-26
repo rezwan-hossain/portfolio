@@ -116,6 +116,11 @@ model Order {
   createdById  String?                          // which admin created it (User.id)
   adminNote    String?                          // "cash at booth", "sponsor comp", etc.
 
+  // Online checkouts hold a slot until this time. Non-null = the system owns the
+  // hold (it can release it, and the order can be reclaimed on retry). Null =
+  // never auto-released (manual orders, admin-set statuses, manual review).
+  holdExpiresAt DateTime?
+
 
   couponUsage  CouponUsage?
   coupon       Coupon?       @relation(fields: [couponId], references: [id])
@@ -127,6 +132,7 @@ model Order {
 
   @@index([eventId, createdAt])   // default sort: newest first, per event
   @@index([eventId, status])      // status filter and the stats groupBy
+  @@index([status, holdExpiresAt]) // expired-hold sweep
 
   @@map("orders")
 }

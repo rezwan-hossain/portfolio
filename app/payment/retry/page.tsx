@@ -37,15 +37,22 @@ export default async function RetryPaymentPage({
 
   // Already paid
   if (order.payment?.status === "PAID") {
+    // Paid but the order lost its slot (expired hold / admin cancel) → refund
+    // case, not a success.
+    if (order.status !== "CONFIRMED") {
+      redirect(`/payment/failed?orderId=${orderId}&reason=paid_no_slot`);
+    }
     redirect(`/payment/success?orderId=${orderId}`);
   }
 
   // Reset failed payment for retry
+  // (A released/CANCELLED order keeps FAILED here — reclaimReleasedOrder
+  // flips it back to PENDING only if it actually gets its slot back.)
   if (order.payment?.status === "FAILED") {
     await prisma.payment.update({
       where: { id: order.payment.id },
       data: {
-        status: "PENDING",
+        ...(order.status === "PENDING" && { status: "PENDING" }),
         paymentId: null,
         transactionId: null,
       },

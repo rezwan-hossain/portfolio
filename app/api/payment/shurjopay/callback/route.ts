@@ -16,6 +16,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { applyCoupon } from "@/lib/coupon/apply-coupon";
 import { getRequestId } from "@/utils/requestUtils";
 import { logger } from "@/lib/logger";
+import { confirmPaidOrder, releaseHold } from "@/lib/slot-hold";
+import { revalidateTag } from "next/cache";
 
 export async function GET(request: NextRequest) {
   const requestId = await getRequestId();
@@ -195,12 +197,42 @@ export async function GET(request: NextRequest) {
     );
     console.log("📦 Found payment:", payment.id, "for order:", payment.orderId);
 
+    const spCode = Number(paymentInfo.sp_code);
+
     // ✅ Idempotency check
     if (payment.status === "PAID") {
-      log.warn(
-        { paymentId: payment.id, orderId: payment.orderId },
-        "payment:duplicate_callback — already PAID, redirecting",
-      );
+      // A *different* gateway session also succeeded for an order that was
+      // already paid (e.g. two tabs, or retry while the old tab was open):
+      // the customer was charged twice.
+      if (
+        spCode === SP_CODE.SUCCESS &&
+        payment.paymentId &&
+        payment.paymentId !== spOrderId
+      ) {
+        log.error(
+          {
+            paymentId: payment.id,
+            orderId: payment.orderId,
+            keptSpOrderId: payment.paymentId,
+            duplicateSpOrderId: spOrderId,
+            amount: paymentInfo.amount,
+          },
+          "payment:REFUND_REQUIRED — second successful payment for a paid order",
+        );
+      } else {
+        log.warn(
+          { paymentId: payment.id, orderId: payment.orderId },
+          "payment:duplicate_callback — already PAID, redirecting",
+        );
+      }
+
+      // Paid but the order holds no slot (expired + sold out, or admin
+      // cancelled) → refund case, never the success page.
+      if (payment.order.status !== "CONFIRMED") {
+        return NextResponse.redirect(
+          `${origin}/payment/failed?orderId=${payment.orderId}&reason=paid_no_slot`,
+        );
+      }
 
       console.log("ℹ️ Payment already PAID, redirecting to success");
       return NextResponse.redirect(
@@ -208,8 +240,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // A callback from an older gateway session (the customer retried and got a
+    // new session) must not fail/release the order while the newer session
+    // may still be paid. Success from an old session is still honoured below.
+    const isStaleSession =
+      !!payment.paymentId && payment.paymentId !== spOrderId;
+
     // ─── Check payment status using sp_code (per documentation) ───────
-    const spCode = Number(paymentInfo.sp_code);
 
     console.log("📊 Payment status check:", {
       sp_code: spCode,
@@ -224,37 +261,94 @@ export async function GET(request: NextRequest) {
 
       console.log("✅ Payment SUCCESS (sp_code=1000) — updating DB...");
 
+      // Never confirm on a payment that doesn't match what we charged.
+      const paidAmount = Number(paymentInfo.amount);
+      const amountMismatch =
+        Number.isFinite(paidAmount) && paidAmount < payment.amount;
+      const orderMismatch =
+        !!paymentInfo.value1 && paymentInfo.value1 !== payment.orderId;
+
+      if (!Number.isFinite(paidAmount)) {
+        log.warn({ amount: paymentInfo.amount }, "payment:amount_missing");
+      }
+
+      if (amountMismatch || orderMismatch) {
+        log.error(
+          {
+            paymentId: payment.id,
+            orderId: payment.orderId,
+            spOrderId,
+            expectedAmount: payment.amount,
+            paidAmount: paymentInfo.amount,
+            value1: paymentInfo.value1,
+          },
+          "payment:REVIEW_REQUIRED — amount/order mismatch, not confirming",
+        );
+        // Keep the slot held for manual review; payment stays unpaid here.
+        await prisma.order.updateMany({
+          where: { id: payment.orderId, status: "PENDING" },
+          data: { holdExpiresAt: null },
+        });
+        return NextResponse.redirect(
+          `${origin}/payment/failed?orderId=${payment.orderId}&reason=unknown_status`,
+        );
+      }
+
       const txStart = Date.now();
 
-      await prisma.$transaction(async (tx) => {
-        log.info({ orderId: payment.orderId }, "tx:payment.update → PAID");
+      // Every step is conditional, so concurrent callbacks for the same
+      // payment (redirect + IPN, refresh) can't both pass: only the one that
+      // actually flips the payment to PAID goes on to confirm and notify.
+      log.info({ orderId: payment.orderId }, "tx:payment → PAID, order → CONFIRMED");
 
-        await tx.payment.update({
-          where: { id: payment.id },
-          data: {
-            status: "PAID",
-            // ✅ Use order_id from verification as transaction reference
-            transactionId: paymentInfo.order_id || spOrderId,
-            paymentMethod: paymentInfo.method || "shurjopay",
-            paymentGateway: "shurjopay",
-            paymentId: spOrderId,
-          },
-        });
-
-        log.info({ orderId: payment.orderId }, "tx:order.update → CONFIRMED");
-
-        await tx.order.update({
-          where: { id: payment.orderId },
-          data: { status: "CONFIRMED" },
-        });
+      const outcome = await confirmPaidOrder({
+        paymentId: payment.id,
+        orderId: payment.orderId,
+        paymentData: {
+          // ✅ Use order_id from verification as transaction reference
+          transactionId: paymentInfo.order_id || spOrderId,
+          paymentMethod: paymentInfo.method || "shurjopay",
+          paymentGateway: "shurjopay",
+          paymentId: spOrderId,
+        },
       });
+
       log.info(
         {
           orderId: payment.orderId,
+          outcome,
           db: { operation: "transaction", durationMs: Date.now() - txStart },
         },
-        "db:transaction_success — order CONFIRMED",
+        "db:transaction_success",
       );
+
+      if (outcome === "ALREADY_PAID") {
+        log.warn(
+          { paymentId: payment.id, orderId: payment.orderId },
+          "payment:duplicate_callback — lost the race, skipping notifications",
+        );
+        return NextResponse.redirect(
+          `${origin}/payment/success?orderId=${payment.orderId}`,
+        );
+      }
+
+      if (outcome === "PAID_BUT_SOLD_OUT" || outcome === "PAID_BUT_CANCELLED") {
+        // Money was taken but there is no slot for this order. Needs a
+        // manual refund — this log line is the alert.
+        log.error(
+          {
+            paymentId: payment.id,
+            orderId: payment.orderId,
+            spOrderId,
+            amount: paymentInfo.amount,
+            outcome,
+          },
+          "payment:REFUND_REQUIRED — paid for an order with no slot",
+        );
+        return NextResponse.redirect(
+          `${origin}/payment/failed?orderId=${payment.orderId}&reason=paid_no_slot`,
+        );
+      }
 
       // ─── Coupon Application ───────────────────────
       try {
@@ -455,6 +549,16 @@ export async function GET(request: NextRequest) {
       log.warn({ spCode, orderId: payment.orderId }, "payment:cancelled");
 
       console.log("⚠️ Payment CANCELLED (sp_code=1002)");
+
+      if (isStaleSession) {
+        log.warn(
+          { orderId: payment.orderId, spOrderId, currentSpOrderId: payment.paymentId },
+          "payment:stale_session_callback — ignoring, newer session in progress",
+        );
+        return NextResponse.redirect(
+          `${origin}/payment/failed?orderId=${payment.orderId}&reason=cancelled`,
+        );
+      }
       await prisma.payment.update({
         where: { id: payment.id },
         data: {
@@ -464,6 +568,18 @@ export async function GET(request: NextRequest) {
         },
       });
       log.info({ orderId: payment.orderId }, "db:payment_updated → FAILED");
+
+      // Give the slot back now instead of waiting for the hold to expire.
+      // The order stays reclaimable if the customer retries.
+      try {
+        const releasedSlug = await releaseHold(payment.orderId);
+        if (releasedSlug) {
+          revalidateTag(`event-${releasedSlug}`, "max");
+          log.info({ orderId: payment.orderId }, "slots:hold_released");
+        }
+      } catch (err) {
+        log.error({ err, orderId: payment.orderId }, "slots:release_failed");
+      }
 
       return NextResponse.redirect(
         `${origin}/payment/failed?orderId=${payment.orderId}&reason=cancelled`,
@@ -478,6 +594,16 @@ export async function GET(request: NextRequest) {
       );
 
       console.log("❌ Payment DECLINED by bank (sp_code=1001)");
+
+      if (isStaleSession) {
+        log.warn(
+          { orderId: payment.orderId, spOrderId, currentSpOrderId: payment.paymentId },
+          "payment:stale_session_callback — ignoring, newer session in progress",
+        );
+        return NextResponse.redirect(
+          `${origin}/payment/failed?orderId=${payment.orderId}&reason=declined`,
+        );
+      }
       await prisma.payment.update({
         where: { id: payment.id },
         data: {
@@ -488,6 +614,18 @@ export async function GET(request: NextRequest) {
       });
 
       log.info({ orderId: payment.orderId }, "db:payment_updated → FAILED");
+
+      // Give the slot back now instead of waiting for the hold to expire.
+      // The order stays reclaimable if the customer retries.
+      try {
+        const releasedSlug = await releaseHold(payment.orderId);
+        if (releasedSlug) {
+          revalidateTag(`event-${releasedSlug}`, "max");
+          log.info({ orderId: payment.orderId }, "slots:hold_released");
+        }
+      } catch (err) {
+        log.error({ err, orderId: payment.orderId }, "slots:release_failed");
+      }
 
       return NextResponse.redirect(
         `${origin}/payment/failed?orderId=${payment.orderId}&reason=declined`,
@@ -505,6 +643,16 @@ export async function GET(request: NextRequest) {
       "payment:unknown_sp_code — keeping PENDING for manual review",
     );
 
+    if (isStaleSession) {
+      log.warn(
+        { orderId: payment.orderId, spOrderId, currentSpOrderId: payment.paymentId },
+        "payment:stale_session_callback — unknown code, not touching newer session",
+      );
+      return NextResponse.redirect(
+        `${origin}/payment/failed?orderId=${payment.orderId}&reason=unknown_status`,
+      );
+    }
+
     // Keep as PENDING for manual review
     await prisma.payment.update({
       where: { id: payment.id },
@@ -512,6 +660,13 @@ export async function GET(request: NextRequest) {
         status: "PENDING",
         paymentId: spOrderId,
       },
+    });
+
+    // Money may have moved — stop the hold from expiring so the slot stays
+    // reserved until an admin resolves it.
+    await prisma.order.updateMany({
+      where: { id: payment.orderId, status: "PENDING" },
+      data: { holdExpiresAt: null },
     });
 
     log.info({ orderId: payment.orderId }, "db:payment_updated → PENDING");

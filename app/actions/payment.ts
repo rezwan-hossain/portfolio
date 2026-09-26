@@ -6,6 +6,7 @@ import { getShurjoPayToken, createShurjoPayPayment } from "@/lib/shurjopay";
 import { getClientIp } from "@/lib/get-client-ip";
 import { logger } from "@/lib/logger";
 import { getRequestId } from "@/utils/requestUtils";
+import { newHoldExpiry, reclaimReleasedOrder } from "@/lib/slot-hold";
 
 export async function initiateShurjoPayPayment({
   orderId,
@@ -101,6 +102,52 @@ export async function initiateShurjoPayPayment({
         error: "Order is already paid",
         checkoutUrl: "",
       };
+    }
+
+    // Step 0: Make sure this order holds its slot for the whole payment.
+    //   PENDING   → refresh the hold so it can't expire mid-payment.
+    //   CANCELLED → if the system released it (expired / declined), take the
+    //               slot back if one is still free; admin cancels are final.
+    // Both writes are conditional on the status, so a concurrent sweep can't
+    // slip between the check and the update.
+    const refreshed = await prisma.order.updateMany({
+      where: { id: order.id, status: "PENDING", source: "ONLINE" },
+      data: { holdExpiresAt: newHoldExpiry() },
+    });
+
+    if (refreshed.count === 0) {
+      const current = await prisma.order.findUnique({
+        where: { id: order.id },
+        select: { status: true, source: true },
+      });
+
+      if (current?.status === "CANCELLED") {
+        const reclaim = await reclaimReleasedOrder(order.id);
+        log.info({ reclaim }, "slots:reclaim_attempt");
+
+        if (reclaim === "NO_SLOTS") {
+          return {
+            success: false,
+            error:
+              "Sorry, your reservation expired and this package is now sold out.",
+            checkoutUrl: "",
+          };
+        }
+        if (reclaim === "NOT_RECLAIMABLE") {
+          return {
+            success: false,
+            error: "This order was cancelled. Please place a new order.",
+            checkoutUrl: "",
+          };
+        }
+      } else if (current?.status === "CONFIRMED") {
+        return {
+          success: false,
+          error: "Order is already paid",
+          checkoutUrl: "",
+        };
+      }
+      // PENDING manual orders fall through unchanged (no hold to refresh).
     }
 
     // Step 1: Get ShurjoPay token
