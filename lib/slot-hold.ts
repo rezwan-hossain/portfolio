@@ -22,7 +22,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/generated/prisma";
 import { audit, SYSTEM } from "@/lib/audit";
 
-export const SLOT_HOLD_MS = 60 * 60 * 1000; // 1 hour
+export const SLOT_HOLD_MS = 24 * 60 * 60 * 1000; //60 * 60 * 1000; // 1 hour
 
 export function newHoldExpiry(now: Date = new Date()): Date {
   return new Date(now.getTime() + SLOT_HOLD_MS);

@@ -12,7 +12,9 @@
 // The page's own cache (cacheLife "hours") then picks up the freed slots on its
 // next revalidation; checkout itself always sees the live count.
 
-const SWEEP_INTERVAL_MS = 5 * 60 * 1000;
+// Holds last 24 hours (SLOT_HOLD_MS), so checking hourly is plenty: an
+// abandoned slot comes back at most ~1 hour after its hold expires.
+const SWEEP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
