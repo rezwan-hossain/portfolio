@@ -23,6 +23,7 @@ import {
   ImageIcon,
   Ticket,
   Users,
+  BarChart3,
 } from "lucide-react";
 
 // Admin panels are code-split: non-admins never download them, and admins
@@ -42,6 +43,10 @@ const ManageHomepagePanel = dynamic(
 );
 const AdminGalleryPanel = dynamic(
   () => import("../components/admin/AdminGalleryPanel").then((m) => m.AdminGalleryPanel),
+  { loading: panelLoading },
+);
+const AdminDashboardPanel = dynamic(
+  () => import("../components/admin/AdminDashboardPanel").then((m) => m.AdminDashboardPanel),
   { loading: panelLoading },
 );
 const AdminTeamPanel = dynamic(
@@ -68,6 +73,7 @@ type ProfilePageProps = {
 
 type Tab =
   | "profile"
+  | "dashboard"
   | "password"
   | "events"
   | "homepage"
@@ -91,6 +97,12 @@ function AdminTabContent({
   const data = use(adminData);
 
   switch (tab) {
+    case "dashboard":
+      return (
+        <AdminDashboardPanel
+          events={data.adminEvents.map((e) => ({ id: e.id, name: e.name }))}
+        />
+      );
     case "events":
       return (
         <AdminEventsPanel
@@ -125,6 +137,16 @@ const ProfilePage = ({ profile, isOAuthUser, adminData }: ProfilePageProps) => {
       icon: User,
       description: "Update your personal details",
     },
+    ...(isAdmin
+      ? [
+          {
+            id: "dashboard" as Tab,
+            label: "Dashboard",
+            icon: BarChart3,
+            description: "Sales, revenue & runners",
+          },
+        ]
+      : []),
     ...(!isOAuthUser
       ? [
           {
@@ -210,7 +232,8 @@ const ProfilePage = ({ profile, isOAuthUser, adminData }: ProfilePageProps) => {
                     </p>
                   </div>
 
-                  {(tab.id === "events" ||
+                  {(tab.id === "dashboard" ||
+                    tab.id === "events" ||
                     tab.id === "homepage" ||
                     tab.id === "coupons" ||
                     tab.id === "gallery" ||
