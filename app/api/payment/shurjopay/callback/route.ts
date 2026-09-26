@@ -13,7 +13,7 @@ import {
 import { formatBDPhone, getPaymentConfirmationSMS, sendSMS } from "@/lib/sms";
 import { NextRequest, NextResponse } from "next/server";
 
-import { applyCoupon } from "@/app/actions/coupon";
+import { applyCoupon } from "@/lib/coupon/apply-coupon";
 import { getRequestId } from "@/utils/requestUtils";
 import { logger } from "@/lib/logger";
 
