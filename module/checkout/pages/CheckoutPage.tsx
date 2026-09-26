@@ -1,7 +1,7 @@
 // module/checkout/pages/CheckoutPage.tsx
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { BillingForm, BillingFormRef } from "../components/BillingForm";
 import { OrderSummary } from "../components/OrderSummary";
 import { HeroText } from "@/components/ui/HeroText";
@@ -33,6 +33,26 @@ const CheckoutPage = ({
   const [paymentMethod, setPaymentMethod] = useState("shurjopay");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Guards against duplicate orders: `submittingRef` blocks re-entry before the
+  // `loading` re-render lands (fast double-click), and `orderIdRef` remembers an
+  // order that was already created so a failed payment start retries payment
+  // for that order instead of placing a new one.
+  const submittingRef = useRef(false);
+  const orderIdRef = useRef<string | null>(null);
+
+  // Returning from the gateway via the back button can restore this page from
+  // the bfcache with the button still stuck in its loading state.
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        submittingRef.current = false;
+        setLoading(false);
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
 
   // ─── Coupon state ───
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(
@@ -128,6 +148,7 @@ const CheckoutPage = ({
   };
 
   const handlePlaceOrder = async () => {
+    if (submittingRef.current) return;
     setError("");
 
     // Validate form and focus on first invalid field
@@ -138,6 +159,7 @@ const CheckoutPage = ({
       return;
     }
 
+    submittingRef.current = true;
     setLoading(true);
 
     try {
@@ -163,27 +185,36 @@ const CheckoutPage = ({
         }),
       );
 
-      const orderResult = await placeOrder(safeArgs);
+      let orderId = orderIdRef.current;
 
-      console.log("🛒 Place order result:", orderResult);
+      if (!orderId) {
+        const orderResult = await placeOrder(safeArgs);
 
-      if (orderResult.error) {
-        setError(orderResult.error);
-        setLoading(false);
-        return;
-      }
+        console.log("🛒 Place order result:", orderResult);
 
-      if (!orderResult.orderId) {
-        setError("Failed to create order");
-        setLoading(false);
-        return;
+        if (orderResult.error) {
+          setError(orderResult.error);
+          setLoading(false);
+          submittingRef.current = false;
+          return;
+        }
+
+        if (!orderResult.orderId) {
+          setError("Failed to create order");
+          setLoading(false);
+          submittingRef.current = false;
+          return;
+        }
+
+        orderId = orderResult.orderId;
+        orderIdRef.current = orderId;
       }
 
       // ✅ Step 2: If ShurjoPay → initiate payment & redirect
       if (paymentMethod === "shurjopay") {
         const paymentArgs = JSON.parse(
           JSON.stringify({
-            orderId: orderResult.orderId,
+            orderId,
             customerName: formData.fullName,
             customerEmail: formData.email || userEmail,
             customerPhone: formData.phone,
@@ -197,6 +228,7 @@ const CheckoutPage = ({
         if (paymentResult.error) {
           setError(paymentResult.error);
           setLoading(false);
+          submittingRef.current = false;
           return;
         }
 
@@ -208,15 +240,17 @@ const CheckoutPage = ({
 
         setError("Failed to get payment URL");
         setLoading(false);
+        submittingRef.current = false;
         return;
       }
 
       // Non-ShurjoPay → go to confirmation directly
-      router.push(`/order-confirmation?orderId=${orderResult.orderId}`);
+      router.push(`/order-confirmation?orderId=${orderId}`);
     } catch (err) {
       console.error("Error placing order:", err);
       setError("An unexpected error occurred. Please try again.");
       setLoading(false);
+      submittingRef.current = false;
     }
   };
 
