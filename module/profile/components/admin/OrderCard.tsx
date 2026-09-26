@@ -22,7 +22,9 @@ import {
   Users,
   Hash,
   UserX,
+  Pencil,
 } from "lucide-react";
+import { EditRegistrationForm } from "./EditRegistrationForm";
 
 type Props = {
   order: EventOrder;
@@ -33,6 +35,8 @@ type Props = {
     orderStatus: string,
     paymentStatus: string,
   ) => void;
+  /** Called after registration details were edited, so the list can reload. */
+  onDetailsSaved?: () => void;
 };
 
 // ─── Status Configs ─────────────────────────────────
@@ -79,6 +83,7 @@ export function OrderCard({
   expanded,
   onToggle,
   onStatusChange,
+  onDetailsSaved,
 }: Props) {
   const [showActions, setShowActions] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -117,6 +122,8 @@ export function OrderCard({
       ? "bg-amber-50 border-amber-200"
       : orderConfig.bg
     : "border-gray-200 bg-white";
+
+  const [editing, setEditing] = useState(false);
 
   const handleStatusChange = async (
     newOrderStatus: string,
@@ -267,7 +274,7 @@ export function OrderCard({
             </div>
           )}
           {order.adminNote && (
-            <p className="text-xs text-gray-500 italic mt-2">
+            <p className="text-xs text-gray-500 italic mt-2 whitespace-pre-line break-words">
               Note: {order.adminNote}
             </p>
           )}
@@ -315,11 +322,40 @@ export function OrderCard({
             </div>
           </div>
           {/* ─── Registration Details ─── */}
-          {order.registration && (
+          {order.registration && editing && (
+            <EditRegistrationForm
+              registration={order.registration}
+              orderId={order.id}
+              onCancel={() => setEditing(false)}
+              onSaved={() => {
+                setEditing(false);
+                onDetailsSaved?.();
+              }}
+            />
+          )}
+          {order.registration && !editing && (
             <div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-                Registration Details
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                  Registration Details
+                  {order.registration.bibNumber && (
+                    <span className="ml-2 normal-case tracking-normal text-gray-500">
+                      · BIB {order.registration.bibNumber}
+                    </span>
+                  )}
+                </p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditing(true);
+                  }}
+                  className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer"
+                  title="Fix name, t-shirt size, contacts, BIB…"
+                >
+                  <Pencil size={11} />
+                  Edit
+                </button>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[
                   {

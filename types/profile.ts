@@ -267,3 +267,20 @@ export type ActivityStats = {
   todayCount: number;
   weekCount: number;
 };
+
+/** Fields an admin can correct on an existing registration. */
+export type RegistrationEditInput = {
+  fullName: string;
+  email: string;
+  phone: string;
+  gender: string;
+  birthDate: string; // YYYY-MM-DD
+  ageCategory: string;
+  bloodGroup: string;
+  tshirtSize: string;
+  runnerCategory: string;
+  communityName: string;
+  emergencyContactName: string;
+  emergencyContactNumber: string;
+  bibNumber: string;
+};

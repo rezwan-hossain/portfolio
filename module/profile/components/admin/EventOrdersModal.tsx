@@ -464,6 +464,7 @@ export function EventOrdersModal({ event, onClose, initialView }: Props) {
                     <OrderCard
                       key={order.id}
                       order={order}
+                      onDetailsSaved={() => void loadPage()}
                       expanded={expandedOrder === order.id}
                       onToggle={() =>
                         setExpandedOrder(
