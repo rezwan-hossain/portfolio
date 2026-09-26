@@ -3,6 +3,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { revalidateTag } from "next/cache";
 import type { CouponValidationResult } from "@/types/coupon";
 
@@ -172,6 +173,9 @@ export async function createCoupon(data: {
   scopeType?: "EVENT" | "PACKAGE";
   packageIds?: number[];
 }) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return { success: false, error: authError };
+
   try {
     const normalizedCode = data.code.toUpperCase().trim();
 
@@ -259,6 +263,9 @@ export async function getAllCoupons(filters?: {
   eventId?: string;
   isActive?: boolean;
 }) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return { coupons: [], error: authError };
+
   try {
     const coupons = await prisma.coupon.findMany({
       where: {
@@ -305,6 +312,9 @@ export async function updateCoupon(
     packageIds: number[];
   }>,
 ) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return { success: false, error: authError };
+
   try {
     // Get current coupon
     const currentCoupon = await prisma.coupon.findUnique({
@@ -383,6 +393,9 @@ export async function updateCoupon(
 
 // ─── DELETE COUPON ────────────────────────────────
 export async function deleteCoupon(id: string) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return { success: false, error: authError };
+
   try {
     // Check if coupon has been used
     const usageCount = await prisma.couponUsage.count({
@@ -414,6 +427,10 @@ export async function deleteCoupon(id: string) {
 
 // ─── GET COUPON STATS ─────────────────────────────
 export async function getCouponStats(couponId: string) {
+  const { error: authError } = await requireAdmin();
+  if (authError)
+    return { usages: [], totalUsages: 0, totalDiscount: 0, error: authError };
+
   try {
     const usages = await prisma.couponUsage.findMany({
       where: { couponId },
