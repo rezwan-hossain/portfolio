@@ -24,6 +24,7 @@ import {
   Ticket,
   Users,
   BarChart3,
+  History,
 } from "lucide-react";
 
 // Admin panels are code-split: non-admins never download them, and admins
@@ -47,6 +48,10 @@ const AdminGalleryPanel = dynamic(
 );
 const AdminDashboardPanel = dynamic(
   () => import("../components/admin/AdminDashboardPanel").then((m) => m.AdminDashboardPanel),
+  { loading: panelLoading },
+);
+const AdminAuditLogPanel = dynamic(
+  () => import("../components/admin/AdminAuditLogPanel").then((m) => m.AdminAuditLogPanel),
   { loading: panelLoading },
 );
 const AdminTeamPanel = dynamic(
@@ -79,7 +84,8 @@ type Tab =
   | "homepage"
   | "gallery"
   | "coupons"
-  | "team";
+  | "team"
+  | "audit";
 
 type AdminTab = Exclude<Tab, "profile" | "password">;
 
@@ -121,6 +127,12 @@ function AdminTabContent({
       return <ManageHomepagePanel initialHeroes={data.heroSections} />;
     case "gallery":
       return <AdminGalleryPanel initialImages={data.galleryImages} />;
+    case "audit":
+      return (
+        <AdminAuditLogPanel
+          events={data.adminEvents.map((e) => ({ id: e.id, name: e.name }))}
+        />
+      );
     case "team":
       return <AdminTeamPanel initialMembers={data.teamMembers} />;
   }
@@ -189,6 +201,12 @@ const ProfilePage = ({ profile, isOAuthUser, adminData }: ProfilePageProps) => {
             icon: Users,
             description: "Add & edit team members",
           },
+          {
+            id: "audit" as Tab,
+            label: "Audit Log",
+            icon: History,
+            description: "Who changed what, and when",
+          },
         ]
       : []),
   ];
@@ -237,7 +255,8 @@ const ProfilePage = ({ profile, isOAuthUser, adminData }: ProfilePageProps) => {
                     tab.id === "homepage" ||
                     tab.id === "coupons" ||
                     tab.id === "gallery" ||
-                    tab.id === "team") && (
+                    tab.id === "team" ||
+                    tab.id === "audit") && (
                     <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-neon-lime text-gray-900 px-1.5 py-0.5 rounded">
                       Admin
                     </span>

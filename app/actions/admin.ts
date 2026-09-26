@@ -5,6 +5,22 @@ import { requireAdmin } from "@/lib/auth/require-admin";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath, revalidateTag } from "next/cache";
+import { audit, diff } from "@/lib/audit";
+
+const EVENT_AUDIT_FIELDS = [
+  "name",
+  "slug",
+  "date",
+  "time",
+  "address",
+  "eventType",
+  "shortDesc",
+  "bannerImage",
+  "thumbImage",
+  "minPackagePrice",
+  "organizerId",
+  "status",
+] as const;
 
 // ─── Auth helper ────────────────────────────────────
 
@@ -124,6 +140,14 @@ export async function createEvent(formData: {
       },
     });
 
+    await audit({
+      action: "event.created",
+      entityType: "event",
+      entityId: event.id,
+      eventId: event.id,
+      summary: `Created event "${event.name}" (${event.slug})`,
+    });
+
     return { success: true, error: "", eventId: String(event.id) };
   } catch (err: any) {
     console.error("Create event error:", err?.message);
@@ -157,7 +181,6 @@ export async function updateEvent(
     // 1. Fetch current event before updating to know if the slug changed
     const currentEvent = await prisma.event.findUnique({
       where: { id: eventId },
-      select: { slug: true },
     });
 
     // Check slug uniqueness (exclude current event)
@@ -169,7 +192,7 @@ export async function updateEvent(
       return { success: false, error: "Slug already in use by another event" };
     }
 
-    await prisma.event.update({
+    const updated = await prisma.event.update({
       where: { id: eventId },
       data: {
         name: formData.name,
@@ -189,6 +212,21 @@ export async function updateEvent(
         status: formData.status as any,
       },
     });
+
+    const changes = diff(currentEvent, updated, [...EVENT_AUDIT_FIELDS]);
+    if (currentEvent && currentEvent.description !== updated.description) {
+      changes.description = ["(previous text)", "(rich text edited)"];
+    }
+    if (Object.keys(changes).length > 0) {
+      await audit({
+        action: "event.updated",
+        entityType: "event",
+        entityId: eventId,
+        eventId,
+        summary: `Updated event "${updated.name}": ${Object.keys(changes).join(", ")}`,
+        changes,
+      });
+    }
 
     // Purge the cache for the NEW slug (Updates the Detail Page & Metadata)
     revalidateTag(`event-${formData.slug}`, "max");
@@ -215,9 +253,18 @@ export async function toggleEventActive(eventId: string, isActive: boolean) {
   if (error) return { success: false, error };
 
   try {
-    await prisma.event.update({
+    const ev = await prisma.event.update({
       where: { id: eventId },
       data: { isActive },
+    });
+
+    await audit({
+      action: isActive ? "event.activated" : "event.deactivated",
+      entityType: "event",
+      entityId: eventId,
+      eventId,
+      summary: `${isActive ? "Activated" : "Deactivated"} event "${ev.name}"`,
+      changes: { isActive: [!isActive, isActive] },
     });
 
     return { success: true, error: "" };
@@ -232,9 +279,17 @@ export async function deleteEvent(eventId: string) {
   if (error) return { success: false, error };
 
   try {
-    await prisma.event.update({
+    const ev = await prisma.event.update({
       where: { id: eventId },
       data: { isArchived: true, isActive: false },
+    });
+
+    await audit({
+      action: "event.deleted",
+      entityType: "event",
+      entityId: eventId,
+      eventId,
+      summary: `Deleted (archived) event "${ev.name}"`,
     });
 
     return { success: true, error: "" };
@@ -257,7 +312,7 @@ export async function addPackage(
   if (error) return { success: false, error };
 
   try {
-    await prisma.package.create({
+    const pkg = await prisma.package.create({
       data: {
         name: formData.name,
         distance: formData.distance,
@@ -265,6 +320,14 @@ export async function addPackage(
         availableSlots: parseInt(formData.availableSlots),
         eventId,
       },
+    });
+
+    await audit({
+      action: "package.created",
+      entityType: "package",
+      entityId: pkg.id,
+      eventId,
+      summary: `Added package "${pkg.name}" (${pkg.distance}) · ৳${pkg.price} · ${pkg.availableSlots} slots`,
     });
 
     return { success: true, error: "" };
@@ -287,7 +350,8 @@ export async function updatePackage(
   if (error) return { success: false, error };
 
   try {
-    await prisma.package.update({
+    const before = await prisma.package.findUnique({ where: { id: packageId } });
+    const pkg = await prisma.package.update({
       where: { id: packageId },
       data: {
         name: formData.name,
@@ -296,6 +360,18 @@ export async function updatePackage(
         availableSlots: parseInt(formData.availableSlots),
       },
     });
+
+    const changes = diff(before, pkg, ["name", "distance", "price", "availableSlots"]);
+    if (Object.keys(changes).length > 0) {
+      await audit({
+        action: "package.updated",
+        entityType: "package",
+        entityId: packageId,
+        eventId: pkg.eventId,
+        summary: `Updated package "${pkg.name}": ${Object.keys(changes).join(", ")}`,
+        changes,
+      });
+    }
 
     return { success: true, error: "" };
   } catch (err: any) {
@@ -309,9 +385,17 @@ export async function deletePackage(packageId: number) {
   if (error) return { success: false, error };
 
   try {
-    await prisma.package.update({
+    const pkg = await prisma.package.update({
       where: { id: packageId },
       data: { isActive: false, isArchived: true },
+    });
+
+    await audit({
+      action: "package.deleted",
+      entityType: "package",
+      entityId: packageId,
+      eventId: pkg.eventId,
+      summary: `Deleted (archived) package "${pkg.name}"`,
     });
 
     return { success: true, error: "" };
@@ -338,6 +422,13 @@ export async function createOrganizer(formData: {
         phone: formData.phone || null,
         logo: formData.logo || null,
       },
+    });
+
+    await audit({
+      action: "organizer.created",
+      entityType: "organizer",
+      entityId: organizer.id,
+      summary: `Created organizer "${organizer.name}"`,
     });
 
     return { success: true, error: "", organizerId: organizer.id };
@@ -493,7 +584,7 @@ export async function updateOrderStatus(
   try {
     // Everything runs in one transaction so we can never end up with the
     // order updated but the slot count wrong.
-    const slug = await prisma.$transaction(async (tx) => {
+    const { slug, before } = await prisma.$transaction(async (tx) => {
       // 1. Read the CURRENT status before we change anything.
       //    This is the key fix — we decide what to do based on the change
       //    (old → new), not just on the new value.
@@ -503,8 +594,10 @@ export async function updateOrderStatus(
           status: true,
           packageId: true,
           qty: true,
+          eventId: true,
           event: { select: { slug: true } },
-          payment: { select: { id: true } },
+          payment: { select: { id: true, status: true } },
+          registration: { select: { fullName: true } },
         },
       });
       if (!current) throw new Error("NOT_FOUND");
@@ -566,8 +659,24 @@ export async function updateOrderStatus(
         });
       }
 
-      return current.event.slug;
+      return { slug: current.event.slug, before: current };
     });
+
+    const changes = diff(
+      { status: before.status, paymentStatus: before.payment?.status ?? null },
+      { status: orderStatus, paymentStatus: before.payment ? paymentStatus : null },
+      ["status", "paymentStatus"],
+    );
+    if (Object.keys(changes).length > 0) {
+      await audit({
+        action: "order.status_changed",
+        entityType: "order",
+        entityId: orderId,
+        eventId: before.eventId,
+        summary: `Order ${orderId.slice(0, 8).toUpperCase()} (${before.registration?.fullName ?? "no name"}): ${before.status} → ${orderStatus}, payment ${before.payment?.status ?? "—"} → ${paymentStatus}`,
+        changes,
+      });
+    }
 
     revalidatePath("/profile");
     revalidatePath("/events");
@@ -686,6 +795,15 @@ export async function duplicateEvent(eventId: string) {
       },
     });
 
+    await audit({
+      action: "event.duplicated",
+      entityType: "event",
+      entityId: newEvent.id,
+      eventId: newEvent.id,
+      summary: `Duplicated "${original.name}" as "${newEvent.name}" (${original.packages.length} packages, inactive)`,
+      changes: { sourceEventId: [null, original.id] },
+    });
+
     revalidatePath("/profile");
     revalidatePath("/events");
 
@@ -720,6 +838,13 @@ export async function deleteStorageImage(imageUrl: string) {
       .remove([filePath]);
 
     if (deleteError) throw deleteError;
+
+    await audit({
+      action: "image.deleted",
+      entityType: "event",
+      entityId: filePath,
+      summary: `Deleted image from storage: ${filePath}`,
+    });
 
     return { success: true, error: null };
   } catch (err: any) {

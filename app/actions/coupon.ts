@@ -5,6 +5,21 @@ import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { revalidateTag } from "next/cache";
+import { audit, diff } from "@/lib/audit";
+
+const COUPON_AUDIT_FIELDS = [
+  "code",
+  "discountType",
+  "discountValue",
+  "maxUses",
+  "maxUsesPerUser",
+  "minOrderAmount",
+  "maxDiscount",
+  "validFrom",
+  "validUntil",
+  "isActive",
+  "scopeType",
+] as const;
 import type { CouponValidationResult } from "@/types/coupon";
 
 // ─── VALIDATE COUPON ──────────────────────────────
@@ -250,6 +265,14 @@ export async function createCoupon(data: {
       },
     });
 
+    await audit({
+      action: "coupon.created",
+      entityType: "coupon",
+      entityId: coupon.id,
+      eventId: coupon.eventId,
+      summary: `Created coupon ${coupon.code}: ${coupon.discountType === "PERCENTAGE" ? `${coupon.discountValue}%` : `৳${coupon.discountValue}`} off${coupon.maxUses ? `, max ${coupon.maxUses} uses` : ""}`,
+    });
+
     revalidateTag("coupons", "max");
     return { success: true, coupon, error: null };
   } catch (error) {
@@ -319,7 +342,7 @@ export async function updateCoupon(
     // Get current coupon
     const currentCoupon = await prisma.coupon.findUnique({
       where: { id },
-      select: { eventId: true, scopeType: true },
+      include: { packages: { select: { id: true } } },
     });
 
     if (!currentCoupon) {
@@ -383,6 +406,28 @@ export async function updateCoupon(
       },
     });
 
+    const changes = diff(currentCoupon, coupon, [...COUPON_AUDIT_FIELDS]);
+    const pkgBefore = currentCoupon.packages.map((p) => p.id).sort().join(",");
+    const pkgAfter = coupon.packages.map((p) => p.id).sort().join(",");
+    if (pkgBefore !== pkgAfter) changes.packages = [pkgBefore || null, pkgAfter || null];
+    if (Object.keys(changes).length > 0) {
+      const onlyToggle = Object.keys(changes).join() === "isActive";
+      await audit({
+        action: onlyToggle
+          ? coupon.isActive
+            ? "coupon.activated"
+            : "coupon.deactivated"
+          : "coupon.updated",
+        entityType: "coupon",
+        entityId: coupon.id,
+        eventId: coupon.eventId,
+        summary: onlyToggle
+          ? `${coupon.isActive ? "Activated" : "Deactivated"} coupon ${coupon.code}`
+          : `Updated coupon ${coupon.code}: ${Object.keys(changes).join(", ")}`,
+        changes,
+      });
+    }
+
     revalidateTag("coupons", "max");
     return { success: true, coupon, error: null };
   } catch (error) {
@@ -397,6 +442,11 @@ export async function deleteCoupon(id: string) {
   if (authError) return { success: false, error: authError };
 
   try {
+    const target = await prisma.coupon.findUnique({
+      where: { id },
+      select: { code: true, eventId: true },
+    });
+
     // Check if coupon has been used
     const usageCount = await prisma.couponUsage.count({
       where: { couponId: id },
@@ -408,6 +458,14 @@ export async function deleteCoupon(id: string) {
         where: { id },
         data: { isActive: false },
       });
+      await audit({
+        action: "coupon.deactivated",
+        entityType: "coupon",
+        entityId: id,
+        eventId: target?.eventId,
+        summary: `Tried to delete coupon ${target?.code}; it has ${usageCount} uses, so it was deactivated instead`,
+        changes: { isActive: [true, false] },
+      });
       revalidateTag("coupons", "max");
       return {
         success: true,
@@ -416,6 +474,13 @@ export async function deleteCoupon(id: string) {
     }
 
     await prisma.coupon.delete({ where: { id } });
+    await audit({
+      action: "coupon.deleted",
+      entityType: "coupon",
+      entityId: id,
+      eventId: target?.eventId,
+      summary: `Deleted coupon ${target?.code ?? id} (never used)`,
+    });
     revalidateTag("coupons", "max");
 
     return { success: true, error: null };

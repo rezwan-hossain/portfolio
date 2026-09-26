@@ -4,6 +4,18 @@
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath, updateTag, cacheLife, cacheTag } from "next/cache";
+import { audit, diff } from "@/lib/audit";
+
+const HERO_AUDIT_FIELDS = [
+  "title",
+  "desktopImage",
+  "mobileImage",
+  "slug",
+  "eventDate",
+  "showCountdown",
+  "countdownColor",
+  "showSlugButton",
+] as const;
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -83,7 +95,7 @@ export async function createHero(formData: {
       data: { isActive: false },
     });
 
-    await prisma.heroSection.create({
+    const hero = await prisma.heroSection.create({
       data: {
         title: formData.title,
         desktopImage: formData.desktopImage,
@@ -95,6 +107,13 @@ export async function createHero(formData: {
         showSlugButton: formData.showSlugButton,
         isActive: true,
       },
+    });
+
+    await audit({
+      action: "hero.created",
+      entityType: "hero",
+      entityId: hero.id,
+      summary: `Created homepage hero "${hero.title}" and made it active`,
     });
 
     revalidatePath("/");
@@ -128,7 +147,8 @@ export async function updateHero(
   if (error) return { success: false, error };
 
   try {
-    await prisma.heroSection.update({
+    const before = await prisma.heroSection.findUnique({ where: { id: heroId } });
+    const hero = await prisma.heroSection.update({
       where: { id: heroId },
       data: {
         title: formData.title,
@@ -141,6 +161,17 @@ export async function updateHero(
         showSlugButton: formData.showSlugButton,
       },
     });
+
+    const changes = diff(before, hero, [...HERO_AUDIT_FIELDS]);
+    if (Object.keys(changes).length > 0) {
+      await audit({
+        action: "hero.updated",
+        entityType: "hero",
+        entityId: heroId,
+        summary: `Updated homepage hero "${hero.title}": ${Object.keys(changes).join(", ")}`,
+        changes,
+      });
+    }
 
     revalidatePath("/");
     revalidatePath("/profile");
@@ -162,9 +193,16 @@ export async function setActiveHero(heroId: string) {
 
   try {
     await prisma.heroSection.updateMany({ data: { isActive: false } });
-    await prisma.heroSection.update({
+    const hero = await prisma.heroSection.update({
       where: { id: heroId },
       data: { isActive: true },
+    });
+
+    await audit({
+      action: "hero.activated",
+      entityType: "hero",
+      entityId: heroId,
+      summary: `Made "${hero.title}" the active homepage hero`,
     });
 
     revalidatePath("/");
@@ -185,7 +223,14 @@ export async function deleteHero(heroId: string) {
   if (error) return { success: false, error };
 
   try {
-    await prisma.heroSection.delete({ where: { id: heroId } });
+    const hero = await prisma.heroSection.delete({ where: { id: heroId } });
+
+    await audit({
+      action: "hero.deleted",
+      entityType: "hero",
+      entityId: heroId,
+      summary: `Deleted homepage hero "${hero.title}"`,
+    });
 
     revalidatePath("/");
     revalidatePath("/profile");

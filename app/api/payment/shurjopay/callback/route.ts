@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { applyCoupon } from "@/lib/coupon/apply-coupon";
 import { getRequestId } from "@/utils/requestUtils";
 import { logger } from "@/lib/logger";
+import { audit, SYSTEM } from "@/lib/audit";
 import { confirmPaidOrder, releaseHold } from "@/lib/slot-hold";
 import { revalidateTag } from "next/cache";
 
@@ -219,6 +220,14 @@ export async function GET(request: NextRequest) {
           },
           "payment:REFUND_REQUIRED — second successful payment for a paid order",
         );
+        await audit({
+          actor: SYSTEM.shurjopay,
+          action: "payment.duplicate",
+          entityType: "payment",
+          entityId: payment.orderId,
+          eventId: payment.order.eventId,
+          summary: `REFUND NEEDED: second payment ${spOrderId} (৳${paymentInfo.amount}) succeeded for an order already paid via ${payment.paymentId}`,
+        });
       } else {
         log.warn(
           { paymentId: payment.id, orderId: payment.orderId },
@@ -284,6 +293,15 @@ export async function GET(request: NextRequest) {
           },
           "payment:REVIEW_REQUIRED — amount/order mismatch, not confirming",
         );
+        await audit({
+          actor: SYSTEM.shurjopay,
+          action: "payment.amount_mismatch",
+          entityType: "payment",
+          entityId: payment.orderId,
+          eventId: payment.order.eventId,
+          summary: `NEEDS REVIEW: ${spOrderId} reported ৳${paymentInfo.amount}, expected ৳${payment.amount}${orderMismatch ? ` (for order ${paymentInfo.value1})` : ""}. Not confirmed.`,
+          changes: { amount: [payment.amount, paymentInfo.amount] },
+        });
         // Keep the slot held for manual review; payment stays unpaid here.
         await prisma.order.updateMany({
           where: { id: payment.orderId, status: "PENDING" },
@@ -345,6 +363,14 @@ export async function GET(request: NextRequest) {
           },
           "payment:REFUND_REQUIRED — paid for an order with no slot",
         );
+        await audit({
+          actor: SYSTEM.shurjopay,
+          action: "payment.paid_no_slot",
+          entityType: "payment",
+          entityId: payment.orderId,
+          eventId: payment.order.eventId,
+          summary: `REFUND NEEDED: ${spOrderId} paid ৳${paymentInfo.amount} but the order has no slot (${outcome === "PAID_BUT_SOLD_OUT" ? "hold expired and package sold out" : "order cancelled by an admin"})`,
+        });
         return NextResponse.redirect(
           `${origin}/payment/failed?orderId=${payment.orderId}&reason=paid_no_slot`,
         );
@@ -535,6 +561,16 @@ export async function GET(request: NextRequest) {
 
       console.log("✅ Order confirmed, redirecting to success");
 
+      await audit({
+        actor: SYSTEM.shurjopay,
+        action: "payment.confirmed",
+        entityType: "payment",
+        entityId: payment.orderId,
+        eventId: payment.order.eventId,
+        summary: `Payment ${spOrderId} confirmed · ৳${paymentInfo.amount}${paymentInfo.method ? ` via ${paymentInfo.method}` : ""}`,
+        changes: { status: [payment.status, "PAID"], order: [payment.order.status, "CONFIRMED"] },
+      });
+
       log.info(
         { orderId: payment.orderId, durationMs: Date.now() - start },
         "action:success",
@@ -568,6 +604,15 @@ export async function GET(request: NextRequest) {
         },
       });
       log.info({ orderId: payment.orderId }, "db:payment_updated → FAILED");
+
+      await audit({
+        actor: SYSTEM.shurjopay,
+        action: "payment.cancelled",
+        entityType: "payment",
+        entityId: payment.orderId,
+        eventId: payment.order.eventId,
+        summary: `Customer cancelled payment ${spOrderId}; slot released`,
+      });
 
       // Give the slot back now instead of waiting for the hold to expire.
       // The order stays reclaimable if the customer retries.
@@ -615,6 +660,15 @@ export async function GET(request: NextRequest) {
 
       log.info({ orderId: payment.orderId }, "db:payment_updated → FAILED");
 
+      await audit({
+        actor: SYSTEM.shurjopay,
+        action: "payment.declined",
+        entityType: "payment",
+        entityId: payment.orderId,
+        eventId: payment.order.eventId,
+        summary: `Bank declined payment ${spOrderId}; slot released`,
+      });
+
       // Give the slot back now instead of waiting for the hold to expire.
       // The order stays reclaimable if the customer retries.
       try {
@@ -652,6 +706,15 @@ export async function GET(request: NextRequest) {
         `${origin}/payment/failed?orderId=${payment.orderId}&reason=unknown_status`,
       );
     }
+
+    await audit({
+      actor: SYSTEM.shurjopay,
+      action: "payment.unknown_status",
+      entityType: "payment",
+      entityId: payment.orderId,
+      eventId: payment.order.eventId,
+      summary: `NEEDS REVIEW: ${spOrderId} returned status ${spCode} (${paymentInfo.sp_message || "no message"}); slot kept for manual review`,
+    });
 
     // Keep as PENDING for manual review
     await prisma.payment.update({

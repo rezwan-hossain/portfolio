@@ -2,6 +2,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { logger } from "@/lib/logger";
 import { getRequestId } from "@/utils/requestUtils";
@@ -146,6 +147,7 @@ export async function createManualRegistration(input: ManualRegistrationInput) {
       where: { id: input.packageId },
       select: {
         id: true,
+        name: true,
         price: true,
         availableSlots: true,
         usedSlots: true,
@@ -306,6 +308,14 @@ export async function createManualRegistration(input: ManualRegistrationInput) {
       },
       "db:transaction_success",
     );
+
+    await audit({
+      action: "order.manual_created",
+      entityType: "order",
+      entityId: orderId,
+      eventId: input.eventId,
+      summary: `Manual registration for ${input.fullName.trim()} · ${pkg.name} ×${input.qty} · ${input.orderStatus}${discount > 0 ? ` · ৳${discount} discount` : ""}`,
+    });
 
     revalidatePath("/profile");
     revalidateTag(`event-${pkg.event.slug}`, "max");

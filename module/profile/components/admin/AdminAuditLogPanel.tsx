@@ -1,0 +1,348 @@
+// module/profile/components/admin/AdminAuditLogPanel.tsx
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { getAuditLogs } from "@/app/actions/audit-log";
+import type { AuditCategory, AuditEntry, AuditFilters } from "@/types/audit";
+import {
+  AlertTriangle,
+  Bot,
+  ChevronDown,
+  ChevronRight,
+  Loader2,
+  RefreshCw,
+  Search,
+  User,
+  X,
+} from "lucide-react";
+
+type Props = { events: { id: string; name: string }[] };
+
+const CATEGORIES: { value: AuditCategory; label: string }[] = [
+  { value: "all", label: "Everything" },
+  { value: "attention", label: "Needs attention" },
+  { value: "orders", label: "Orders" },
+  { value: "payments", label: "Payments" },
+  { value: "events", label: "Events & packages" },
+  { value: "coupons", label: "Coupons" },
+  { value: "content", label: "Homepage & team" },
+];
+
+const ATTENTION = new Set([
+  "payment.duplicate",
+  "payment.paid_no_slot",
+  "payment.amount_mismatch",
+  "payment.unknown_status",
+  "payment.paid_no_callback",
+]);
+
+// Chip style by what kind of change it was — colour plus the verb as text.
+function chip(action: string) {
+  const verb = action.split(".")[1] ?? action;
+  if (ATTENTION.has(action)) return { text: "needs attention", cls: "bg-red-50 text-red-700 border-red-200" };
+  if (/created|manual_created|duplicated|activated$/.test(verb) && verb !== "deactivated")
+    return { text: verb.replace("_", " "), cls: "bg-green-50 text-green-700 border-green-200" };
+  if (/deleted|cancelled|declined|deactivated|hold_expired/.test(verb))
+    return { text: verb.replace("_", " "), cls: "bg-gray-100 text-gray-700 border-gray-200" };
+  if (action.startsWith("payment.confirmed"))
+    return { text: "paid", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+  return { text: verb.replace("_", " "), cls: "bg-blue-50 text-blue-700 border-blue-200" };
+}
+
+const isSystem = (e: AuditEntry) => e.actorLabel.startsWith("System");
+
+const dhakaDay = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "Asia/Dhaka",
+  });
+const dhakaTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Dhaka",
+  });
+
+const show = (v: unknown) =>
+  v === null || v === undefined || v === "" ? "—" : typeof v === "object" ? JSON.stringify(v) : String(v);
+
+export function AdminAuditLogPanel({ events }: Props) {
+  const [filters, setFilters] = useState<AuditFilters>({
+    category: "all",
+    eventId: "all",
+    search: "",
+  });
+  const [entries, setEntries] = useState<AuditEntry[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState("");
+  const [open, setOpen] = useState<string | null>(null);
+  const requestSeq = useRef(0);
+
+  // Only sets state after the request returns; a newer request wins.
+  const load = useCallback((f: AuditFilters) => {
+    const seq = ++requestSeq.current;
+    return getAuditLogs(f).then((res) => {
+      if (seq !== requestSeq.current) return;
+      setEntries(res.entries);
+      setNextCursor(res.nextCursor);
+      setError(res.error ?? "");
+      setLoading(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    void load({ category: "all", eventId: "all", search: "" });
+  }, [load]);
+
+  // Search waits for typing to pause.
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const update = (patch: Partial<AuditFilters>, debounce = false) => {
+    const next = { ...filters, ...patch };
+    setFilters(next);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    const run = () => {
+      setLoading(true);
+      void load(next);
+    };
+    if (debounce) searchTimer.current = setTimeout(run, 300);
+    else run();
+  };
+
+  const loadMore = async () => {
+    if (!nextCursor) return;
+    setLoadingMore(true);
+    const res = await getAuditLogs(filters, nextCursor);
+    setEntries((prev) => [...prev, ...res.entries]);
+    setNextCursor(res.nextCursor);
+    setLoadingMore(false);
+  };
+
+  // Group by Dhaka calendar day, newest first.
+  const groups: { day: string; items: AuditEntry[] }[] = [];
+  for (const e of entries) {
+    const day = dhakaDay(e.createdAt);
+    const last = groups[groups.length - 1];
+    if (last?.day === day) last.items.push(e);
+    else groups.push({ day, items: [e] });
+  }
+  const eventName = new Map(events.map((e) => [e.id, e.name]));
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">Audit Log</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Who changed what, and when. Admin changes, orders, payments and system actions.
+        </p>
+      </div>
+
+      {/* Filters — one row */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[12rem]">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <label htmlFor="audit-search" className="sr-only">Search</label>
+          <input
+            id="audit-search"
+            value={filters.search}
+            onChange={(e) => update({ search: e.target.value }, true)}
+            placeholder="Search name, email, order ID, coupon…"
+            className="w-full h-9 pl-9 pr-8 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900"
+          />
+          {filters.search && (
+            <button
+              onClick={() => update({ search: "" })}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 cursor-pointer"
+              title="Clear search"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+        <label htmlFor="audit-event" className="sr-only">Event</label>
+        <select
+          id="audit-event"
+          value={filters.eventId}
+          onChange={(e) => update({ eventId: e.target.value })}
+          className="h-9 max-w-[14rem] px-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 cursor-pointer focus:outline-none focus:ring-1 focus:ring-gray-900"
+        >
+          <option value="all">All events</option>
+          {events.map((e) => (
+            <option key={e.id} value={e.id}>{e.name}</option>
+          ))}
+        </select>
+        <button
+          onClick={() => update({})}
+          disabled={loading}
+          className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 cursor-pointer disabled:opacity-50"
+          title="Refresh"
+        >
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+        </button>
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {CATEGORIES.map((c) => (
+          <button
+            key={c.value}
+            onClick={() => update({ category: c.value })}
+            aria-pressed={filters.category === c.value}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors cursor-pointer ${
+              filters.category === c.value
+                ? c.value === "attention"
+                  ? "bg-red-600 text-white"
+                  : "bg-gray-900 text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {c.value === "attention" && <AlertTriangle size={11} className="inline -mt-0.5 mr-1" />}
+            {c.label}
+          </button>
+        ))}
+      </div>
+
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      )}
+
+      {/* List */}
+      {loading && entries.length === 0 ? (
+        <div className="space-y-2 animate-pulse">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-14 bg-white border border-gray-200 rounded-xl" />
+          ))}
+        </div>
+      ) : entries.length === 0 ? (
+        <div className="bg-white border border-gray-200 rounded-xl py-16 text-center">
+          <p className="text-gray-900 font-bold">Nothing logged yet</p>
+          <p className="text-gray-400 text-sm mt-1">
+            {filters.search || filters.category !== "all" || filters.eventId !== "all"
+              ? "No entries match these filters."
+              : "Entries appear here as soon as anyone changes something."}
+          </p>
+        </div>
+      ) : (
+        <div className={`space-y-5 transition-opacity ${loading ? "opacity-60" : ""}`}>
+          {groups.map((g) => (
+            <section key={g.day}>
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2">
+                {g.day}
+              </h3>
+              <ul className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
+                {g.items.map((e) => {
+                  const c = chip(e.action);
+                  const expanded = open === e.id;
+                  const changeRows = e.changes ? Object.entries(e.changes) : [];
+                  return (
+                    <li key={e.id}>
+                      <button
+                        onClick={() => setOpen(expanded ? null : e.id)}
+                        aria-expanded={expanded}
+                        className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-gray-50 cursor-pointer"
+                      >
+                        <span className="text-xs text-gray-400 tabular-nums w-11 flex-shrink-0 pt-0.5">
+                          {dhakaTime(e.createdAt)}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span className={`text-[10px] font-bold uppercase tracking-wider border rounded px-1.5 py-0.5 ${c.cls}`}>
+                              {c.text}
+                            </span>
+                            <span className="text-[11px] text-gray-400 uppercase tracking-wider">
+                              {e.entityType}
+                            </span>
+                            {e.eventId && eventName.get(e.eventId) && filters.eventId === "all" && (
+                              <span className="text-[11px] text-gray-400 truncate">
+                                · {eventName.get(e.eventId)}
+                              </span>
+                            )}
+                          </span>
+                          <span className="block text-sm text-gray-900 mt-1 break-words">
+                            {e.summary}
+                          </span>
+                          <span className="flex items-center gap-1 text-[11px] text-gray-500 mt-1">
+                            {isSystem(e) ? <Bot size={11} /> : <User size={11} />}
+                            {e.actorLabel}
+                          </span>
+                        </span>
+                        {expanded ? (
+                          <ChevronDown size={14} className="text-gray-400 mt-1 flex-shrink-0" />
+                        ) : (
+                          <ChevronRight size={14} className="text-gray-400 mt-1 flex-shrink-0" />
+                        )}
+                      </button>
+
+                      {expanded && (
+                        <div className="px-4 pb-4 pl-[4.25rem] space-y-3">
+                          {changeRows.length > 0 && (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-100">
+                                    <th className="font-bold py-1.5 pr-3">Field</th>
+                                    <th className="font-bold py-1.5 pr-3">Before</th>
+                                    <th className="font-bold py-1.5">After</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {changeRows.map(([field, [before, after]]) => (
+                                    <tr key={field} className="border-b border-gray-50 last:border-0 align-top">
+                                      <td className="py-1.5 pr-3 font-semibold text-gray-700 whitespace-nowrap">{field}</td>
+                                      <td className="py-1.5 pr-3 text-gray-500 line-through decoration-gray-300 break-all">{show(before)}</td>
+                                      <td className="py-1.5 text-gray-900 break-all">{show(after)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+                            <dt className="text-gray-400">Action</dt>
+                            <dd className="font-mono text-gray-700">{e.action}</dd>
+                            <dt className="text-gray-400">{e.entityType} ID</dt>
+                            <dd className="font-mono text-gray-700 break-all select-all">{e.entityId}</dd>
+                            {e.requestId && (
+                              <>
+                                <dt className="text-gray-400">Request</dt>
+                                <dd className="font-mono text-gray-700 break-all select-all" title="Search this in Axiom to see the full request logs">
+                                  {e.requestId}
+                                </dd>
+                              </>
+                            )}
+                            <dt className="text-gray-400">Exact time</dt>
+                            <dd className="text-gray-700">
+                              {new Date(e.createdAt).toLocaleString("en-GB", { timeZone: "Asia/Dhaka" })} (Dhaka)
+                            </dd>
+                          </dl>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+
+          {nextCursor && (
+            <div className="flex justify-center">
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-700 border border-gray-200 bg-white rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50"
+              >
+                {loadingMore && <Loader2 size={12} className="animate-spin" />}
+                Load older entries
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

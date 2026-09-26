@@ -319,3 +319,25 @@ enum OrderSource {
   ONLINE
   MANUAL
 }
+// Append-only audit trail: who changed what, when. No foreign keys on purpose —
+// entries must survive deletion of the event/order/user they describe.
+// Written through lib/audit.ts; read in the admin "Audit Log" tab.
+model AuditLog {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  actorId    String? // User.id of the admin/customer; null for system actors
+  actorLabel String // email, or e.g. "System · ShurjoPay"
+  action     String // e.g. "event.updated", "order.status_changed"
+  entityType String // event | package | order | registration | payment | coupon | hero | gallery | team | organizer
+  entityId   String
+  eventId    String? // for filtering by event
+  summary    String // one human-readable line
+  changes    Json? // { field: [before, after] }
+  requestId  String? // ties the entry to the Axiom request logs
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@index([eventId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("audit_logs")
+}

@@ -6,6 +6,7 @@
 // Package, quantity, price and payment are deliberately NOT editable here.
 
 import { prisma } from "@/lib/prisma";
+import { audit } from "@/lib/audit";
 import { Prisma } from "@/lib/generated/prisma";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { logger } from "@/lib/logger";
@@ -160,6 +161,20 @@ export async function updateRegistrationDetails(
         },
       }),
     ]);
+
+    await audit({
+      action: "registration.edited",
+      entityType: "registration",
+      entityId: orderId,
+      eventId: order.eventId,
+      summary: `Edited ${fullName}'s registration: ${changes.join("; ")}`,
+      changes: Object.fromEntries(
+        (Object.keys(data) as (keyof typeof next)[]).map((key) => [
+          key,
+          [show(current[key]), show(next[key])],
+        ]),
+      ),
+    });
 
     log.info({ changes }, "action:success");
     return { success: true, error: null, changes };

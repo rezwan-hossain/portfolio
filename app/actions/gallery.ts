@@ -4,6 +4,7 @@
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { audit, diff } from "@/lib/audit";
 import type {
   CreateGalleryImageInput,
   UpdateGalleryImageInput,
@@ -91,6 +92,13 @@ export async function createGalleryImage(
       },
     });
 
+    await audit({
+      action: "gallery.created",
+      entityType: "gallery",
+      entityId: image.id,
+      summary: `Added gallery photo${image.alt ? ` "${image.alt}"` : ""}`,
+    });
+
     revalidatePath("/gallery");
     revalidatePath("/profile");
 
@@ -132,6 +140,17 @@ export async function updateGalleryImage(
       },
     });
 
+    const changes = diff(existing, image, ["src", "alt"]);
+    if (Object.keys(changes).length > 0) {
+      await audit({
+        action: "gallery.updated",
+        entityType: "gallery",
+        entityId: image.id,
+        summary: `Updated gallery photo: ${Object.keys(changes).join(", ")}`,
+        changes,
+      });
+    }
+
     revalidatePath("/gallery");
     revalidatePath("/profile");
 
@@ -163,6 +182,14 @@ export async function deleteGalleryImage(
 
     await prisma.galleryImage.delete({
       where: { id: input.id },
+    });
+
+    await audit({
+      action: "gallery.deleted",
+      entityType: "gallery",
+      entityId: input.id,
+      summary: `Deleted gallery photo${existing.alt ? ` "${existing.alt}"` : ""}`,
+      changes: { src: [existing.src, null] },
     });
 
     revalidatePath("/gallery");

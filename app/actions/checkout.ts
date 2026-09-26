@@ -20,6 +20,7 @@ import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestId } from "@/utils/requestUtils";
+import { audit } from "@/lib/audit";
 import { revalidateTag } from "next/cache";
 import {
   claimSlots,
@@ -634,6 +635,18 @@ export async function placeOrder(formData: {
       },
       "db:transaction_success",
     );
+
+    await audit({
+      actor: {
+        id: userId,
+        label: `${isGuest ? "Guest · " : ""}${formData.email || "no email"}`,
+      },
+      action: "order.created",
+      entityType: "order",
+      entityId: order.id,
+      eventId: formData.eventId,
+      summary: `${formData.fullName} placed an order · ${pkg.name} ×${formData.qty} · ৳${Math.round(total)}${couponId ? ` (coupon ${formData.couponCode?.toUpperCase().trim()}, −৳${Math.round(discount)})` : ""}`,
+    });
 
     logWithUser.info(
       { orderId: order.id, durationMs: Date.now() - start },

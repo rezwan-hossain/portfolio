@@ -3,6 +3,22 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { audit, diff } from "@/lib/audit";
+
+const TEAM_AUDIT_FIELDS = [
+  "name",
+  "role",
+  "bio",
+  "image",
+  "category",
+  "sortOrder",
+  "isActive",
+  "linkedinUrl",
+  "twitterUrl",
+  "githubUrl",
+  "instagramUrl",
+  "facebookUrl",
+] as const;
 
 type TeamCategory = "ADMIN" | "ADVISOR" | "ORGANIZER";
 
@@ -96,6 +112,13 @@ export async function createTeamMember(data: {
     revalidatePath("/team");
     revalidatePath("/profile");
 
+    await audit({
+      action: "team.created",
+      entityType: "team",
+      entityId: member.id,
+      summary: `Added team member "${member.name}" (${member.category})`,
+    });
+
     return { success: true, member };
   } catch (error) {
     console.error("Create team member error:", error);
@@ -122,10 +145,22 @@ export async function updateTeamMember(
   }>,
 ) {
   try {
+    const before = await prisma.teamMember.findUnique({ where: { id } });
     const member = await prisma.teamMember.update({
       where: { id },
       data,
     });
+
+    const changes = diff(before, member, [...TEAM_AUDIT_FIELDS]);
+    if (Object.keys(changes).length > 0) {
+      await audit({
+        action: "team.updated",
+        entityType: "team",
+        entityId: id,
+        summary: `Updated team member "${member.name}": ${Object.keys(changes).join(", ")}`,
+        changes,
+      });
+    }
 
     revalidatePath("/team");
     revalidatePath("/profile");
@@ -140,7 +175,14 @@ export async function updateTeamMember(
 // ─── DELETE TEAM MEMBER ────────────────────────────
 export async function deleteTeamMember(id: string) {
   try {
-    await prisma.teamMember.delete({ where: { id } });
+    const removed = await prisma.teamMember.delete({ where: { id } });
+
+    await audit({
+      action: "team.deleted",
+      entityType: "team",
+      entityId: id,
+      summary: `Removed team member "${removed.name}"`,
+    });
 
     revalidatePath("/team");
     revalidatePath("/profile");
@@ -161,6 +203,14 @@ export async function toggleTeamMemberActive(id: string) {
     const updated = await prisma.teamMember.update({
       where: { id },
       data: { isActive: !member.isActive },
+    });
+
+    await audit({
+      action: updated.isActive ? "team.activated" : "team.deactivated",
+      entityType: "team",
+      entityId: id,
+      summary: `${updated.isActive ? "Showed" : "Hid"} team member "${updated.name}"`,
+      changes: { isActive: [member.isActive, updated.isActive] },
     });
 
     revalidatePath("/team");
@@ -186,6 +236,13 @@ export async function reorderTeamMembers(
         }),
       ),
     );
+
+    await audit({
+      action: "team.reordered",
+      entityType: "team",
+      entityId: updates.map((u) => u.id).join(",").slice(0, 190) || "none",
+      summary: `Reordered ${updates.length} team member${updates.length === 1 ? "" : "s"}`,
+    });
 
     revalidatePath("/team");
     revalidatePath("/profile");

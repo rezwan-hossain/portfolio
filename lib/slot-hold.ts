@@ -20,6 +20,7 @@
 
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/generated/prisma";
+import { audit, SYSTEM } from "@/lib/audit";
 
 export const SLOT_HOLD_MS = 60 * 60 * 1000; // 1 hour
 
@@ -146,7 +147,16 @@ export async function releaseExpiredHolds(
           where: { id, status: "PENDING" },
           data: { holdExpiresAt: null },
         });
-        if (held.count === 1) parked.push(id);
+        if (held.count === 1) {
+          parked.push(id);
+          await audit({
+            actor: SYSTEM.sweep,
+            action: "payment.paid_no_callback",
+            entityType: "payment",
+            entityId: id,
+            summary: `NEEDS CONFIRMING: ShurjoPay reports ${spOrderId} as paid but no callback arrived; slot kept`,
+          });
+        }
         continue;
       }
     }
@@ -157,6 +167,7 @@ export async function releaseExpiredHolds(
         select: {
           packageId: true,
           qty: true,
+          eventId: true,
           event: { select: { slug: true } },
         },
       });
@@ -186,10 +197,20 @@ export async function releaseExpiredHolds(
         data: { status: "FAILED" },
       });
 
-      return order.event.slug;
+      return { slug: order.event.slug, eventId: order.eventId, qty: order.qty };
     });
 
-    if (slug) slugs.add(slug);
+    if (slug) {
+      slugs.add(slug.slug);
+      await audit({
+        actor: SYSTEM.sweep,
+        action: "order.hold_expired",
+        entityType: "order",
+        entityId: id,
+        eventId: slug.eventId,
+        summary: `Unpaid for over 1 hour: order cancelled, ${slug.qty} slot${slug.qty === 1 ? "" : "s"} released`,
+      });
+    }
   }
 
   return { slugs: [...slugs], parked };
