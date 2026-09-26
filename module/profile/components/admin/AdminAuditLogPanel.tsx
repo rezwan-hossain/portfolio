@@ -8,8 +8,10 @@ import {
   AlertTriangle,
   Bot,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
-  Loader2,
+  ChevronsLeft,
+  ChevronsRight,
   RefreshCw,
   Search,
   User,
@@ -99,28 +101,40 @@ export function AdminAuditLogPanel({ events }: Props) {
     search: "",
   });
   const [entries, setEntries] = useState<AuditEntry[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [open, setOpen] = useState<string | null>(null);
   const requestSeq = useRef(0);
+  const topRef = useRef<HTMLDivElement>(null);
 
-  // Only sets state after the request returns; a newer request wins.
-  const load = useCallback((f: AuditFilters) => {
+  // Only sets state after the request returns; a newer request wins. The
+  // server clamps the page, so we adopt the page it actually returned.
+  const load = useCallback((f: AuditFilters, p: number, size: number) => {
     const seq = ++requestSeq.current;
-    return getAuditLogs(f).then((res) => {
+    return getAuditLogs(f, p, size).then((res) => {
       if (seq !== requestSeq.current) return;
       setEntries(res.entries);
-      setNextCursor(res.nextCursor);
+      setTotal(res.total);
+      setPage(res.page);
+      setPageSize(res.pageSize);
       setError(res.error ?? "");
       setLoading(false);
     });
   }, []);
 
   useEffect(() => {
-    void load({ category: "all", eventId: "all", search: "" });
+    void load({ category: "all", eventId: "all", search: "" }, 1, 50);
   }, [load]);
+
+  const goTo = (p: number, size = pageSize) => {
+    setOpen(null);
+    setLoading(true);
+    void load(filters, p, size);
+    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   // Search waits for typing to pause.
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -128,22 +142,19 @@ export function AdminAuditLogPanel({ events }: Props) {
     const next = { ...filters, ...patch };
     setFilters(next);
     if (searchTimer.current) clearTimeout(searchTimer.current);
+    // Any filter change starts again from page 1.
     const run = () => {
+      setOpen(null);
       setLoading(true);
-      void load(next);
+      void load(next, 1, pageSize);
     };
     if (debounce) searchTimer.current = setTimeout(run, 300);
     else run();
   };
 
-  const loadMore = async () => {
-    if (!nextCursor) return;
-    setLoadingMore(true);
-    const res = await getAuditLogs(filters, nextCursor);
-    setEntries((prev) => [...prev, ...res.entries]);
-    setNextCursor(res.nextCursor);
-    setLoadingMore(false);
-  };
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = Math.min(page * pageSize, total);
 
   // Group by Dhaka calendar day, newest first.
   const groups: { day: string; items: AuditEntry[] }[] = [];
@@ -243,6 +254,32 @@ export function AdminAuditLogPanel({ events }: Props) {
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      )}
+
+      {/* Range + page size */}
+      {total > 0 && (
+        <div
+          ref={topRef}
+          className="flex flex-wrap items-center justify-between gap-2 scroll-mt-24"
+        >
+          <p className="text-xs text-gray-500 tabular-nums">
+            Showing {num(rangeStart)}–{num(rangeEnd)} of {num(total)}{" "}
+            {total === 1 ? "entry" : "entries"}
+          </p>
+          <label className="flex items-center gap-2 text-xs text-gray-500">
+            Per page
+            <select
+              id="audit-page-size"
+              value={pageSize}
+              onChange={(e) => goTo(1, Number(e.target.value))}
+              className="h-8 px-2 rounded-lg border border-gray-200 bg-white text-xs text-gray-900 cursor-pointer focus:outline-none focus:ring-1 focus:ring-gray-900"
+            >
+              {[25, 50, 100].map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </label>
         </div>
       )}
 
@@ -448,20 +485,85 @@ export function AdminAuditLogPanel({ events }: Props) {
             </section>
           ))}
 
-          {nextCursor && (
-            <div className="flex justify-center">
-              <button
-                onClick={loadMore}
-                disabled={loadingMore}
-                className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-700 border border-gray-200 bg-white rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50"
-              >
-                {loadingMore && <Loader2 size={12} className="animate-spin" />}
-                Load older entries
-              </button>
-            </div>
+          {totalPages > 1 && (
+            <Pager
+              page={page}
+              totalPages={totalPages}
+              disabled={loading}
+              onPage={goTo}
+            />
           )}
         </div>
       )}
     </div>
+  );
+}
+
+const num = (n: number) => n.toLocaleString("en-IN");
+
+// 1 … 4 5 6 … 20 — always first, last, and the current page's neighbours.
+function pageList(page: number, totalPages: number): (number | "gap")[] {
+  const pages = new Set([1, totalPages, page - 1, page, page + 1]);
+  const sorted = [...pages].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+  const out: (number | "gap")[] = [];
+  for (const p of sorted) {
+    const prev = out[out.length - 1];
+    if (typeof prev === "number" && p - prev === 2) out.push(prev + 1);
+    else if (typeof prev === "number" && p - prev > 2) out.push("gap");
+    out.push(p);
+  }
+  return out;
+}
+
+function Pager({
+  page,
+  totalPages,
+  disabled,
+  onPage,
+}: {
+  page: number;
+  totalPages: number;
+  disabled: boolean;
+  onPage: (p: number) => void;
+}) {
+  const arrow =
+    "h-8 w-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed";
+  return (
+    <nav
+      aria-label="Audit log pages"
+      className="flex flex-wrap items-center justify-center gap-1"
+    >
+      <button onClick={() => onPage(1)} disabled={disabled || page <= 1} className={arrow} title="First page">
+        <ChevronsLeft size={16} />
+      </button>
+      <button onClick={() => onPage(page - 1)} disabled={disabled || page <= 1} className={arrow} title="Previous page">
+        <ChevronLeft size={16} />
+      </button>
+      {pageList(page, totalPages).map((p, i) =>
+        p === "gap" ? (
+          <span key={`gap-${i}`} className="w-6 text-center text-xs text-gray-400">…</span>
+        ) : (
+          <button
+            key={p}
+            onClick={() => onPage(p)}
+            disabled={disabled || p === page}
+            aria-current={p === page ? "page" : undefined}
+            className={`h-8 min-w-8 px-2 rounded-lg text-xs font-bold tabular-nums cursor-pointer disabled:cursor-default ${
+              p === page
+                ? "bg-gray-900 text-white"
+                : "text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+            }`}
+          >
+            {p}
+          </button>
+        ),
+      )}
+      <button onClick={() => onPage(page + 1)} disabled={disabled || page >= totalPages} className={arrow} title="Next page">
+        <ChevronRight size={16} />
+      </button>
+      <button onClick={() => onPage(totalPages)} disabled={disabled || page >= totalPages} className={arrow} title="Last page">
+        <ChevronsRight size={16} />
+      </button>
+    </nav>
   );
 }

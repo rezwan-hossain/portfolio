@@ -13,7 +13,8 @@ import type {
   AuditSubject,
 } from "@/types/audit";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZES = [25, 50, 100];
+const DEFAULT_PAGE_SIZE = 50;
 
 // Entries whose entityId is an order id (payments and registrations are logged
 // against their order), so we can show who the runner is.
@@ -40,14 +41,22 @@ const CATEGORY_WHERE: Record<AuditCategory, Prisma.AuditLogWhereInput> = {
 
 export async function getAuditLogs(
   filters: AuditFilters,
-  cursor?: string | null,
+  requestedPage = 1,
+  requestedPageSize = DEFAULT_PAGE_SIZE,
 ): Promise<{
   entries: AuditEntry[];
-  nextCursor: string | null;
+  total: number;
+  page: number;
+  pageSize: number;
   error: string | null;
 }> {
+  const pageSize = PAGE_SIZES.includes(requestedPageSize)
+    ? requestedPageSize
+    : DEFAULT_PAGE_SIZE;
+  const empty = { entries: [], total: 0, page: 1, pageSize };
+
   const { error } = await requireAdmin();
-  if (error) return { entries: [], nextCursor: null, error };
+  if (error) return { ...empty, error };
 
   try {
     const term = filters.search.trim();
@@ -71,33 +80,42 @@ export async function getAuditLogs(
         ).map((o) => o.id)
       : [];
 
-    const rows = await prisma.auditLog.findMany({
-      where: {
-        ...CATEGORY_WHERE[filters.category],
-        ...(filters.eventId !== "all" && { eventId: filters.eventId }),
-        ...(term && {
-          OR: [
-            { summary: { contains: term, mode: "insensitive" } },
-            { actorLabel: { contains: term, mode: "insensitive" } },
-            { entityId: { startsWith: term.toLowerCase() } },
-            { action: { contains: term, mode: "insensitive" } },
-            ...(matchingOrderIds.length > 0
-              ? [
-                  {
-                    entityType: { in: ORDER_ENTITY_TYPES },
-                    entityId: { in: matchingOrderIds },
-                  },
-                ]
-              : []),
-          ],
-        }),
-      },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: PAGE_SIZE + 1,
-      ...(cursor && { cursor: { id: cursor }, skip: 1 }),
-    });
+    const where: Prisma.AuditLogWhereInput = {
+      ...CATEGORY_WHERE[filters.category],
+      ...(filters.eventId !== "all" && { eventId: filters.eventId }),
+      ...(term && {
+        OR: [
+          { summary: { contains: term, mode: "insensitive" } },
+          { actorLabel: { contains: term, mode: "insensitive" } },
+          { entityId: { startsWith: term.toLowerCase() } },
+          { action: { contains: term, mode: "insensitive" } },
+          ...(matchingOrderIds.length > 0
+            ? [
+                {
+                  entityType: { in: ORDER_ENTITY_TYPES },
+                  entityId: { in: matchingOrderIds },
+                },
+              ]
+            : []),
+        ],
+      }),
+    };
 
-    const page = rows.slice(0, PAGE_SIZE);
+    // Clamp to the last page, so a filter that shrinks the result set (or a
+    // stale page number) still returns rows instead of an empty page.
+    const total = await prisma.auditLog.count({ where });
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const pageNumber = Math.min(
+      Math.max(1, Math.floor(Number(requestedPage)) || 1),
+      totalPages,
+    );
+
+    const page = await prisma.auditLog.findMany({
+      where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (pageNumber - 1) * pageSize,
+      take: pageSize,
+    });
 
     // Who is behind each order/payment entry — one query for the whole page.
     const orderIds = [
@@ -155,11 +173,13 @@ export async function getAuditLogs(
           ? (subjects.get(r.entityId) ?? null)
           : null,
       })),
-      nextCursor: rows.length > PAGE_SIZE ? page[page.length - 1].id : null,
+      total,
+      page: pageNumber,
+      pageSize,
       error: null,
     };
   } catch (err) {
     console.error("getAuditLogs error:", err);
-    return { entries: [], nextCursor: null, error: "Failed to load the audit log" };
+    return { ...empty, error: "Failed to load the audit log" };
   }
 }
