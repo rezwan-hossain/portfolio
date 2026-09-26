@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/select";
 import { Check, Loader2, Plus, Save, X } from "lucide-react";
 import dynamic from "next/dynamic";
-import { formatEventTimeUTC } from "@/utils/date";
 import { ImageVpsUpload } from "./ImageVpsUpload";
 
 const RichTextEditor = dynamic(
@@ -75,7 +74,9 @@ export function EventForm({
     //       minute: "2-digit",
     //     })
     //   : "",
-    time: event?.time ? formatEventTimeUTC(event.time) : "",
+    // <input type="time"> needs 24h "HH:mm"; event times are stored as UTC
+    // wall-clock time (see formatEventTimeUTC), so read the UTC hours/minutes.
+    time: event?.time ? new Date(event.time).toISOString().slice(11, 16) : "",
     address: event?.address || "",
     eventType: event?.eventType || "LIVE",
     description: event?.description || "",
