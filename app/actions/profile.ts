@@ -3,12 +3,10 @@
 
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/require-admin";
 
 export async function getUserProfile() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     return { error: "Not authenticated" };

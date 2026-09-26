@@ -1,18 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, use, useState } from "react";
+import dynamic from "next/dynamic";
 import { HeroText } from "@/components/ui/HeroText";
 import { ProfileForm } from "../components/ProfileForm";
 import { PasswordForm } from "../components/PasswordForm";
 import { ProfileSidebar } from "../components/ProfileSidebar";
-import { AdminEventsPanel } from "../components/admin/AdminEventsPanel";
-import { ManageHomepagePanel } from "../components/admin/ManageHomepagePanel";
-import {
-  AdminCouponsPanel,
-  type Coupon,
-  type CouponEvent,
+import { ProfilePanelSkeleton } from "../components/ProfileSkeletons";
+import type {
+  Coupon,
+  CouponEvent,
 } from "../components/admin/AdminCouponsPanel";
-import { AdminGalleryPanel } from "../components/admin/AdminGalleryPanel";
 import type { UserProfile, AdminEvent, AdminOrganizer } from "@/types/profile";
 import type { HeroSectionData } from "@/types/homepage";
 import type { GalleryImage } from "@/types/gallery";
@@ -26,18 +24,46 @@ import {
   Ticket,
   Users,
 } from "lucide-react";
-import { AdminTeamPanel } from "../components/admin/AdminTeamPanel";
+
+// Admin panels are code-split: non-admins never download them, and admins
+// only fetch a panel's code when they open its tab.
+const panelLoading = () => <ProfilePanelSkeleton />;
+const AdminEventsPanel = dynamic(
+  () => import("../components/admin/AdminEventsPanel").then((m) => m.AdminEventsPanel),
+  { loading: panelLoading },
+);
+const AdminCouponsPanel = dynamic(
+  () => import("../components/admin/AdminCouponsPanel").then((m) => m.AdminCouponsPanel),
+  { loading: panelLoading },
+);
+const ManageHomepagePanel = dynamic(
+  () => import("../components/admin/ManageHomepagePanel").then((m) => m.ManageHomepagePanel),
+  { loading: panelLoading },
+);
+const AdminGalleryPanel = dynamic(
+  () => import("../components/admin/AdminGalleryPanel").then((m) => m.AdminGalleryPanel),
+  { loading: panelLoading },
+);
+const AdminTeamPanel = dynamic(
+  () => import("../components/admin/AdminTeamPanel").then((m) => m.AdminTeamPanel),
+  { loading: panelLoading },
+);
+
+export type AdminData = {
+  adminEvents: AdminEvent[];
+  organizers: AdminOrganizer[];
+  heroSections: HeroSectionData[];
+  galleryImages: GalleryImage[];
+  coupons: Coupon[];
+  couponEvents: CouponEvent[];
+  teamMembers: TeamMember[];
+};
 
 type ProfilePageProps = {
   profile: UserProfile;
   isOAuthUser: boolean;
-  adminEvents?: AdminEvent[];
-  organizers?: AdminOrganizer[];
-  heroSections?: HeroSectionData[];
-  galleryImages?: GalleryImage[];
-  coupons?: Coupon[];
-  couponEvents?: CouponEvent[];
-  teamMembers?: TeamMember[];
+  // Streamed from the server; null for non-admins.
+  adminData: Promise<AdminData> | null;
 };
 
 type Tab =
@@ -49,17 +75,46 @@ type Tab =
   | "coupons"
   | "team";
 
-const ProfilePage = ({
-  profile,
-  isOAuthUser,
-  adminEvents = [],
-  organizers = [],
-  heroSections = [],
-  galleryImages = [],
-  coupons = [],
-  couponEvents = [],
-  teamMembers = [],
-}: ProfilePageProps) => {
+type AdminTab = Exclude<Tab, "profile" | "password">;
+
+const isAdminTab = (tab: Tab): tab is AdminTab =>
+  tab !== "profile" && tab !== "password";
+
+// Suspends (showing the skeleton) until the streamed admin data arrives.
+function AdminTabContent({
+  tab,
+  adminData,
+}: {
+  tab: AdminTab;
+  adminData: Promise<AdminData>;
+}) {
+  const data = use(adminData);
+
+  switch (tab) {
+    case "events":
+      return (
+        <AdminEventsPanel
+          initialEvents={data.adminEvents}
+          initialOrganizers={data.organizers}
+        />
+      );
+    case "coupons":
+      return (
+        <AdminCouponsPanel
+          initialCoupons={data.coupons}
+          events={data.couponEvents}
+        />
+      );
+    case "homepage":
+      return <ManageHomepagePanel initialHeroes={data.heroSections} />;
+    case "gallery":
+      return <AdminGalleryPanel initialImages={data.galleryImages} />;
+    case "team":
+      return <AdminTeamPanel initialMembers={data.teamMembers} />;
+  }
+}
+
+const ProfilePage = ({ profile, isOAuthUser, adminData }: ProfilePageProps) => {
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const isAdmin = profile.role === "ADMIN";
 
@@ -173,27 +228,10 @@ const ProfilePage = ({
           <div className="flex-1 min-w-0">
             {activeTab === "profile" && <ProfileForm profile={profile} />}
             {activeTab === "password" && !isOAuthUser && <PasswordForm />}
-            {activeTab === "events" && isAdmin && (
-              <AdminEventsPanel
-                initialEvents={adminEvents}
-                initialOrganizers={organizers}
-              />
-            )}
-            {activeTab === "coupons" && isAdmin && (
-              <AdminCouponsPanel
-                initialCoupons={coupons}
-                events={couponEvents}
-              />
-            )}
-            {activeTab === "homepage" && isAdmin && (
-              <ManageHomepagePanel initialHeroes={heroSections} />
-            )}
-            {activeTab === "gallery" && isAdmin && (
-              <AdminGalleryPanel initialImages={galleryImages} />
-            )}
-
-            {activeTab === "team" && isAdmin && (
-              <AdminTeamPanel initialMembers={teamMembers} />
+            {isAdmin && adminData && isAdminTab(activeTab) && (
+              <Suspense fallback={<ProfilePanelSkeleton />}>
+                <AdminTabContent tab={activeTab} adminData={adminData} />
+              </Suspense>
             )}
           </div>
         </div>
