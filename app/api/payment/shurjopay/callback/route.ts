@@ -1,19 +1,11 @@
 // app/api/payment/shurjopay/callback/route.ts
-import { autoAssignBibNumber } from "@/lib/bib-package-prefix";
-import { sendPaymentConfirmationEmail } from "@/lib/email/send-payment-confirmation";
 import { prisma } from "@/lib/prisma";
-import {
-  verifyShurjoPayPayment,
-  isPaymentSuccessful,
-  isPaymentCancelled,
-  isPaymentDeclined,
-  getPaymentStatusMessage,
-  SP_CODE,
-} from "@/lib/shurjopay2";
-import { formatBDPhone, getPaymentConfirmationSMS, sendSMS } from "@/lib/sms";
-import { NextRequest, NextResponse } from "next/server";
+import { getPaymentStatusMessage, SP_CODE } from "@/lib/shurjopay2";
+import { NextRequest, NextResponse, after } from "next/server";
 
-import { applyCoupon } from "@/lib/coupon/apply-coupon";
+import { verifyPayment } from "@/lib/payment-verify";
+import { publicOrigin } from "@/lib/payment-config";
+import { runPostPaymentSteps } from "@/lib/order-confirmation";
 import { getRequestId } from "@/utils/requestUtils";
 import { logger } from "@/lib/logger";
 import { audit, SYSTEM } from "@/lib/audit";
@@ -38,7 +30,9 @@ export async function GET(request: NextRequest) {
     searchParams.get("sp_order_id") ||
     searchParams.get("orderId");
 
-  const origin = new URL(request.url).origin;
+  // Public site address, not request.url — behind a proxy request.url can be
+  // http://localhost:3000, which would strand the customer after paying.
+  const origin = publicOrigin(request.url);
 
   console.log("📥 ShurjoPay callback received:", {
     spOrderId,
@@ -80,61 +74,48 @@ export async function GET(request: NextRequest) {
 
     const verifyStart = Date.now();
 
-    let verifyData;
-    try {
-      verifyData = await verifyShurjoPayPayment(spOrderId);
-    } catch (verifyError: any) {
-      log.error(
-        {
-          externalApi: {
-            service: "shurjopay",
-            operation: "verify",
-            durationMs: Date.now() - verifyStart,
-          },
-          err: verifyError,
-        },
-        "external_api:failure — verify threw",
-      );
-      console.error("❌ Verification API error:", verifyError?.message);
+    // Retries a failed/empty answer, caps each attempt, and picks the SUCCESS
+    // entry when ShurjoPay returns several (see lib/payment-verify.ts).
+    const verified = await verifyPayment(spOrderId, {
+      attempts: 3,
+      timeoutMs: 10_000,
+      onRetry: (n, why) =>
+        log.warn({ attempt: n, why, spOrderId }, "external_api:verify_retry"),
+    });
 
-      // Find payment and keep as PENDING for manual review
-      const orphanPayment = await prisma.payment.findFirst({
+    log.info(
+      {
+        externalApi: {
+          service: "shurjopay",
+          operation: "verify",
+          durationMs: Date.now() - verifyStart,
+        },
+        state: verified.state,
+        reason: verified.state === "UNSURE" ? verified.reason : undefined,
+      },
+      "external_api:verify_done",
+    );
+
+    // Couldn't get a definite answer (ShurjoPay down / empty). The customer
+    // may well have paid, so never show "failed": keep the order pending with
+    // its slot, and let the "confirming" page + background reconciler settle it.
+    if (verified.state === "UNSURE" && verified.reason !== "unknown_code") {
+      const pendingPayment = await prisma.payment.findFirst({
         where: { paymentId: spOrderId },
+        select: { orderId: true },
       });
-
-      if (orphanPayment) {
-        log.warn(
-          { paymentId: orphanPayment.id, orderId: orphanPayment.orderId },
-          "payment:pending_manual_review",
-        );
-        console.log("⚠️ Payment marked for manual review:", orphanPayment.id);
-      }
-
-      return NextResponse.redirect(
-        `${origin}/payment/failed?reason=verification_error`,
+      log.warn(
+        { orderId: pendingPayment?.orderId, reason: verified.reason },
+        "payment:unconfirmed — sent to processing page",
       );
-    } finally {
-      await log.flush();
-    }
-
-    if (!verifyData || verifyData.length === 0) {
-      log.error(
-        {
-          externalApi: {
-            service: "shurjopay",
-            operation: "verify",
-            durationMs: Date.now() - verifyStart,
-          },
-        },
-        "external_api:failure — empty response",
-      );
-      console.error("❌ Verification returned empty data");
       return NextResponse.redirect(
-        `${origin}/payment/failed?reason=verification_failed`,
+        pendingPayment
+          ? `${origin}/payment/processing?orderId=${pendingPayment.orderId}`
+          : `${origin}/payment/failed?reason=verification_error`,
       );
     }
 
-    const paymentInfo = verifyData[0];
+    const paymentInfo = verified.item!;
 
     // ✅ CRITICAL: Log sp_code which is the ONLY reliable field
     console.log("📋 Payment verification result:", {
@@ -382,188 +363,23 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // ─── Coupon Application ───────────────────────
-      try {
-        const orderForCoupon = await prisma.order.findUnique({
-          where: { id: payment.orderId },
-          select: {
-            id: true,
-            userId: true,
-            couponId: true,
-            discount: true,
-            couponUsage: true,
-          },
-        });
-
-        if (
-          orderForCoupon?.couponId &&
-          orderForCoupon.discount > 0 &&
-          !orderForCoupon.couponUsage
-        ) {
-          log.info(
-            { couponId: orderForCoupon.couponId, orderId: orderForCoupon.id },
-            "coupon:applying_usage",
-          );
-
-          console.log("🎟️ Applying coupon usage...");
-          const couponResult = await applyCoupon({
-            couponId: orderForCoupon.couponId,
-            userId: orderForCoupon.userId,
-            orderId: orderForCoupon.id,
-            discount: orderForCoupon.discount,
+      // Coupon usage + email + SMS run after the customer has been redirected
+      // (Next's after()), so they aren't kept waiting on the SMS/email APIs.
+      const confirmedOrderId = payment.orderId;
+      const transactionId = paymentInfo.order_id || spOrderId;
+      const paymentMethod = paymentInfo.method || undefined;
+      after(async () => {
+        try {
+          await runPostPaymentSteps({
+            orderId: confirmedOrderId,
+            transactionId,
+            paymentMethod,
+            log,
           });
-
-          if (couponResult.success) {
-            log.info(
-              { couponId: orderForCoupon.couponId },
-              "coupon:usage_recorded",
-            );
-            console.log("✅ Coupon usage recorded");
-          } else {
-            log.error(
-              {
-                couponId: orderForCoupon.couponId,
-                couponError: couponResult.error,
-              },
-              "coupon:usage_failed",
-            );
-            console.error("⚠️ Coupon failed:", couponResult.error);
-          }
+        } finally {
+          await log.flush();
         }
-      } catch (couponError: any) {
-        log.error({ err: couponError }, "coupon:error — non-fatal");
-
-        console.error("⚠️ Coupon error:", couponError?.message);
-      } finally {
-        await log.flush();
-      }
-
-      // ─── BIB, Email, SMS ──────────────────────────
-      try {
-        const order = await prisma.order.findUnique({
-          where: { id: payment.orderId },
-          include: {
-            registration: true,
-            event: true,
-            user: true,
-            package: true,
-            payment: true,
-          },
-        });
-
-        if (order?.registration && order.event && order.package) {
-          // const bibNumber = await autoAssignBibNumber(
-          //   order.registration.id,
-          //   order.eventId,
-          //   order.packageId,
-          // );
-
-          // Email
-          try {
-            const emailResult = await sendPaymentConfirmationEmail({
-              to: order.registration?.email || order.user.email,
-              runnerName:
-                order.registration?.fullName ||
-                order.user.firstName ||
-                "Runner",
-              eventName: order.event.name,
-              eventDate: order.event.date,
-              eventAddress: order.event.address,
-              packageName: order.package.name,
-              distance: order.package.distance,
-              amount: order.payment?.amount || 0,
-              orderId: order.id,
-              orderDate: order.createdAt,
-              orderStatus: order.status,
-              paymentStatus: order.payment?.status || "PENDING",
-              transactionId: paymentInfo.order_id || spOrderId,
-              paymentMethod: paymentInfo.method || undefined,
-              // bibNumber: bibNumber ?? undefined,
-              tshirtSize: order.registration?.tshirtSize ?? undefined,
-              bloodGroup: order.registration?.bloodGroup ?? undefined,
-            });
-            // if (emailResult.success) console.log("✅ Email sent");
-            if (emailResult.success) {
-              log.info(
-                { notification: { type: "email" }, orderId: order.id },
-                "notification:sent",
-              );
-            } else {
-              log.error(
-                { notification: { type: "email" }, orderId: order.id },
-                "notification:failed",
-              );
-            }
-          } catch (e: any) {
-            log.error(
-              { err: e, notification: { type: "email" }, orderId: order.id },
-              "notification:error — non-fatal",
-            );
-
-            console.error("⚠️ Email error:", e?.message);
-          } finally {
-            await log.flush();
-          }
-
-          // SMS
-          try {
-            const phoneNumber = order.registration?.phone || order.user?.phone;
-            if (phoneNumber) {
-              const formattedPhone = formatBDPhone(phoneNumber);
-              const smsMessage = getPaymentConfirmationSMS({
-                runnerName:
-                  order.registration?.fullName ||
-                  order.user.firstName ||
-                  "Runner",
-                eventName: order.event.name,
-                // bibNumber: bibNumber ?? undefined,
-                tshirtSize: order.registration?.tshirtSize ?? undefined,
-              });
-              const smsResult = await sendSMS({
-                number: formattedPhone,
-                message: smsMessage,
-              });
-              if (smsResult.success) {
-                log.info(
-                  { notification: { type: "sms" }, orderId: order.id },
-                  "notification:sent",
-                );
-              } else {
-                log.error(
-                  { notification: { type: "sms" }, orderId: order.id },
-                  "notification:failed",
-                );
-              }
-            } else {
-              log.warn(
-                {
-                  notification: { type: "sms", reason: "no_phone_number" },
-                  orderId: order.id,
-                },
-                "notification:skipped",
-              );
-            }
-          } catch (e: any) {
-            log.error(
-              { err: e, notification: { type: "sms" }, orderId: order.id },
-              "notification:error — non-fatal",
-            );
-
-            console.error("⚠️ SMS error:", e?.message);
-          } finally {
-            await log.flush();
-          }
-
-          // if (bibNumber) {
-          //   console.log(`✅ BIB ${bibNumber} assigned`);
-          // }
-        }
-      } catch (e: any) {
-        log.error({ err: e }, "payment:post_processing_error — non-fatal");
-        console.error("⚠️ Post-payment processing error:", e?.message);
-      } finally {
-        await log.flush();
-      }
+      });
 
       console.log("✅ Order confirmed, redirecting to success");
 
@@ -719,7 +535,7 @@ export async function GET(request: NextRequest) {
       entityType: "payment",
       entityId: payment.orderId,
       eventId: payment.order.eventId,
-      summary: `NEEDS REVIEW: ${spOrderId} returned status ${spCode} (${paymentInfo.sp_message || "no message"}); slot kept for manual review`,
+      summary: `ShurjoPay ${spOrderId} returned status ${spCode} (${paymentInfo.sp_message || "no message"}); order kept pending and re-checked automatically`,
     });
 
     // Keep as PENDING for manual review
@@ -731,17 +547,13 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Money may have moved — stop the hold from expiring so the slot stays
-    // reserved until an admin resolves it.
-    await prisma.order.updateMany({
-      where: { id: payment.orderId, status: "PENDING" },
-      data: { holdExpiresAt: null },
-    });
+    // The order keeps its normal hold; the background reconciler keeps asking
+    // ShurjoPay and confirms it the moment the payment shows as successful.
 
     log.info({ orderId: payment.orderId }, "db:payment_updated → PENDING");
 
     return NextResponse.redirect(
-      `${origin}/payment/failed?orderId=${payment.orderId}&reason=unknown_status`,
+      `${origin}/payment/processing?orderId=${payment.orderId}`,
     );
   } catch (error: any) {
     console.error("❌ Callback error:", error?.message);
@@ -758,6 +570,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Server-to-server notification (IPN) or a form-post redirect. ShurjoPay may
+// send the id as JSON, as a form, or only in the query string — accept all.
 export async function POST(request: NextRequest) {
   const requestId = await getRequestId();
 
@@ -766,29 +580,31 @@ export async function POST(request: NextRequest) {
     action: "shurjopay:callback:post",
   });
 
+  let bodyOrderId: string | null = null;
   try {
-    const body = await request.json().catch(() => ({}));
-    console.log("📥 ShurjoPay POST callback body:", body);
-
-    log.info(
-      { hasOrderId: !!(body.order_id || body.sp_order_id) },
-      "payment:post_callback_received",
-    );
-
-    if (body.order_id || body.sp_order_id) {
-      const url = new URL(request.url);
-      url.searchParams.set("order_id", body.order_id || body.sp_order_id);
-      const newRequest = new NextRequest(url, {
-        method: "GET",
-        headers: request.headers,
-      });
-      return GET(newRequest);
+    const type = request.headers.get("content-type") ?? "";
+    if (type.includes("application/json")) {
+      const body = await request.json();
+      bodyOrderId = body?.order_id || body?.sp_order_id || null;
+    } else if (
+      type.includes("application/x-www-form-urlencoded") ||
+      type.includes("multipart/form-data")
+    ) {
+      const form = await request.formData();
+      const v = form.get("order_id") ?? form.get("sp_order_id");
+      bodyOrderId = typeof v === "string" && v ? v : null;
     }
-  } catch (e) {
-    console.log("POST body parse failed, using GET params");
-  } finally {
-    await log.flush();
+  } catch (err) {
+    log.warn({ err }, "payment:post_callback_body_unreadable");
   }
 
-  return GET(request);
+  log.info(
+    { hasBodyOrderId: !!bodyOrderId },
+    "payment:post_callback_received",
+  );
+  await log.flush();
+
+  const url = new URL(request.url);
+  if (bodyOrderId) url.searchParams.set("order_id", bodyOrderId);
+  return GET(new NextRequest(url, { method: "GET", headers: request.headers }));
 }

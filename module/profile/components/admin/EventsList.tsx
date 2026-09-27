@@ -15,6 +15,7 @@ import {
   Eye,
   Loader2,
   Activity,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -29,6 +30,9 @@ type EventsListProps = {
   onViewOrders: (event: AdminEvent) => void; // ← NEW
   onViewActivity: (event: AdminEvent) => void;
   onRefresh: (events: AdminEvent[]) => void;
+  /** Open "payments needing attention" per event id. */
+  issueCounts?: Record<string, number>;
+  onViewIssues?: (event: AdminEvent) => void;
 };
 
 export function EventsList({
@@ -37,6 +41,8 @@ export function EventsList({
   onViewOrders, // ← NEW
   onViewActivity,
   onRefresh,
+  issueCounts = {},
+  onViewIssues,
 }: EventsListProps) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
@@ -127,6 +133,20 @@ export function EventsList({
                       >
                         <Eye size={15} />
                       </Link>
+
+                      {/* Payments needing attention for this event */}
+                      {onViewIssues && (issueCounts[event.id] ?? 0) > 0 && (
+                        <button
+                          onClick={() => onViewIssues(event)}
+                          className="relative p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          title={`${issueCounts[event.id]} payment${issueCounts[event.id] === 1 ? " needs" : "s need"} attention`}
+                        >
+                          <AlertTriangle size={15} />
+                          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center px-1 text-[9px] font-bold bg-red-600 text-white rounded-full">
+                            {issueCounts[event.id]}
+                          </span>
+                        </button>
+                      )}
 
                       {/* ← NEW: View Orders Button */}
                       <button

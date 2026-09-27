@@ -48,14 +48,13 @@ export default async function RetryPaymentPage({
   // Reset failed payment for retry
   // (A released/CANCELLED order keeps FAILED here — reclaimReleasedOrder
   // flips it back to PENDING only if it actually gets its slot back.)
-  if (order.payment?.status === "FAILED") {
+  // The previous ShurjoPay session id (paymentId) is kept on purpose:
+  // initiateShurjoPayPayment checks it with ShurjoPay first, so a runner whose
+  // earlier payment went through (callback lost) is confirmed, not charged twice.
+  if (order.payment?.status === "FAILED" && order.status === "PENDING") {
     await prisma.payment.update({
       where: { id: order.payment.id },
-      data: {
-        ...(order.status === "PENDING" && { status: "PENDING" }),
-        paymentId: null,
-        transactionId: null,
-      },
+      data: { status: "PENDING" },
     });
   }
 

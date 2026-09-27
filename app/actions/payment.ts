@@ -7,6 +7,8 @@ import { getClientIp } from "@/lib/get-client-ip";
 import { logger } from "@/lib/logger";
 import { getRequestId } from "@/utils/requestUtils";
 import { newHoldExpiry, reclaimReleasedOrder } from "@/lib/slot-hold";
+import { checkPaymentConfig } from "@/lib/payment-config";
+import { reconcileOrder } from "@/lib/payment-reconcile";
 
 export async function initiateShurjoPayPayment({
   orderId,
@@ -41,6 +43,18 @@ export async function initiateShurjoPayPayment({
   log.info("action:start");
 
   try {
+    // Refuse to take money we could never confirm (live ShurjoPay sending
+    // customers back to localhost) — how paid orders end up stuck as pending.
+    const config = checkPaymentConfig();
+    if (config.block) {
+      log.error({ configProblem: config.block }, "payment:config_invalid — refusing to start payment");
+      return {
+        success: false,
+        error: "Online payment is temporarily unavailable. Please try again later.",
+        checkoutUrl: "",
+      };
+    }
+
     // ✅ Get client IP at the start
     const clientIp = await getClientIp();
     console.log("🌐 Client IP:", clientIp);
@@ -102,6 +116,39 @@ export async function initiateShurjoPayPayment({
         error: "Order is already paid",
         checkoutUrl: "",
       };
+    }
+
+    // Step 0a: Never charge twice. If an earlier ShurjoPay session for this
+    // order was actually paid (its callback lost), confirm that one instead of
+    // opening a new payment.
+    if (order.payment.paymentId) {
+      const previous = await reconcileOrder(order.id, { log });
+      log.info({ previous }, "payment:previous_session_checked");
+
+      if (previous === "CONFIRMED" || previous === "ALREADY_PAID") {
+        return {
+          success: true,
+          error: "",
+          checkoutUrl: `/payment/success?orderId=${order.id}`,
+        };
+      }
+      if (previous === "PAID_NO_SLOT" || previous === "NEEDS_REVIEW") {
+        return {
+          success: false,
+          error:
+            "We already received a payment for this order and are checking it. Please don't pay again — contact support with your order ID.",
+          checkoutUrl: "",
+        };
+      }
+      if (previous === "GATEWAY_ERROR") {
+        return {
+          success: false,
+          error:
+            "We couldn't check your previous payment attempt just now. Please try again in a minute so you aren't charged twice.",
+          checkoutUrl: "",
+        };
+      }
+      // NOT_PAID / NO_SESSION → safe to start a new payment.
     }
 
     // Step 0: Make sure this order holds its slot for the whole payment.

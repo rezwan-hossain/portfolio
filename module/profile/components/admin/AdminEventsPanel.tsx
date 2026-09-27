@@ -1,7 +1,7 @@
 // module/profile/components/admin/AdminEventsPanel.tsx
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AdminEvent, AdminOrganizer } from "@/types/profile";
 import { EventForm } from "./EventForm";
 import { Plus, ArrowLeft } from "lucide-react";
@@ -10,6 +10,10 @@ import { EventStatsBar } from "./EventStatsBar";
 import { EventFilters } from "./EventFilters";
 import { EventOrdersModal } from "./EventOrdersModal";
 import { EventActivityModal } from "./EventActivityModal";
+import { PaymentIssuesBanner } from "./PaymentIssuesBanner";
+import { PaymentIssuesModal } from "./PaymentIssuesModal";
+import { getPaymentIssues } from "@/app/actions/payment-issues";
+import type { PaymentIssue } from "@/types/payment-issues";
 
 type AdminEventsPanelProps = {
   initialEvents: AdminEvent[];
@@ -32,6 +36,22 @@ export function AdminEventsPanel({
   const [viewActivityEvent, setViewActivityEvent] = useState<AdminEvent | null>(
     null,
   );
+
+  // Payments needing attention — loaded once, shared by the banner (totals),
+  // the event rows (per-event badge) and the review window.
+  const [paymentIssues, setPaymentIssues] = useState<PaymentIssue[] | null>(null);
+  const [issuesFor, setIssuesFor] = useState<string | null>(null); // "all" | eventId | null (closed)
+  const loadIssues = useCallback(
+    () => getPaymentIssues().then(({ issues }) => setPaymentIssues(issues)),
+    [],
+  );
+  useEffect(() => {
+    void loadIssues();
+  }, [loadIssues]);
+  const issueCounts: Record<string, number> = {};
+  for (const i of paymentIssues ?? []) {
+    issueCounts[i.event.id] = (issueCounts[i.event.id] ?? 0) + 1;
+  }
 
   const handleCreate = () => {
     setEditingEvent(null);
@@ -89,6 +109,12 @@ export function AdminEventsPanel({
       {/* Content */}
       {view === "list" && (
         <>
+          {/* Payments the automatic handling leaves to a person */}
+          <PaymentIssuesBanner
+            issues={paymentIssues}
+            onOpen={() => setIssuesFor("all")}
+          />
+
           {/* Stats */}
           <EventStatsBar events={events} />
 
@@ -101,6 +127,8 @@ export function AdminEventsPanel({
             onEdit={handleEdit}
             onViewOrders={setViewOrdersEvent}
             onViewActivity={setViewActivityEvent}
+            issueCounts={issueCounts}
+            onViewIssues={(event) => setIssuesFor(event.id)}
             onRefresh={handleSuccess}
           />
         </>
@@ -120,6 +148,18 @@ export function AdminEventsPanel({
         <EventOrdersModal
           event={viewOrdersEvent}
           onClose={() => setViewOrdersEvent(null)}
+        />
+      )}
+
+      {/* Payments needing attention */}
+      {issuesFor && (
+        <PaymentIssuesModal
+          events={events.map((e) => ({ id: e.id, name: e.name }))}
+          initialEventId={issuesFor}
+          onClose={() => {
+            setIssuesFor(null);
+            void loadIssues();
+          }}
         />
       )}
 

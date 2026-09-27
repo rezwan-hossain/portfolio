@@ -16,6 +16,10 @@
 // abandoned slot comes back at most ~1 hour after its hold expires.
 const SWEEP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
+// Payments whose callback never confirmed them are checked with ShurjoPay far
+// more often — a runner who paid shouldn't wait an hour for confirmation.
+const RECONCILE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   if (process.env.NEXT_PHASE === "phase-production-build") return;
@@ -27,6 +31,41 @@ export async function register() {
 
   const { releaseExpiredHolds } = await import("./lib/slot-hold");
   const { logger } = await import("./lib/logger");
+  const { reconcilePendingPayments } = await import("./lib/payment-reconcile");
+  const { checkPaymentConfig } = await import("./lib/payment-config");
+
+  // Say so loudly at boot if payments can't be confirmed with this setup.
+  const config = checkPaymentConfig();
+  if (config.block || config.warnings.length > 0) {
+    const bootLog = logger.child({ action: "payment:config_check" });
+    if (config.block) bootLog.error({ configProblem: config.block }, "payment:config_invalid");
+    for (const w of config.warnings) bootLog.warn({ configWarning: w }, "payment:config_warning");
+    await bootLog.flush();
+    console.error(
+      `\n⚠️  PAYMENT CONFIG ${config.block ? "PROBLEM" : "WARNING"}: ${config.block ?? config.warnings.join(" ")}\n`,
+    );
+  }
+
+  // ── Payment reconciler: confirm paid orders whose callback was lost ──
+  let reconciling = false;
+  const reconcile = async () => {
+    if (reconciling) return;
+    reconciling = true;
+    const log = logger.child({ action: "payment:reconcile" });
+    try {
+      const counts = await reconcilePendingPayments({ log });
+      if (counts.CONFIRMED > 0 || counts.PAID_NO_SLOT > 0 || counts.NEEDS_REVIEW > 0) {
+        log.warn({ counts }, "reconcile:recovered_lost_callbacks");
+      }
+    } catch (err) {
+      log.error({ err }, "reconcile:run_failed");
+    } finally {
+      reconciling = false;
+      await log.flush();
+    }
+  };
+  setInterval(reconcile, RECONCILE_INTERVAL_MS).unref();
+  setTimeout(reconcile, 45_000).unref();
   const { verifyShurjoPayPayment, SP_CODE } = await import("./lib/shurjopay2");
 
   // Before releasing an order that reached ShurjoPay, ask ShurjoPay whether it

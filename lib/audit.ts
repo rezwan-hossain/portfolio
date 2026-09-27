@@ -32,6 +32,7 @@ export type AuditActor = { id: string | null; label: string };
 export const SYSTEM = {
   shurjopay: { id: null, label: "System · ShurjoPay" },
   sweep: { id: null, label: "System · slot hold sweep" },
+  reconciler: { id: null, label: "System · payment reconciler" },
 } satisfies Record<string, AuditActor>;
 
 // The signed-in admin for this request (requireAdmin is cached per request,
