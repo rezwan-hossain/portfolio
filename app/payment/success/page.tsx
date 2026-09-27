@@ -146,7 +146,7 @@ async function PaymentSuccessContent({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/60 via-white to-gray-50 flex items-start justify-center px-4 py-12 sm:py-20">
-      // ✅ Fires Purchase tracker on page load
+      {/* // ✅ Fires Purchase tracker on page load */}
       <PurchaseTracker data={purchaseData} />
       <div className="mt-20 max-w-xl w-full">
         {/* ── Animated Success Header ── */}
