@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getAnalytics } from "@/app/actions/analytics";
+import { AdminReturningRunnersPanel } from "./AdminReturningRunnersPanel";
 import type { AnalyticsData, AnalyticsRange } from "@/types/analytics";
 import { RefreshCw } from "lucide-react";
 import {
@@ -221,6 +222,11 @@ export function AdminDashboardPanel({ events }: Props) {
           <Card title="Coupons" subtitle="Paid orders that used a coupon">
             <CouponTable rows={data.coupons} />
           </Card>
+
+          {/* Follows the event filter at the top; always all-time. */}
+          <section className="bg-white border border-gray-200 rounded-xl p-5">
+            <AdminReturningRunnersPanel events={events} eventId={eventId} embedded />
+          </section>
 
           <p className="text-[11px] text-gray-400">
             Updated{" "}
