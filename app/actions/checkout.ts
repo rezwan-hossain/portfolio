@@ -459,6 +459,7 @@ export async function placeOrder(formData: {
           code: couponCode, // ← EDITED: was recomputing .toUpperCase().trim()
           eventId: formData.eventId,
           isActive: true,
+          isArchived: false,
         },
         include: {
           usages: { where: { userId } }, // ← EDITED: now applied to guests too

@@ -228,6 +228,8 @@ model Coupon {
   validFrom      DateTime
   validUntil     DateTime
   isActive       Boolean       @default(true)
+  // "Deleted" coupons that orders used: hidden and unusable, kept for history.
+  isArchived     Boolean       @default(false)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   eventId        String

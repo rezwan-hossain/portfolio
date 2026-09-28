@@ -51,6 +51,7 @@ export async function validateCoupon(
         code: code.toUpperCase().trim(),
         eventId: eventId,
         isActive: true,
+        isArchived: false,
       },
       include: {
         usages: dbUser ? { where: { userId: dbUser.id } } : false,
@@ -205,7 +206,9 @@ export async function createCoupon(data: {
     if (existing) {
       return {
         success: false,
-        error: "Coupon code already exists for this event",
+        error: existing.isArchived
+          ? "A deleted coupon already used this code for this event (orders still reference it). Please choose a different code."
+          : "Coupon code already exists for this event",
       };
     }
 
@@ -292,6 +295,7 @@ export async function getAllCoupons(filters?: {
   try {
     const coupons = await prisma.coupon.findMany({
       where: {
+        isArchived: false,
         ...(filters?.eventId && { eventId: filters.eventId }),
         ...(filters?.isActive !== undefined && { isActive: filters.isActive }),
       },
@@ -345,7 +349,7 @@ export async function updateCoupon(
       include: { packages: { select: { id: true } } },
     });
 
-    if (!currentCoupon) {
+    if (!currentCoupon || currentCoupon.isArchived) {
       return { success: false, error: "Coupon not found" };
     }
 
@@ -437,39 +441,52 @@ export async function updateCoupon(
 }
 
 // ─── DELETE COUPON ────────────────────────────────
-export async function deleteCoupon(id: string) {
+export async function deleteCoupon(id: string): Promise<{
+  success: boolean;
+  error: string | null;
+  archived?: boolean;
+  message?: string;
+}> {
   const { error: authError } = await requireAdmin();
   if (authError) return { success: false, error: authError };
 
   try {
     const target = await prisma.coupon.findUnique({
       where: { id },
-      select: { code: true, eventId: true },
+      select: {
+        code: true,
+        eventId: true,
+        isArchived: true,
+        _count: { select: { usages: true, orders: true } },
+      },
     });
+    if (!target || target.isArchived) {
+      return { success: false, error: "This coupon no longer exists — refresh the list." };
+    }
 
-    // Check if coupon has been used
-    const usageCount = await prisma.couponUsage.count({
-      where: { couponId: id },
-    });
-
-    if (usageCount > 0) {
-      // Soft delete by deactivating instead
+    // Any order that used the coupon (paid or not) keeps a reference to it, so
+    // never hard-delete it: the database would silently strip the coupon from
+    // those orders (orders.couponId ON DELETE SET NULL). Archive instead.
+    const used = target._count.orders + target._count.usages;
+    if (used > 0) {
       await prisma.coupon.update({
         where: { id },
-        data: { isActive: false },
+        data: { isArchived: true, isActive: false },
       });
       await audit({
-        action: "coupon.deactivated",
+        action: "coupon.deleted",
         entityType: "coupon",
         entityId: id,
-        eventId: target?.eventId,
-        summary: `Tried to delete coupon ${target?.code}; it has ${usageCount} uses, so it was deactivated instead`,
-        changes: { isActive: [true, false] },
+        eventId: target.eventId,
+        summary: `Deleted coupon ${target.code} (archived: ${target._count.orders} order${target._count.orders === 1 ? "" : "s"} used it, history kept)`,
+        changes: { isArchived: [false, true], isActive: [null, false] },
       });
       revalidateTag("coupons", "max");
       return {
         success: true,
-        warning: `Coupon has ${usageCount} usages. Deactivated instead of deleted.`,
+        error: null,
+        archived: true,
+        message: `${target.code} deleted. ${target._count.orders} order${target._count.orders === 1 ? "" : "s"} used it, so it's kept in their history but can't be used again.`,
       };
     }
 
@@ -478,15 +495,14 @@ export async function deleteCoupon(id: string) {
       action: "coupon.deleted",
       entityType: "coupon",
       entityId: id,
-      eventId: target?.eventId,
-      summary: `Deleted coupon ${target?.code ?? id} (never used)`,
+      eventId: target.eventId,
+      summary: `Deleted coupon ${target.code} permanently (never used)`,
     });
     revalidateTag("coupons", "max");
-
-    return { success: true, error: null };
+    return { success: true, error: null, archived: false, message: `${target.code} deleted.` };
   } catch (error) {
     console.error("Delete coupon error:", error);
-    return { success: false, error: "Failed to delete coupon" };
+    return { success: false, error: "Failed to delete coupon. Please try again." };
   }
 }
 

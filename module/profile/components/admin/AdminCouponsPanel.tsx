@@ -1,7 +1,7 @@
 // app/(site)/profile/components/admin/AdminCouponsPanel.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   updateCoupon,
   deleteCoupon,
@@ -62,6 +62,8 @@ export function AdminCouponsPanel({ initialCoupons, events }: Props) {
   const [coupons, setCoupons] = useState(initialCoupons);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Coupon | null>(null);
+  const [flash, setFlash] = useState<{ ok: boolean; text: string } | null>(null);
 
   const isExpired = (d: string) => new Date(d) < new Date();
   const isScheduled = (d: string) => new Date(d) > new Date();
@@ -106,18 +108,43 @@ export function AdminCouponsPanel({ initialCoupons, events }: Props) {
     setLoadingId(null);
   };
 
-  const handleDelete = async (couponId: string) => {
-    if (!confirm("Delete this coupon?")) return;
-    setLoadingId(couponId);
-    const result = await deleteCoupon(couponId);
+  const handleDelete = async (coupon: Coupon) => {
+    setConfirmDelete(null);
+    setFlash(null);
+    setLoadingId(coupon.id);
+    const result = await deleteCoupon(coupon.id);
     if (result.success) {
       await refreshCoupons();
+      setFlash({ ok: true, text: result.message ?? `${coupon.code} deleted.` });
+    } else {
+      setFlash({ ok: false, text: result.error ?? "Failed to delete coupon." });
     }
     setLoadingId(null);
   };
 
   return (
     <div>
+      {confirmDelete && (
+        <DeleteCouponDialog
+          coupon={confirmDelete}
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={() => handleDelete(confirmDelete)}
+        />
+      )}
+      {flash && (
+        <div
+          className={`mb-4 p-3 rounded-lg border text-sm font-medium flex items-start justify-between gap-2 ${
+            flash.ok ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-700"
+          }`}
+          role="status"
+        >
+          <span>{flash.text}</span>
+          <button onClick={() => setFlash(null)} className="opacity-60 hover:opacity-100 cursor-pointer" title="Dismiss">
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         {view === "list" ? (
@@ -350,7 +377,7 @@ export function AdminCouponsPanel({ initialCoupons, events }: Props) {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDelete(coupon.id)}
+                              onClick={() => setConfirmDelete(coupon)}
                               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                               title="Delete"
                             >
@@ -376,6 +403,67 @@ export function AdminCouponsPanel({ initialCoupons, events }: Props) {
           onCancel={handleBack}
         />
       )}
+    </div>
+  );
+}
+
+// ─── Delete confirmation ─────────────────────────────
+function DeleteCouponDialog({
+  coupon,
+  onCancel,
+  onConfirm,
+}: {
+  coupon: Coupon;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const used = coupon._count.usages;
+
+  useEffect(() => {
+    cancelRef.current?.focus(); // a stray Enter shouldn't delete
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="delete-coupon-title">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+            <Trash2 size={18} className="text-red-600" />
+          </div>
+          <div className="min-w-0">
+            <h3 id="delete-coupon-title" className="text-base font-bold text-gray-900">
+              Delete coupon <span className="font-mono">{coupon.code}</span>?
+            </h3>
+            <p className="text-sm text-gray-600 mt-1.5">
+              {used > 0
+                ? `It has been used ${used} time${used === 1 ? "" : "s"}, so it will be removed from this list and can't be used again. Orders that used it keep it in their history.`
+                : "It has never been used and will be permanently deleted."}
+            </p>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-6">
+          <button
+            ref={cancelRef}
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="px-4 py-2 text-sm font-bold text-white bg-red-600 rounded-lg hover:bg-red-700 cursor-pointer"
+          >
+            Delete coupon
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
