@@ -3,6 +3,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { audit, diff } from "@/lib/audit";
 
 const TEAM_AUDIT_FIELDS = [
@@ -24,6 +25,11 @@ type TeamCategory = "ADMIN" | "ADVISOR" | "ORGANIZER";
 
 // ─── GET ALL TEAM MEMBERS ──────────────────────────
 export async function getAllTeamMembers() {
+  // Admin only: includes hidden members. The public /teams page uses
+  // getActiveTeamMembers instead.
+  const { error: authError } = await requireAdmin();
+  if (authError) return { members: [], error: authError };
+
   try {
     const members = await prisma.teamMember.findMany({
       orderBy: [{ category: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
@@ -92,6 +98,9 @@ export async function createTeamMember(data: {
   instagramUrl?: string;
   facebookUrl?: string;
 }) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return { error: authError };
+
   try {
     const member = await prisma.teamMember.create({
       data: {
@@ -144,6 +153,9 @@ export async function updateTeamMember(
     facebookUrl: string | null;
   }>,
 ) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return { error: authError };
+
   try {
     const before = await prisma.teamMember.findUnique({ where: { id } });
     const member = await prisma.teamMember.update({
@@ -174,6 +186,9 @@ export async function updateTeamMember(
 
 // ─── DELETE TEAM MEMBER ────────────────────────────
 export async function deleteTeamMember(id: string) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return { error: authError };
+
   try {
     const removed = await prisma.teamMember.delete({ where: { id } });
 
@@ -196,6 +211,9 @@ export async function deleteTeamMember(id: string) {
 
 // ─── TOGGLE ACTIVE STATUS ──────────────────────────
 export async function toggleTeamMemberActive(id: string) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return { error: authError };
+
   try {
     const member = await prisma.teamMember.findUnique({ where: { id } });
     if (!member) return { error: "Member not found" };
@@ -227,6 +245,9 @@ export async function toggleTeamMemberActive(id: string) {
 export async function reorderTeamMembers(
   updates: { id: string; sortOrder: number }[],
 ) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return { error: authError };
+
   try {
     await prisma.$transaction(
       updates.map((item) =>
