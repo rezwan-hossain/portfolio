@@ -25,6 +25,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { EditRegistrationForm } from "./EditRegistrationForm";
+import { OrderDeliveries } from "./OrderDeliveries";
 
 type Props = {
   order: EventOrder;
@@ -505,6 +506,9 @@ export function OrderCard({
               )}
             </div>
           </div>
+          {/* ─── Emails / SMS sent for this order ─── */}
+          <OrderDeliveries orderId={order.id} />
+
           {/* ─── Status Actions ─── */}
           <div className="flex items-center justify-between pt-2">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">

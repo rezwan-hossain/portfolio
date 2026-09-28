@@ -13,6 +13,7 @@ import { applyCoupon } from "@/lib/coupon/apply-coupon";
 import { sendPaymentConfirmationEmail } from "@/lib/email/send-payment-confirmation";
 import { formatBDPhone, sendSMS } from "@/lib/sms";
 import { buildConfirmationSms } from "@/lib/sms-template-server";
+import { recordDelivery } from "@/lib/notification-log";
 import type { ChildLogger } from "@/lib/logger";
 
 export async function runPostPaymentSteps({
@@ -103,9 +104,23 @@ export async function runPostPaymentSteps({
       // );
 
       // Email
+      const emailTo = order.registration?.email || order.user.email || null;
       try {
+        // Guest checkouts without an email get a placeholder address ending in
+        // ".invalid" — it can never receive mail, so don't try.
+        if (!emailTo || emailTo.endsWith(".invalid")) {
+          await recordDelivery({
+            orderId: order.id,
+            eventId: order.eventId,
+            channel: "email",
+            status: "skipped",
+            to: null,
+            reason: "no email address on this registration",
+          });
+          throw new SkipEmail();
+        }
         const emailResult = await sendPaymentConfirmationEmail({
-          to: order.registration?.email || order.user.email,
+          to: emailTo,
           runnerName:
             order.registration?.fullName ||
             order.user.firstName ||
@@ -127,6 +142,15 @@ export async function runPostPaymentSteps({
           bloodGroup: order.registration?.bloodGroup ?? undefined,
         });
         // if (emailResult.success) console.log("✅ Email sent");
+        await recordDelivery({
+          orderId: order.id,
+          eventId: order.eventId,
+          channel: "email",
+          status: emailResult.success ? "sent" : "failed",
+          to: emailTo,
+          reason: emailResult.success ? null : (emailResult.error ?? "unknown error"),
+          providerRef: emailResult.success ? (emailResult.messageId ?? null) : null,
+        });
         if (emailResult.success) {
           log.info(
             { notification: { type: "email" }, orderId: order.id },
@@ -139,12 +163,23 @@ export async function runPostPaymentSteps({
           );
         }
       } catch (e) {
-        log.error(
-          { err: e, notification: { type: "email" }, orderId: order.id },
-          "notification:error — non-fatal",
-        );
+        // SkipEmail = no real address; already recorded as skipped.
+        if (!(e instanceof SkipEmail)) {
+          await recordDelivery({
+            orderId: order.id,
+            eventId: order.eventId,
+            channel: "email",
+            status: "failed",
+            to: emailTo,
+            reason: e instanceof Error ? e.message : String(e),
+          });
+          log.error(
+            { err: e, notification: { type: "email" }, orderId: order.id },
+            "notification:error — non-fatal",
+          );
 
-        console.error("⚠️ Email error:", e instanceof Error ? e.message : e);
+          console.error("⚠️ Email error:", e instanceof Error ? e.message : e);
+        }
       } finally {
         await log.flush();
       }
@@ -178,6 +213,17 @@ export async function runPostPaymentSteps({
             number: formattedPhone,
             message: smsMessage,
           });
+          await recordDelivery({
+            orderId: order.id,
+            eventId: order.eventId,
+            channel: "sms",
+            status: smsResult.success ? "sent" : "failed",
+            to: phoneNumber,
+            reason: smsResult.success ? null : (smsResult.error ?? "unknown error"),
+            // The gateway's own reply — it can say "error" even with HTTP 200.
+            providerRef: smsResult.data ? JSON.stringify(smsResult.data) : null,
+            message: smsMessage,
+          });
           if (smsResult.success) {
             log.info(
               { notification: { type: "sms" }, orderId: order.id },
@@ -190,6 +236,14 @@ export async function runPostPaymentSteps({
             );
           }
         } else {
+          await recordDelivery({
+            orderId: order.id,
+            eventId: order.eventId,
+            channel: "sms",
+            status: "skipped",
+            to: null,
+            reason: "no phone number on this registration",
+          });
           log.warn(
             {
               notification: { type: "sms", reason: "no_phone_number" },
@@ -199,6 +253,14 @@ export async function runPostPaymentSteps({
           );
         }
       } catch (e) {
+        await recordDelivery({
+          orderId: order.id,
+          eventId: order.eventId,
+          channel: "sms",
+          status: "failed",
+          to: order.registration?.phone || order.user?.phone || null,
+          reason: e instanceof Error ? e.message : String(e),
+        });
         log.error(
           { err: e, notification: { type: "sms" }, orderId: order.id },
           "notification:error — non-fatal",
@@ -220,3 +282,6 @@ export async function runPostPaymentSteps({
     await log.flush();
   }
 }
+
+// Thrown to leave the email step early when there is no real address.
+class SkipEmail extends Error {}

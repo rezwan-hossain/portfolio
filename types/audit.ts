@@ -7,7 +7,8 @@ export type AuditCategory =
   | "payments"
   | "events"
   | "coupons"
-  | "content";
+  | "content"
+  | "messages";
 
 export type AuditFilters = {
   category: AuditCategory;

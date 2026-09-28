@@ -28,6 +28,7 @@ const CATEGORIES: { value: AuditCategory; label: string }[] = [
   { value: "events", label: "Events & packages" },
   { value: "coupons", label: "Coupons" },
   { value: "content", label: "Homepage & team" },
+  { value: "messages", label: "Emails & SMS" },
 ];
 
 const ATTENTION = new Set([
@@ -41,6 +42,13 @@ const ATTENTION = new Set([
 // Chip style by what kind of change it was — colour plus the verb as text.
 function chip(action: string) {
   const verb = action.split(".")[1] ?? action;
+  if (action.startsWith("notification.")) {
+    const [channel, status] = verb.split("_");
+    const label = `${channel === "sms" ? "SMS" : "email"} ${status === "skipped" ? "not sent" : status}`;
+    if (status === "failed") return { text: label, cls: "bg-red-50 text-red-700 border-red-200" };
+    if (status === "sent") return { text: label, cls: "bg-green-50 text-green-700 border-green-200" };
+    return { text: label, cls: "bg-gray-100 text-gray-700 border-gray-200" };
+  }
   if (ATTENTION.has(action))
     return {
       text: "needs attention",
