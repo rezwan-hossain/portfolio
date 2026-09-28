@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { HeroForm } from "./HeroForm";
+import { AdminFaqEditor } from "./AdminFaqEditor";
 import {
   getAllHeroes,
   setActiveHero,
@@ -258,6 +259,9 @@ export function ManageHomepagePanel({ initialHeroes }: Props) {
           )}
         </>
       )}
+
+      {/* FAQ (shown with the hero list, not while editing a hero) */}
+      {view === "list" && <AdminFaqEditor />}
 
       {/* Create / Edit */}
       {(view === "create" || view === "edit") && (

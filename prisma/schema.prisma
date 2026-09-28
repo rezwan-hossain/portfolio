@@ -355,3 +355,18 @@ model SiteSetting {
 
   @@map("site_settings")
 }
+
+// Homepage FAQ, edited under Manage Homepage. Seeded with the original
+// questions by the faqs migration.
+model Faq {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("faqs")
+}

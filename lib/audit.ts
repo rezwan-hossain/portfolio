@@ -22,7 +22,8 @@ export type AuditEntityType =
   | "coupon"
   | "hero"
   | "gallery"
-  | "team";
+  | "team"
+  | "faq";
 
 export type AuditChanges = Record<string, [unknown, unknown]>;
 

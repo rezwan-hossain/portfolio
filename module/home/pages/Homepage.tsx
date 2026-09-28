@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import StatsCounter from "../components/StatsCounter";
 import CourseHighlights from "../components/CourseHighlights";
 import Ambassador from "../components/Ambassador";
+// Server component (reads the FAQ from the database), so imported directly.
+import FAQ from "../components/FAQ";
 
 // ✅ Lazy load everything below the fold
 const UpcomingEvents = dynamic(() => import("../components/UpcomingEvent"), {
@@ -19,7 +21,6 @@ const CTASection = dynamic(() => import("../components/CTASection"));
 const Categories = dynamic(() => import("../components/Category"));
 const Testimonials = dynamic(() => import("../components/Testimonials"));
 const Sponsors = dynamic(() => import("../components/Sponsors"));
-const FAQ = dynamic(() => import("../components/FAQ"));
 const RegisterCTA = dynamic(() => import("../components/RegisterCTA"));
 
 export default async function Homepage() {
@@ -57,7 +58,9 @@ export default async function Homepage() {
       <Categories />
       <Testimonials />
       <Sponsors />
-      <FAQ />
+      <Suspense fallback={null}>
+        <FAQ />
+      </Suspense>
       <RegisterCTA />
     </main>
   );
