@@ -2,7 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getAuditLogs } from "@/app/actions/audit-log";
+import { exportAuditLogs, getAuditLogs } from "@/app/actions/audit-log";
 import type { AuditCategory, AuditEntry, AuditFilters } from "@/types/audit";
 import {
   AlertTriangle,
@@ -13,6 +13,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   RefreshCw,
+  Download,
+  Loader2,
   Search,
   User,
   X,
@@ -160,6 +162,61 @@ export function AdminAuditLogPanel({ events }: Props) {
     else run();
   };
 
+  const [exporting, setExporting] = useState(false);
+  const [exportNote, setExportNote] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Everything matching the current filters, not just this page.
+  const exportCsv = async () => {
+    setExporting(true);
+    setExportNote(null);
+    const res = await exportAuditLogs(filters);
+    setExporting(false);
+    if (res.error) return setExportNote({ ok: false, text: res.error });
+    if (res.entries.length === 0) return setExportNote({ ok: false, text: "Nothing to export for these filters." });
+
+    const eventNames = new Map(events.map((e) => [e.id, e.name]));
+    const esc = (v: unknown) => {
+      const t = v === null || v === undefined ? "" : String(v);
+      return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+    };
+    const val = (v: unknown) =>
+      v === null || v === undefined || v === "" ? "—" : typeof v === "object" ? JSON.stringify(v) : String(v);
+    const header = [
+      "Time (Dhaka)", "Actor", "Action", "What", "ID", "Event", "Summary",
+      "Runner", "Runner phone", "Runner email", "Changes", "Request ID",
+    ];
+    const rows = res.entries.map((e) => [
+      new Date(e.createdAt).toLocaleString("en-GB", { timeZone: "Asia/Dhaka" }),
+      e.actorLabel,
+      e.action,
+      e.entityType,
+      e.entityId,
+      e.eventId ? (eventNames.get(e.eventId) ?? e.eventId) : "",
+      e.summary,
+      e.subject?.name ?? "",
+      e.subject?.phone ?? "",
+      e.subject?.email ?? "",
+      e.changes
+        ? Object.entries(e.changes).map(([f, [b, a]]) => `${f}: ${val(b)} → ${val(a)}`).join("; ")
+        : "",
+      e.requestId ?? "",
+    ]);
+    // BOM so Excel reads Bangla and ৳ correctly.
+    const csv = "\uFEFF" + [header, ...rows].map((r) => r.map(esc).join(",")).join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `audit-log-${new Date().toISOString().slice(0, 10)}${filters.category !== "all" ? `-${filters.category}` : ""}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportNote({
+      ok: true,
+      text: res.truncated
+        ? `Exported the newest ${res.entries.length.toLocaleString("en-IN")} of ${res.total.toLocaleString("en-IN")} entries — narrow the filters to get the rest.`
+        : `Exported ${res.entries.length.toLocaleString("en-IN")} entries.`,
+    });
+  };
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const rangeEnd = Math.min(page * pageSize, total);
@@ -235,7 +292,19 @@ export function AdminAuditLogPanel({ events }: Props) {
         >
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
         </button>
+        <button
+          onClick={exportCsv}
+          disabled={exporting || total === 0}
+          className="h-9 flex items-center gap-1.5 px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold uppercase tracking-wider text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Download every entry matching these filters"
+        >
+          {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+          Export CSV
+        </button>
       </div>
+      {exportNote && (
+        <p className={`text-xs font-medium ${exportNote.ok ? "text-green-700" : "text-red-600"}`}>{exportNote.text}</p>
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {CATEGORIES.map((c) => (
