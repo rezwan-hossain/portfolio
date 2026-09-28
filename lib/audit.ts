@@ -23,7 +23,8 @@ export type AuditEntityType =
   | "hero"
   | "gallery"
   | "team"
-  | "faq";
+  | "faq"
+  | "user";
 
 export type AuditChanges = Record<string, [unknown, unknown]>;
 

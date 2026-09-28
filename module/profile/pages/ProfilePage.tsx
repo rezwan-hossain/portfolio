@@ -26,6 +26,7 @@ import {
   BarChart3,
   History,
   MessageSquare,
+  ShieldCheck,
 } from "lucide-react";
 
 // Admin panels are code-split: non-admins never download them, and admins
@@ -57,6 +58,10 @@ const AdminAuditLogPanel = dynamic(
 );
 const AdminSmsPanel = dynamic(
   () => import("../components/admin/AdminSmsPanel").then((m) => m.AdminSmsPanel),
+  { loading: panelLoading },
+);
+const AdminAdminsPanel = dynamic(
+  () => import("../components/admin/AdminAdminsPanel").then((m) => m.AdminAdminsPanel),
   { loading: panelLoading },
 );
 const AdminTeamPanel = dynamic(
@@ -91,7 +96,8 @@ type Tab =
   | "coupons"
   | "team"
   | "audit"
-  | "sms";
+  | "sms"
+  | "admins";
 
 type AdminTab = Exclude<Tab, "profile" | "password">;
 
@@ -133,6 +139,8 @@ function AdminTabContent({
       return <ManageHomepagePanel initialHeroes={data.heroSections} />;
     case "gallery":
       return <AdminGalleryPanel initialImages={data.galleryImages} />;
+    case "admins":
+      return <AdminAdminsPanel />;
     case "sms":
       return <AdminSmsPanel />;
     case "audit":
@@ -210,6 +218,12 @@ const ProfilePage = ({ profile, isOAuthUser, adminData }: ProfilePageProps) => {
             description: "Add & edit team members",
           },
           {
+            id: "admins" as Tab,
+            label: "Admins",
+            icon: ShieldCheck,
+            description: "Who has admin access",
+          },
+          {
             id: "sms" as Tab,
             label: "SMS Messages",
             icon: MessageSquare,
@@ -271,7 +285,8 @@ const ProfilePage = ({ profile, isOAuthUser, adminData }: ProfilePageProps) => {
                     tab.id === "gallery" ||
                     tab.id === "team" ||
                     tab.id === "audit" ||
-                    tab.id === "sms") && (
+                    tab.id === "sms" ||
+                    tab.id === "admins") && (
                     <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-neon-lime text-gray-900 px-1.5 py-0.5 rounded">
                       Admin
                     </span>
