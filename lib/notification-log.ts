@@ -23,6 +23,8 @@ export async function recordDelivery(entry: {
   providerRef?: string | null;
   /** The SMS text that was sent (emails are too long to store). */
   message?: string | null;
+  /** Extra context, e.g. "resent by admin@…". */
+  note?: string | null;
 }): Promise<void> {
   const label = entry.channel === "email" ? "Email" : "SMS";
   const verb =
@@ -35,7 +37,7 @@ export async function recordDelivery(entry: {
     entityType: "order",
     entityId: entry.orderId,
     eventId: entry.eventId ?? null,
-    summary: `Confirmation ${label} ${verb} ${to}${entry.reason ? ` — ${entry.reason}` : ""}`,
+    summary: `Confirmation ${label} ${verb} ${to}${entry.reason ? ` — ${entry.reason}` : ""}${entry.note ? ` · ${entry.note}` : ""}`,
     changes: {
       channel: [null, entry.channel],
       status: [null, entry.status],

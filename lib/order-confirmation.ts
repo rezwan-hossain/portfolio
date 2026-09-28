@@ -21,14 +21,25 @@ export async function runPostPaymentSteps({
   transactionId,
   paymentMethod,
   log,
+  only,
+  resentBy,
 }: {
   orderId: string;
   transactionId: string;
   paymentMethod?: string;
   log: ChildLogger;
+  /** Resend: send only these messages and skip the coupon step. */
+  only?: ("email" | "sms")[];
+  /** Resend: the admin who asked, shown in the delivery log. */
+  resentBy?: string;
 }): Promise<void> {
-  // ─── Coupon Application ───────────────────────
-  try {
+  const sendEmail = !only || only.includes("email");
+  const sendSms = !only || only.includes("sms");
+  const record = (entry: Parameters<typeof recordDelivery>[0]) =>
+    recordDelivery({ ...entry, note: resentBy ? `resent by ${resentBy}` : undefined });
+
+  // ─── Coupon Application (not on a resend) ─────
+  if (!only) try {
     const orderForCoupon = await prisma.order.findUnique({
       where: { id: orderId },
       select: {
@@ -105,11 +116,11 @@ export async function runPostPaymentSteps({
 
       // Email
       const emailTo = order.registration?.email || order.user.email || null;
-      try {
+      if (sendEmail) try {
         // Guest checkouts without an email get a placeholder address ending in
         // ".invalid" — it can never receive mail, so don't try.
         if (!emailTo || emailTo.endsWith(".invalid")) {
-          await recordDelivery({
+          await record({
             orderId: order.id,
             eventId: order.eventId,
             channel: "email",
@@ -142,7 +153,7 @@ export async function runPostPaymentSteps({
           bloodGroup: order.registration?.bloodGroup ?? undefined,
         });
         // if (emailResult.success) console.log("✅ Email sent");
-        await recordDelivery({
+        await record({
           orderId: order.id,
           eventId: order.eventId,
           channel: "email",
@@ -165,7 +176,7 @@ export async function runPostPaymentSteps({
       } catch (e) {
         // SkipEmail = no real address; already recorded as skipped.
         if (!(e instanceof SkipEmail)) {
-          await recordDelivery({
+          await record({
             orderId: order.id,
             eventId: order.eventId,
             channel: "email",
@@ -185,7 +196,7 @@ export async function runPostPaymentSteps({
       }
 
       // SMS
-      try {
+      if (sendSms) try {
         const phoneNumber = order.registration?.phone || order.user?.phone;
         if (phoneNumber) {
           const formattedPhone = formatBDPhone(phoneNumber);
@@ -213,7 +224,7 @@ export async function runPostPaymentSteps({
             number: formattedPhone,
             message: smsMessage,
           });
-          await recordDelivery({
+          await record({
             orderId: order.id,
             eventId: order.eventId,
             channel: "sms",
@@ -236,7 +247,7 @@ export async function runPostPaymentSteps({
             );
           }
         } else {
-          await recordDelivery({
+          await record({
             orderId: order.id,
             eventId: order.eventId,
             channel: "sms",
@@ -253,7 +264,7 @@ export async function runPostPaymentSteps({
           );
         }
       } catch (e) {
-        await recordDelivery({
+        await record({
           orderId: order.id,
           eventId: order.eventId,
           channel: "sms",

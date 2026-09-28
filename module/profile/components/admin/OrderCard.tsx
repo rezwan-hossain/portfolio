@@ -507,7 +507,7 @@ export function OrderCard({
             </div>
           </div>
           {/* ─── Emails / SMS sent for this order ─── */}
-          <OrderDeliveries orderId={order.id} />
+          <OrderDeliveries orderId={order.id} canResend={order.status === "CONFIRMED"} />
 
           {/* ─── Status Actions ─── */}
           <div className="flex items-center justify-between pt-2">

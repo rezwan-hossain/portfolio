@@ -2,8 +2,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getOrderDeliveries, type Delivery } from "@/app/actions/deliveries";
-import { ChevronDown, ChevronRight, Mail, MessageSquare } from "lucide-react";
+import { getOrderDeliveries, resendConfirmation, type Delivery } from "@/app/actions/deliveries";
+import { ChevronDown, ChevronRight, Loader2, Mail, MessageSquare, RotateCw } from "lucide-react";
 
 const STATUS: Record<Delivery["status"], { label: string; cls: string }> = {
   sent: { label: "Sent", cls: "bg-green-50 text-green-700 border-green-200" },
@@ -21,9 +21,19 @@ const fmt = (iso: string) =>
   });
 
 /** Emails and SMS sent for one order. Loads when the order is expanded. */
-export function OrderDeliveries({ orderId }: { orderId: string }) {
+export function OrderDeliveries({
+  orderId,
+  canResend = false,
+}: {
+  orderId: string;
+  /** Only paid, confirmed orders can be sent a confirmation again. */
+  canResend?: boolean;
+}) {
   const [rows, setRows] = useState<Delivery[] | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<"email" | "sms" | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [outcome, setOutcome] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -33,11 +43,70 @@ export function OrderDeliveries({ orderId }: { orderId: string }) {
     };
   }, [orderId]);
 
+  const resend = async (channel: "email" | "sms") => {
+    setBusy(true);
+    setOutcome(null);
+    const res = await resendConfirmation(orderId, channel);
+    setBusy(false);
+    setConfirming(null);
+    if (res.error) {
+      setOutcome({ ok: false, text: res.error });
+    } else {
+      const lines = (res.results ?? []).map((r) => {
+        const what = r.channel === "email" ? "Email" : "SMS";
+        if (r.status === "sent") return `${what} sent to ${r.to}.`;
+        if (r.status === "skipped") return `${what} not sent: ${r.reason}.`;
+        return `${what} failed: ${r.reason}`;
+      });
+      setOutcome({ ok: res.success, text: lines.join(" ") || "Nothing was sent." });
+    }
+    setRows((await getOrderDeliveries(orderId)).deliveries);
+  };
+
   return (
     <div onClick={(e) => e.stopPropagation()}>
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-        Messages
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Messages</p>
+        {canResend && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {confirming ? (
+              <>
+                <span className="text-[11px] text-gray-600">
+                  Send the {confirming === "email" ? "email" : "SMS"} again to the runner&apos;s current{" "}
+                  {confirming === "email" ? "email" : "phone"}?
+                </span>
+                <button
+                  onClick={() => resend(confirming)}
+                  disabled={busy}
+                  className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white bg-gray-900 rounded-md hover:bg-gray-800 cursor-pointer disabled:opacity-50"
+                >
+                  {busy && <Loader2 size={11} className="animate-spin" />}
+                  Yes, send
+                </button>
+                <button onClick={() => setConfirming(null)} disabled={busy} className="px-2 py-1 text-[10px] text-gray-500 hover:text-gray-700 cursor-pointer">
+                  Cancel
+                </button>
+              </>
+            ) : (
+              (["email", "sms"] as const).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => {
+                    setConfirming(c);
+                    setOutcome(null);
+                  }}
+                  className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer"
+                >
+                  <RotateCw size={11} /> Resend {c === "email" ? "email" : "SMS"}
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+      {outcome && (
+        <p className={`mb-2 text-xs font-medium ${outcome.ok ? "text-green-700" : "text-red-600"}`}>{outcome.text}</p>
+      )}
       {rows === null ? (
         <div className="h-9 bg-white rounded-lg border border-gray-100 animate-pulse" />
       ) : rows.length === 0 ? (
