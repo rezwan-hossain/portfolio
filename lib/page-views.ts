@@ -9,6 +9,7 @@
 
 import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { cleanCampaign, isSource } from "@/lib/traffic-source";
 
 const REPEAT_WINDOW_MS = 10_000; // same visitor + page within 10s = one view
 const SITE = "*";
@@ -103,6 +104,8 @@ export async function recordPageView(input: {
   ip: string;
   userAgent: string;
   now?: Date;
+  /** First page of a visit: which channel brought them (lib/traffic-source). */
+  landing?: { source: unknown; campaign?: unknown } | null;
 }): Promise<"counted" | "repeat" | "ignored"> {
   try {
     if (isBot(input.userAgent)) return "ignored";
@@ -140,6 +143,16 @@ export async function recordPageView(input: {
       ON CONFLICT ("day", "path") DO UPDATE SET
         "views" = "page_view_daily"."views" + 1,
         "uniques" = "page_view_daily"."uniques" + EXCLUDED."uniques"`;
+
+    // A counted landing → one visit for its channel.
+    if (input.landing && isSource(input.landing.source)) {
+      const campaign = cleanCampaign(typeof input.landing.campaign === "string" ? input.landing.campaign : "");
+      await prisma.$executeRaw`
+        INSERT INTO "traffic_source_daily" ("day", "source", "campaign", "visits")
+        VALUES (${day}, ${input.landing.source}, ${campaign}, 1)
+        ON CONFLICT ("day", "source", "campaign") DO UPDATE SET
+          "visits" = "traffic_source_daily"."visits" + 1`;
+    }
     return "counted";
   } catch (err) {
     console.error("recordPageView failed:", err);

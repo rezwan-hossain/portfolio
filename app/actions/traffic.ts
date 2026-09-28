@@ -17,12 +17,24 @@ export type TrafficFunnelRow = {
   paid: number; // confirmed orders
 };
 
+export type SourceRow = {
+  source: string; // channel, or "Not tracked" for orders from before tracking
+  visits: number; // site-wide landings from this channel
+  checkouts: number; // online orders started
+  paid: number; // confirmed online orders
+  revenue: number; // BDT from PAID payments
+};
+
+export type CampaignRow = { campaign: string; source: string; visits: number; paid: number };
+
 export type TrafficData = {
   countingSince: string | null; // first day with any data
   series: { date: string; views: number; uniques: number }[];
   totals: { views: number; uniques: number };
   topPages: CountItem[];
   funnel: TrafficFunnelRow[];
+  sources: SourceRow[];
+  campaigns: CampaignRow[];
 };
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -72,7 +84,7 @@ export async function getTraffic(
     const today = dayKey(new Date());
     if (!first) {
       return {
-        data: { countingSince: null, series: [], totals: { views: 0, uniques: 0 }, topPages: [], funnel: [] },
+        data: { countingSince: null, series: [], totals: { views: 0, uniques: 0 }, topPages: [], funnel: [], sources: [], campaigns: [] },
         error: null,
       };
     }
@@ -155,7 +167,65 @@ export async function getTraffic(
       }))
       .sort((a, b) => b.views - a.views || b.paid - a.paid);
 
-    return { data: { countingSince: first.day, series, totals, topPages, funnel }, error: null };
+    // ── Channels: visits (site-wide) and the orders they led to ──
+    const [visitsBySource, visitsByCampaign, ordersBySource] = await Promise.all([
+      prisma.trafficSourceDaily.groupBy({
+        by: ["source"],
+        where: { day: { gte: from, lte: today } },
+        _sum: { visits: true },
+      }),
+      prisma.trafficSourceDaily.groupBy({
+        by: ["campaign", "source"],
+        where: { day: { gte: from, lte: today }, campaign: { not: "" } },
+        _sum: { visits: true },
+      }),
+      prisma.order.findMany({
+        where: { ...eventFilter, source: "ONLINE", isArchived: false, createdAt: { gte: since } },
+        select: {
+          status: true,
+          trafficSource: true,
+          trafficCampaign: true,
+          payment: { select: { status: true, amount: true } },
+        },
+      }),
+    ]);
+    const bySource = new Map<string, SourceRow>();
+    const row = (source: string) => {
+      const r = bySource.get(source) ?? { source, visits: 0, checkouts: 0, paid: 0, revenue: 0 };
+      bySource.set(source, r);
+      return r;
+    };
+    for (const v of visitsBySource) row(v.source).visits += v._sum.visits ?? 0;
+    const paidByCampaign = new Map<string, number>();
+    for (const o of ordersBySource) {
+      const r = row(o.trafficSource ?? "Not tracked");
+      r.checkouts++;
+      if (o.status === "CONFIRMED") {
+        r.paid++;
+        if (o.trafficCampaign) paidByCampaign.set(o.trafficCampaign, (paidByCampaign.get(o.trafficCampaign) ?? 0) + 1);
+      }
+      if (o.payment?.status === "PAID") r.revenue += o.payment.amount;
+    }
+    const sources = [...bySource.values()].sort(
+      (a, b) =>
+        (a.source === "Not tracked" ? 1 : 0) - (b.source === "Not tracked" ? 1 : 0) ||
+        b.paid - a.paid ||
+        b.visits - a.visits,
+    );
+    const campaigns: CampaignRow[] = visitsByCampaign
+      .map((c) => ({
+        campaign: c.campaign,
+        source: c.source,
+        visits: c._sum.visits ?? 0,
+        paid: paidByCampaign.get(c.campaign) ?? 0,
+      }))
+      .sort((a, b) => b.paid - a.paid || b.visits - a.visits)
+      .slice(0, 15);
+
+    return {
+      data: { countingSince: first.day, series, totals, topPages, funnel, sources, campaigns },
+      error: null,
+    };
   } catch (err) {
     console.error("getTraffic error:", err);
     return { data: null, error: "Failed to load traffic" };

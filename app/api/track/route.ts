@@ -13,9 +13,11 @@ export async function POST(request: NextRequest) {
   if (/prefetch/i.test(purpose)) return new Response(null, { status: 204 });
 
   let path = "";
+  let landing: { source: unknown; campaign?: unknown } | null = null;
   try {
     const body = JSON.parse(await request.text());
     if (typeof body?.path === "string") path = body.path.slice(0, 300);
+    if (body?.landing && typeof body.landing === "object") landing = body.landing;
   } catch {
     return new Response(null, { status: 204 });
   }
@@ -24,6 +26,6 @@ export async function POST(request: NextRequest) {
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     request.headers.get("x-real-ip") ||
     "unknown";
-  await recordPageView({ path, ip, userAgent: request.headers.get("user-agent") ?? "" });
+  await recordPageView({ path, ip, userAgent: request.headers.get("user-agent") ?? "", landing });
   return new Response(null, { status: 204 });
 }

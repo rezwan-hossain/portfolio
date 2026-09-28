@@ -22,6 +22,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getRequestId } from "@/utils/requestUtils";
 import { audit } from "@/lib/audit";
 import { revalidateTag } from "next/cache";
+import { cookies } from "next/headers";
+import { SOURCE_COOKIE, decodeSourceCookie } from "@/lib/traffic-source";
 import {
   claimSlots,
   newHoldExpiry,
@@ -556,6 +558,9 @@ export async function placeOrder(formData: {
     logWithUser.info("db:transaction_start");
     const txStart = Date.now();
 
+    // Marketing channel that brought this buyer (30-day cookie, last non-direct).
+    const channel = decodeSourceCookie((await cookies()).get(SOURCE_COOKIE)?.value);
+
     const order = await prisma.$transaction(async (tx) => {
       logWithUser.info("tx:order.create");
 
@@ -571,6 +576,8 @@ export async function placeOrder(formData: {
           status: "PENDING",
           couponId,
           holdExpiresAt: newHoldExpiry(),
+          trafficSource: channel?.source ?? null,
+          trafficCampaign: channel?.campaign || null,
         },
       });
 

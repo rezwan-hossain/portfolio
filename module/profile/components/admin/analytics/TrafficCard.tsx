@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { getTraffic, type TrafficData } from "@/app/actions/traffic";
 import type { AnalyticsRange } from "@/types/analytics";
-import { BarList, Card, ColumnChart, StatTile, num } from "./charts";
+import { BarList, Card, ColumnChart, SERIES_1, StatTile, num, taka } from "./charts";
 
 const pct = (a: number, b: number) => (b > 0 ? `${(Math.round((a / b) * 1000) / 10).toLocaleString("en-IN")}%` : "—");
 const fmtDay = (key: string) =>
@@ -141,6 +141,97 @@ export function TrafficCard({ eventId, range }: { eventId: string; range: Analyt
           Checkouts and paid count online orders placed since the counter started, so the rates compare like with like.
         </p>
       </Card>
+
+      <Card
+        title="Where runners come from"
+        subtitle="Channel of each visit, and the orders it led to (last non-direct visit within 30 days gets the credit)"
+      >
+        {data.sources.length === 0 ? (
+          <p className="text-sm text-gray-400 py-4">No visits or orders in this period.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs min-w-[620px]">
+              <thead>
+                <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-100">
+                  <th className="font-bold py-2 pr-3">Channel</th>
+                  <th className="font-bold py-2 pr-3 text-right">
+                    Visits{eventId !== "all" && <span className="normal-case font-normal"> (whole site)</span>}
+                  </th>
+                  <th className="font-bold py-2 pr-3 text-right">Checkouts</th>
+                  <th className="font-bold py-2 pr-3 text-right">Paid</th>
+                  <th className="font-bold py-2 pr-3 w-[22%]">Share of paid</th>
+                  <th className="font-bold py-2 pr-3 text-right">Revenue</th>
+                  <th className="font-bold py-2 text-right">Visit → paid</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const maxPaid = Math.max(1, ...data.sources.map((r) => r.paid));
+                  const totalPaid = data.sources.reduce((t, r) => t + r.paid, 0);
+                  return data.sources.map((r) => (
+                    <tr key={r.source} className={`border-b border-gray-50 last:border-0 ${r.source === "Not tracked" ? "text-gray-400" : ""}`}>
+                      <td className="py-2.5 pr-3 font-semibold text-gray-900">
+                        {r.source === "Not tracked" ? (
+                          <span className="font-normal text-gray-500" title="Orders placed before channel tracking started">Not tracked</span>
+                        ) : (
+                          r.source
+                        )}
+                      </td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">{r.source === "Not tracked" ? "—" : num(r.visits)}</td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">{num(r.checkouts)}</td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-gray-900 font-semibold">{num(r.paid)}</td>
+                      <td className="py-2.5 pr-3">
+                        <span className="flex items-center gap-2">
+                          <span className="h-2 flex-1 rounded-full bg-gray-100">
+                            <span className="block h-full rounded-full" style={{ width: `${(r.paid / maxPaid) * 100}%`, background: SERIES_1 }} />
+                          </span>
+                          <span className="tabular-nums text-gray-500 w-9 text-right">{pct(r.paid, totalPaid)}</span>
+                        </span>
+                      </td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">{taka(r.revenue)}</td>
+                      <td className="py-2.5 text-right tabular-nums text-gray-700">
+                        {r.source === "Not tracked" || eventId !== "all" ? "—" : pct(r.paid, r.visits)}
+                      </td>
+                    </tr>
+                  ));
+                })()}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-[11px] text-gray-400 mt-2">
+          Tip: tag links you share, e.g. <span className="font-mono">?utm_source=facebook&amp;utm_campaign=winter-early-bird</span>, to see each post or ad below.
+        </p>
+      </Card>
+
+      {data.campaigns.length > 0 && (
+        <Card title="Campaigns" subtitle="Links tagged with utm_campaign">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-100">
+                  <th className="font-bold py-2 pr-3">Campaign</th>
+                  <th className="font-bold py-2 pr-3">Channel</th>
+                  <th className="font-bold py-2 pr-3 text-right">Visits</th>
+                  <th className="font-bold py-2 pr-3 text-right">Paid</th>
+                  <th className="font-bold py-2 text-right">Visit → paid</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.campaigns.map((c) => (
+                  <tr key={`${c.source}:${c.campaign}`} className="border-b border-gray-50 last:border-0">
+                    <td className="py-2 pr-3 font-mono text-gray-900">{c.campaign}</td>
+                    <td className="py-2 pr-3 text-gray-600">{c.source}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums text-gray-700">{num(c.visits)}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums font-semibold text-gray-900">{num(c.paid)}</td>
+                    <td className="py-2 text-right tabular-nums text-gray-700">{pct(c.paid, c.visits)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
