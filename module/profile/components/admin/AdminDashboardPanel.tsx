@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getAnalytics } from "@/app/actions/analytics";
 import { AdminReturningRunnersPanel } from "./AdminReturningRunnersPanel";
+import { PaceCard } from "./analytics/PaceCard";
 import type { AnalyticsData, AnalyticsRange } from "@/types/analytics";
 import { RefreshCw } from "lucide-react";
 import {
@@ -182,6 +183,9 @@ export function AdminDashboardPanel({ events }: Props) {
               />
             </Card>
           </div>
+
+          {/* This event vs last event */}
+          <PaceCard key={eventId} eventId={eventId} />
 
           {/* Packages */}
           <Card title="Packages" subtitle="All-time capacity, sales and sell-out forecast">
