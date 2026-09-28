@@ -30,6 +30,7 @@ export async function register() {
   g.__slotHoldSweep = true;
 
   const { releaseExpiredHolds } = await import("./lib/slot-hold");
+  const { purgeOldVisitors } = await import("./lib/page-views");
   const { logger } = await import("./lib/logger");
   const { reconcilePendingPayments } = await import("./lib/payment-reconcile");
   const { checkPaymentConfig } = await import("./lib/payment-config");
@@ -84,6 +85,9 @@ export async function register() {
     running = true;
     const log = logger.child({ action: "slotHold:sweep" });
     try {
+      // Page-view privacy: anonymous visitor hashes are kept for 2 days only.
+      await purgeOldVisitors().catch((err) => log.error({ err }, "pageviews:purge_failed"));
+
       const { slugs, parked } = await releaseExpiredHolds({
         verifyGatewayPayment,
         limit: 50, // bounds gateway calls per run; the rest go next run

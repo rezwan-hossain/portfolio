@@ -4,6 +4,7 @@ import "./globals.css";
 import AppLayout from "@/components/layout/AppLayout";
 import { Suspense } from "react";
 import { TrackingScripts } from "@/components/tracking/TrackingScripts";
+import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -76,6 +77,10 @@ export default function RootLayout({
       <body className={`${anton.variable} ${inter.variable} antialiased`}>
         <Suspense fallback={null}>
           <TrackingScripts />
+        </Suspense>
+        {/* usePathname() is dynamic under cacheComponents → needs Suspense */}
+        <Suspense fallback={null}>
+          <PageViewTracker />
         </Suspense>
 
         <AppLayout>{children}</AppLayout>

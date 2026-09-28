@@ -370,3 +370,32 @@ model Faq {
   @@index([isActive, sortOrder])
   @@map("faqs")
 }
+
+// Built-in page-view counter (see lib/page-views.ts). Counts only — no IPs,
+// no personal data. `path` is a normalised page key ("/", "/events/<slug>",
+// "other", or "*" for the whole site).
+model PageViewDaily {
+  day     String // YYYY-MM-DD, Asia/Dhaka
+  path    String
+  eventId String? // set for /events/<slug> pages
+  views   Int     @default(0)
+  uniques Int     @default(0)
+
+  @@id([day, path])
+  @@index([eventId, day])
+  @@map("page_view_daily")
+}
+
+// Short-lived: one anonymous hash per visitor, page and day, only to count
+// unique visitors and ignore rapid refreshes. Rows older than 2 days are
+// deleted by the hourly sweep.
+model PageVisitor {
+  day      String
+  path     String
+  hash     String
+  lastSeen DateTime @default(now())
+
+  @@id([day, path, hash])
+  @@index([day])
+  @@map("page_visitors")
+}

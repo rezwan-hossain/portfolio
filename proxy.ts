@@ -101,7 +101,8 @@ export const config = {
      * - favicon.ico    (favicon)
      * - common image formats
      * - sitemap.xml / robots.txt
+     * - api/track     (page-view beacon — needs no session refresh)
      */
-    "/((?!_next/static|_next/image|favicon\\.ico|sitemap\\.xml|robots\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|eot)$).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|sitemap\\.xml|robots\\.txt|api/track$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|eot)$).*)",
   ],
 };
