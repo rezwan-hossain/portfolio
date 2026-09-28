@@ -62,6 +62,9 @@ model Event {
   bannerImage     String
   thumbImage      String?
   minPackagePrice Float?
+  // Custom payment-confirmation SMS for this event; null = use the default
+  // (site_settings "sms.confirmation"). See lib/sms-template.ts.
+  confirmationSmsTemplate String?
   status          Status         @default(ACTIVE)
   isActive        Boolean        @default(true)
   isArchived      Boolean        @default(false)
@@ -340,4 +343,15 @@ model AuditLog {
   @@index([eventId, createdAt])
   @@index([actorId, createdAt])
   @@map("audit_logs")
+}
+
+// Small key/value store for admin-editable site settings
+// (e.g. "sms.confirmation" = the default confirmation SMS template).
+model SiteSetting {
+  key         String   @id
+  value       String
+  updatedAt   DateTime @updatedAt
+  updatedById String? // User.id of the admin who last changed it
+
+  @@map("site_settings")
 }

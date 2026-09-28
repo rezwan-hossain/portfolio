@@ -11,7 +11,8 @@
 import { prisma } from "@/lib/prisma";
 import { applyCoupon } from "@/lib/coupon/apply-coupon";
 import { sendPaymentConfirmationEmail } from "@/lib/email/send-payment-confirmation";
-import { formatBDPhone, getPaymentConfirmationSMS, sendSMS } from "@/lib/sms";
+import { formatBDPhone, sendSMS } from "@/lib/sms";
+import { buildConfirmationSms } from "@/lib/sms-template-server";
 import type { ChildLogger } from "@/lib/logger";
 
 export async function runPostPaymentSteps({
@@ -153,14 +154,25 @@ export async function runPostPaymentSteps({
         const phoneNumber = order.registration?.phone || order.user?.phone;
         if (phoneNumber) {
           const formattedPhone = formatBDPhone(phoneNumber);
-          const smsMessage = getPaymentConfirmationSMS({
-            runnerName:
+          // Admin-editable template (event's own → default → built-in).
+          const smsMessage = await buildConfirmationSms(order.eventId, {
+            name:
               order.registration?.fullName ||
               order.user.firstName ||
               "Runner",
-            eventName: order.event.name,
-            // bibNumber: bibNumber ?? undefined,
-            tshirtSize: order.registration?.tshirtSize ?? undefined,
+            event: order.event.name,
+            package: order.package.name,
+            distance: order.package.distance,
+            tshirt: order.registration?.tshirtSize ?? undefined,
+            bib: order.registration?.bibNumber ?? undefined,
+            eventDate: new Date(order.event.date).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+              timeZone: "Asia/Dhaka",
+            }),
+            orderId: order.id.slice(0, 8).toUpperCase(),
+            amount: order.payment ? `৳${order.payment.amount.toLocaleString("en-IN")}` : undefined,
           });
           const smsResult = await sendSMS({
             number: formattedPhone,
