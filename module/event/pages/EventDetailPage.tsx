@@ -8,6 +8,7 @@ import { HeroText } from "@/components/ui/HeroText";
 import type { EventData } from "@/types/event";
 import EventInfoCard from "../components/EventInfoCard";
 import EventDescription3 from "../components/EventDescription3";
+import ShareButtons from "../components/ShareButtons";
 import { formatEventTime, formatEventTimeUTC } from "@/utils/date";
 import { ViewContentTracker } from "@/components/tracking/ViewContentTracker";
 
@@ -200,6 +201,16 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
                 eventId={event.id}
               />
             </Suspense>
+
+            {event.status !== "COMPLETED" && event.status !== "CANCELLED" && (
+              <ShareButtons
+                slug={event.slug}
+                eventName={event.name}
+                place="event"
+                siteUrl={process.env.NEXT_PUBLIC_SITE_URL}
+                subtitle="Running with friends? Send them this race."
+              />
+            )}
           </aside>
         </div>
       </div>

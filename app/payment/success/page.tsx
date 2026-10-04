@@ -20,6 +20,7 @@ import {
   Heart,
 } from "lucide-react";
 import { PurchaseTracker } from "@/components/tracking/PurchaseTracker";
+import ShareButtons from "@/module/event/components/ShareButtons";
 
 type SearchParams = Promise<{ orderId?: string }>;
 
@@ -356,6 +357,22 @@ async function PaymentSuccessContent({
             </p>
           </div>
         </div>
+
+        {/* ── Bring a friend: tracked as "runners after paying" ── */}
+        {order.status === "CONFIRMED" &&
+          order.event.status !== "COMPLETED" &&
+          order.event.status !== "CANCELLED" && (
+            <ShareButtons
+              slug={order.event.slug}
+              eventName={order.event.name}
+              place="paid"
+              siteUrl={process.env.NEXT_PUBLIC_SITE_URL}
+              variant="compact"
+              title="Bring your running buddies 🏃"
+              subtitle="Tell your friends you're in, and run together."
+              className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
+            />
+          )}
 
         {/* ── Action Buttons ── */}
         <div className="mt-6 flex flex-col sm:flex-row gap-3">

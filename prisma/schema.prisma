@@ -419,3 +419,19 @@ model TrafficSourceDaily {
   @@id([day, source, campaign])
   @@map("traffic_source_daily")
 }
+
+// Share-button clicks per event, place and channel per day (see lib/share.ts).
+// Counts only. `sharers` = distinct people that day (same anonymous daily hash
+// as the page-view counter).
+model ShareClickDaily {
+  day     String // YYYY-MM-DD, Asia/Dhaka
+  eventId String
+  place   String // "event" (event page) | "paid" (after paying)
+  channel String // "whatsapp" | "facebook" | "messenger" | "x" | "copy" | "native"
+  clicks  Int    @default(0)
+  sharers Int    @default(0)
+
+  @@id([day, eventId, place, channel])
+  @@index([eventId, day])
+  @@map("share_click_daily")
+}

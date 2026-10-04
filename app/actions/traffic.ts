@@ -8,6 +8,16 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import type { AnalyticsRange, CountItem } from "@/types/analytics";
+import {
+  CHANNEL_LABELS,
+  PLACE_LABELS,
+  SHARE_PLACES,
+  isShareChannel,
+  isSharePlace,
+  placeOfCampaign,
+  shareCampaign,
+  type SharePlace,
+} from "@/lib/share";
 
 export type TrafficFunnelRow = {
   eventId: string;
@@ -27,6 +37,17 @@ export type SourceRow = {
 
 export type CampaignRow = { campaign: string; source: string; visits: number; paid: number };
 
+export type ShareRow = {
+  place: SharePlace;
+  label: string;
+  clicks: number; // share-button clicks
+  sharers: number; // distinct people clicking, summed per day
+  visits: number; // visits that landed from a shared link
+  checkouts: number; // online orders credited to a shared link
+  paid: number;
+  revenue: number;
+};
+
 export type TrafficData = {
   countingSince: string | null; // first day with any data
   series: { date: string; views: number; uniques: number }[];
@@ -35,6 +56,7 @@ export type TrafficData = {
   funnel: TrafficFunnelRow[];
   sources: SourceRow[];
   campaigns: CampaignRow[];
+  shares: { places: ShareRow[]; channels: CountItem[] };
 };
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -84,7 +106,16 @@ export async function getTraffic(
     const today = dayKey(new Date());
     if (!first) {
       return {
-        data: { countingSince: null, series: [], totals: { views: 0, uniques: 0 }, topPages: [], funnel: [], sources: [], campaigns: [] },
+        data: {
+          countingSince: null,
+          series: [],
+          totals: { views: 0, uniques: 0 },
+          topPages: [],
+          funnel: [],
+          sources: [],
+          campaigns: [],
+          shares: { places: [], channels: [] },
+        },
         error: null,
       };
     }
@@ -122,9 +153,8 @@ export async function getTraffic(
       where: { path: { not: "*" }, day: { gte: from, lte: today } },
       _sum: { views: true },
     });
-    const eventNames = new Map(
-      (await prisma.event.findMany({ select: { id: true, name: true } })).map((e) => [e.id, e.name]),
-    );
+    const allEvents = await prisma.event.findMany({ select: { id: true, name: true, slug: true } });
+    const eventNames = new Map(allEvents.map((e) => [e.id, e.name]));
     const topPages: CountItem[] = pages
       .map((p) => ({
         label: p.eventId ? (eventNames.get(p.eventId) ?? p.path) : (PAGE_NAMES[p.path] ?? p.path),
@@ -222,8 +252,59 @@ export async function getTraffic(
       .sort((a, b) => b.paid - a.paid || b.visits - a.visits)
       .slice(0, 15);
 
+    // ── Shares: button clicks → visits from shared links → orders ──
+    const slug = eventId === "all" ? null : allEvents.find((e) => e.id === eventId)?.slug;
+    const [clicks, shareVisits] = await Promise.all([
+      prisma.shareClickDaily.groupBy({
+        by: ["place", "channel"],
+        where: { ...eventFilter, day: { gte: from, lte: today } },
+        _sum: { clicks: true, sharers: true },
+      }),
+      prisma.trafficSourceDaily.groupBy({
+        by: ["campaign"],
+        where: {
+          day: { gte: from, lte: today },
+          ...(eventId === "all"
+            ? { OR: [{ campaign: { startsWith: "share-" } }, { campaign: { startsWith: "runner-" } }] }
+            : { campaign: { in: slug ? SHARE_PLACES.map((p) => shareCampaign(slug, p)) : [] } }),
+        },
+        _sum: { visits: true },
+      }),
+    ]);
+    const places = new Map<SharePlace, ShareRow>(
+      SHARE_PLACES.map((p) => [
+        p,
+        { place: p, label: PLACE_LABELS[p], clicks: 0, sharers: 0, visits: 0, checkouts: 0, paid: 0, revenue: 0 },
+      ]),
+    );
+    const byChannel = new Map<string, number>();
+    for (const c of clicks) {
+      if (!isSharePlace(c.place)) continue;
+      const r = places.get(c.place)!;
+      r.clicks += c._sum.clicks ?? 0;
+      r.sharers += c._sum.sharers ?? 0;
+      const label = isShareChannel(c.channel) ? CHANNEL_LABELS[c.channel] : c.channel;
+      byChannel.set(label, (byChannel.get(label) ?? 0) + (c._sum.clicks ?? 0));
+    }
+    for (const v of shareVisits) {
+      const p = placeOfCampaign(v.campaign);
+      if (p) places.get(p)!.visits += v._sum.visits ?? 0;
+    }
+    for (const o of ordersBySource) {
+      const p = placeOfCampaign(o.trafficCampaign);
+      if (!p) continue;
+      const r = places.get(p)!;
+      r.checkouts++;
+      if (o.status === "CONFIRMED") r.paid++;
+      if (o.payment?.status === "PAID") r.revenue += o.payment.amount;
+    }
+    const shares = {
+      places: [...places.values()],
+      channels: [...byChannel].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value),
+    };
+
     return {
-      data: { countingSince: first.day, series, totals, topPages, funnel, sources, campaigns },
+      data: { countingSince: first.day, series, totals, topPages, funnel, sources, campaigns, shares },
       error: null,
     };
   } catch (err) {

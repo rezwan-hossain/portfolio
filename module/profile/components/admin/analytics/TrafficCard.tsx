@@ -204,6 +204,54 @@ export function TrafficCard({ eventId, range }: { eventId: string; range: Analyt
         </p>
       </Card>
 
+      <Card
+        title="Shares"
+        subtitle="Share-button clicks, the visits shared links brought, and the orders that followed"
+      >
+        {data.shares.places.every((p) => p.clicks === 0 && p.visits === 0 && p.checkouts === 0) ? (
+          <p className="text-sm text-gray-400 py-4">No shares in this period yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-5">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[560px]">
+                <thead>
+                  <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-100">
+                    <th className="font-bold py-2 pr-3">Shared from</th>
+                    <th className="font-bold py-2 pr-3 text-right">Clicks</th>
+                    <th className="font-bold py-2 pr-3 text-right">People</th>
+                    <th className="font-bold py-2 pr-3 text-right">Visits</th>
+                    <th className="font-bold py-2 pr-3 text-right">Paid</th>
+                    <th className="font-bold py-2 pr-3 text-right">Revenue</th>
+                    <th className="font-bold py-2 text-right">Visit → paid</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.shares.places.map((r) => (
+                    <tr key={r.place} className="border-b border-gray-50 last:border-0">
+                      <td className="py-2.5 pr-3 font-semibold text-gray-900">{r.label}</td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">{num(r.clicks)}</td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">{num(r.sharers)}</td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">{num(r.visits)}</td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-gray-900 font-semibold">{num(r.paid)}</td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">{taka(r.revenue)}</td>
+                      <td className="py-2.5 text-right tabular-nums text-gray-700">{pct(r.paid, r.visits)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Clicks by app</p>
+              <BarList items={data.shares.channels} empty="No clicks yet" />
+            </div>
+          </div>
+        )}
+        <p className="text-[11px] text-gray-400 mt-2">
+          &quot;Runners after paying&quot; is the share box on the payment-success page: runners bringing runners. People = distinct
+          sharers per day. Paid counts orders whose buyer arrived through a shared link (last non-direct visit within 30 days).
+        </p>
+      </Card>
+
       {data.campaigns.length > 0 && (
         <Card title="Campaigns" subtitle="Links tagged with utm_campaign">
           <div className="overflow-x-auto">

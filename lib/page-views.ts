@@ -10,6 +10,7 @@
 import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { cleanCampaign, isSource } from "@/lib/traffic-source";
+import { isShareChannel, isSharePlace } from "@/lib/share";
 
 const REPEAT_WINDOW_MS = 10_000; // same visitor + page within 10s = one view
 const SITE = "*";
@@ -156,6 +157,55 @@ export async function recordPageView(input: {
     return "counted";
   } catch (err) {
     console.error("recordPageView failed:", err);
+    return "ignored";
+  }
+}
+
+/**
+ * Count one share-button click (lib/share.ts). Same privacy model as page
+ * views: a daily anonymous hash, used only to count distinct sharers and to
+ * ignore rapid repeat clicks. Never throws.
+ */
+export async function recordShareClick(input: {
+  slug: unknown;
+  place: unknown;
+  channel: unknown;
+  ip: string;
+  userAgent: string;
+  now?: Date;
+}): Promise<"counted" | "repeat" | "ignored"> {
+  try {
+    if (isBot(input.userAgent)) return "ignored";
+    if (typeof input.slug !== "string" || !isSharePlace(input.place) || !isShareChannel(input.channel)) {
+      return "ignored";
+    }
+    const eventId = (await eventSlugs()).get(input.slug);
+    if (!eventId) return "ignored";
+
+    const now = input.now ?? new Date();
+    const day = dayKey(now);
+    const hash = visitorHash(day, input.ip, input.userAgent);
+    const cutoff = new Date(now.getTime() - REPEAT_WINDOW_MS);
+    const key = `share:${input.place}:${input.channel}:${eventId}`;
+
+    const rows = await prisma.$queryRaw<{ inserted: boolean }[]>`
+      INSERT INTO "page_visitors" ("day", "path", "hash", "lastSeen")
+      VALUES (${day}, ${key}, ${hash}, ${now})
+      ON CONFLICT ("day", "path", "hash") DO UPDATE SET "lastSeen" = EXCLUDED."lastSeen"
+      WHERE "page_visitors"."lastSeen" < ${cutoff}
+      RETURNING (xmax = 0) AS "inserted"`;
+    if (rows.length === 0) return "repeat";
+    const newSharer = rows[0].inserted ? 1 : 0;
+
+    await prisma.$executeRaw`
+      INSERT INTO "share_click_daily" ("day", "eventId", "place", "channel", "clicks", "sharers")
+      VALUES (${day}, ${eventId}, ${input.place}, ${input.channel}, 1, ${newSharer})
+      ON CONFLICT ("day", "eventId", "place", "channel") DO UPDATE SET
+        "clicks" = "share_click_daily"."clicks" + 1,
+        "sharers" = "share_click_daily"."sharers" + EXCLUDED."sharers"`;
+    return "counted";
+  } catch (err) {
+    console.error("recordShareClick failed:", err);
     return "ignored";
   }
 }
