@@ -134,7 +134,9 @@ model Order {
   coupon       Coupon?       @relation(fields: [couponId], references: [id])
   event        Event         @relation(fields: [eventId], references: [id])
   package      Package       @relation(fields: [packageId], references: [id])
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Restrict: orders and payments are financial records — a user who has any
+  // can't be hard-deleted (users are soft-deleted via isArchived instead).
+  user         User          @relation(fields: [userId], references: [id], onDelete: Restrict)
   payment      Payment?
   registration Registration?
 
@@ -165,7 +167,7 @@ model Registration {
   updatedAt              DateTime @updatedAt
   email                  String?
   event                  Event    @relation(fields: [eventId], references: [id])
-  order                  Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order                  Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
 
   @@unique([eventId, bibNumber])
   @@map("registrations")
@@ -183,7 +185,7 @@ model Payment {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   orderId        String        @unique
-  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
 
   @@map("payments")
 }
@@ -250,9 +252,9 @@ model CouponUsage {
   couponId String
   userId   String
   orderId  String   @unique
-  coupon   Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
-  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coupon   Coupon   @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@unique([couponId, orderId])
   @@map("coupon_usages")
