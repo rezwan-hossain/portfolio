@@ -1,4 +1,9 @@
 import type { TrackingProduct, TrackingPurchase } from "@/types/tracking";
+import { ensureTrackingStubs, loadTrackingNow } from "@/lib/tracking-loader";
+
+// The fbq()/gtag() stand-ins always exist (they queue until the real Meta /
+// Google files load — see lib/tracking-loader.ts), so events are never dropped
+// for firing "too early".
 
 const CURRENCY = "BDT";
 
@@ -8,10 +13,12 @@ const CURRENCY = "BDT";
 // ─────────────────────────────────────────────────────────────────
 export function trackViewContent(product: TrackingProduct): void {
   if (typeof window === "undefined") return;
+  ensureTrackingStubs();
 
   // GA4
   if (window.gtag) {
     window.gtag("event", "view_item", {
+      page_location: window.location.href, // where it happened, even if sent later
       currency: CURRENCY,
       value: product.price,
       items: [
@@ -44,10 +51,12 @@ export function trackViewContent(product: TrackingProduct): void {
 // ─────────────────────────────────────────────────────────────────
 export function trackInitiateCheckout(product: TrackingProduct): void {
   if (typeof window === "undefined") return;
+  loadTrackingNow(); // money event: don't wait for the delayed load
 
   // GA4
   if (window.gtag) {
     window.gtag("event", "begin_checkout", {
+      page_location: window.location.href, // where it happened, even if sent later
       currency: CURRENCY,
       value: product.price,
       items: [
@@ -81,10 +90,12 @@ export function trackInitiateCheckout(product: TrackingProduct): void {
 // ─────────────────────────────────────────────────────────────────
 export function trackPurchase(data: TrackingPurchase): void {
   if (typeof window === "undefined") return;
+  loadTrackingNow(); // money event: don't wait for the delayed load
 
   // GA4
   if (window.gtag) {
     window.gtag("event", "purchase", {
+      page_location: window.location.href, // where it happened, even if sent later
       transaction_id: data.orderId,
       value: data.value,
       currency: CURRENCY,
