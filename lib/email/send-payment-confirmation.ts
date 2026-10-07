@@ -1,6 +1,7 @@
 // lib/email/send-payment-confirmation.ts
 import { Resend } from "resend";
 import { getPaymentConfirmationEmailHTML } from "./templates/payment-confirmation";
+import type { RenderedEmailContent } from "@/lib/email-template";
 // import { prisma } from "@/lib/prisma";
 
 type OrderStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
@@ -24,6 +25,8 @@ interface PaymentConfirmationEmailProps {
   bibNumber?: string;
   tshirtSize?: string;
   bloodGroup?: string;
+  /** Admin-editable text (lib/email-template-server.ts). Omit = built-in text. */
+  content?: RenderedEmailContent;
 }
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -89,6 +92,7 @@ export async function sendPaymentConfirmationEmail(
       appUrl: process.env.NEXT_PUBLIC_APP_URL! || "http://localhost:3000",
       tshirtSize: params.tshirtSize || undefined,
       bloodGroup: params.bloodGroup || undefined,
+      content: params.content,
     });
 
     // Send email
@@ -97,7 +101,7 @@ export async function sendPaymentConfirmationEmail(
         process.env.RESEND_ORDER_CONFIRMATION_FROM_EMAIL ||
         "Marathon Events <info@merchcommunication.com>", // Change in production
       to: [params.to],
-      subject: `✅ Registration Confirmed - ${params.eventName}`,
+      subject: params.content?.subject || `✅ Registration Confirmed - ${params.eventName}`,
       html: html,
     });
 

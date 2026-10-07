@@ -27,6 +27,7 @@ import {
   History,
   MessageSquare,
   ShieldCheck,
+  Mail,
 } from "lucide-react";
 
 // Admin panels are code-split: non-admins never download them, and admins
@@ -58,6 +59,10 @@ const AdminAuditLogPanel = dynamic(
 );
 const AdminSmsPanel = dynamic(
   () => import("../components/admin/AdminSmsPanel").then((m) => m.AdminSmsPanel),
+  { loading: panelLoading },
+);
+const AdminEmailPanel = dynamic(
+  () => import("../components/admin/AdminEmailPanel").then((m) => m.AdminEmailPanel),
   { loading: panelLoading },
 );
 const AdminAdminsPanel = dynamic(
@@ -97,6 +102,7 @@ type Tab =
   | "team"
   | "audit"
   | "sms"
+  | "email"
   | "admins";
 
 type AdminTab = Exclude<Tab, "profile" | "password">;
@@ -143,6 +149,8 @@ function AdminTabContent({
       return <AdminAdminsPanel />;
     case "sms":
       return <AdminSmsPanel />;
+    case "email":
+      return <AdminEmailPanel />;
     case "audit":
       return (
         <AdminAuditLogPanel
@@ -230,6 +238,12 @@ const ProfilePage = ({ profile, isOAuthUser, adminData }: ProfilePageProps) => {
             description: "Edit the confirmation SMS",
           },
           {
+            id: "email" as Tab,
+            label: "Email Message",
+            icon: Mail,
+            description: "Edit the confirmation email",
+          },
+          {
             id: "audit" as Tab,
             label: "Audit Log",
             icon: History,
@@ -278,15 +292,8 @@ const ProfilePage = ({ profile, isOAuthUser, adminData }: ProfilePageProps) => {
                     </p>
                   </div>
 
-                  {(tab.id === "dashboard" ||
-                    tab.id === "events" ||
-                    tab.id === "homepage" ||
-                    tab.id === "coupons" ||
-                    tab.id === "gallery" ||
-                    tab.id === "team" ||
-                    tab.id === "audit" ||
-                    tab.id === "sms" ||
-                    tab.id === "admins") && (
+                  {/* Every admin-only tab, so new ones get the badge automatically. */}
+                  {isAdminTab(tab.id) && (
                     <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-neon-lime text-gray-900 px-1.5 py-0.5 rounded">
                       Admin
                     </span>

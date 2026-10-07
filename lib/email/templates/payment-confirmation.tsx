@@ -1,5 +1,7 @@
 // lib/email/templates/payment-confirmation.ts
 
+import { DEFAULT_CONFIRMATION_EMAIL, type RenderedEmailContent } from "@/lib/email-template";
+
 export interface PaymentConfirmationEmailProps {
   runnerName: string;
   eventName: string;
@@ -18,7 +20,43 @@ export interface PaymentConfirmationEmailProps {
   tshirtSize?: string;
   bloodGroup?: string;
   appUrl?: string;
+  /** Admin-editable words (lib/email-template.ts), already filled in. Omit = built-in text. */
+  content?: RenderedEmailContent;
 }
+
+/** Escape text for HTML — names and addresses are typed by runners/admins. */
+export function escapeHtml(v: string): string {
+  return v
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Plain text → HTML paragraph: escaped, line breaks kept, web links clickable. */
+function textToHtml(text: string): string {
+  // Find links in the raw text, then escape each piece on its own.
+  const URL_RE = /\bhttps?:\/\/[^\s<>"']*[^\s<>"'.,;:!?)\]]/g;
+  let html = "";
+  let last = 0;
+  for (const m of text.matchAll(URL_RE)) {
+    const url = escapeHtml(m[0]);
+    html += escapeHtml(text.slice(last, m.index));
+    html += `<a href="${url}" style="color: #059669; text-decoration: underline; word-break: break-all;">${url}</a>`;
+    last = m.index + m[0].length;
+  }
+  html += escapeHtml(text.slice(last));
+  return html.replace(/\n/g, "<br>");
+}
+
+const BUILTIN_CONTENT: RenderedEmailContent = {
+  subject: DEFAULT_CONFIRMATION_EMAIL.subject,
+  heading: DEFAULT_CONFIRMATION_EMAIL.heading,
+  subheading: DEFAULT_CONFIRMATION_EMAIL.subheading,
+  message: "",
+  checklist: DEFAULT_CONFIRMATION_EMAIL.checklist.split("\n"),
+};
 
 const MONO_FONT = "'SF Mono', Monaco, 'Courier New', monospace";
 const HAIRLINE = "1px solid #f3f4f6";
@@ -130,7 +168,25 @@ export function getPaymentConfirmationEmailHTML({
   tshirtSize,
   bloodGroup,
   appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  content = BUILTIN_CONTENT,
 }: PaymentConfirmationEmailProps): string {
+  // Everything below is inserted into HTML: escape what people typed.
+  runnerName = escapeHtml(runnerName);
+  eventName = escapeHtml(eventName);
+  eventDate = escapeHtml(eventDate);
+  eventAddress = escapeHtml(eventAddress);
+  packageName = escapeHtml(packageName);
+  distance = escapeHtml(distance);
+  orderId = escapeHtml(orderId);
+  orderDate = escapeHtml(orderDate);
+  orderStatus = escapeHtml(orderStatus);
+  paymentStatus = escapeHtml(paymentStatus);
+  transactionId = transactionId && escapeHtml(transactionId);
+  paymentMethod = paymentMethod && escapeHtml(paymentMethod);
+  bibNumber = bibNumber && escapeHtml(bibNumber);
+  tshirtSize = tshirtSize && escapeHtml(tshirtSize);
+  bloodGroup = bloodGroup && escapeHtml(bloodGroup);
+
   const shortOrderId = orderId.slice(0, 8).toUpperCase();
   const shortTransactionId =
     transactionId && transactionId.length > 16
@@ -234,11 +290,13 @@ export function getPaymentConfirmationEmailHTML({
               </table>
 
               <h1 style="margin: 24px 0 8px 0; font-size: 28px; font-weight: 700; color: #111827; letter-spacing: -0.5px;">
-                You're All Set!
+                ${escapeHtml(content.heading)}
               </h1>
-              <p style="margin: 0; font-size: 15px; color: #6b7280;">
-                Payment confirmed &amp; registration complete
-              </p>
+              ${
+                content.subheading
+                  ? `<p style="margin: 0; font-size: 15px; color: #6b7280;">${escapeHtml(content.subheading)}</p>`
+                  : ""
+              }
             </td>
           </tr>
 
@@ -373,31 +431,44 @@ export function getPaymentConfirmationEmailHTML({
           </tr>
 
 
-          <!-- ═══ Next Steps ═══ -->
-          <tr>
+          <!-- ═══ Message from the organiser (admin-editable) ═══ -->
+          ${
+            content.message
+              ? `<tr>
+            <td style="padding-top: 16px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px;">
+                <tr>
+                  <td style="padding: 16px 20px; font-size: 14px; line-height: 1.6; color: #374151;">${textToHtml(content.message)}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>`
+              : ""
+          }
+
+          <!-- ═══ Next Steps (admin-editable checklist) ═══ -->
+          ${
+            content.checklist.length
+              ? `<tr>
             <td style="padding-top: 16px;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #fefce8; border: 1px solid #fef08a; border-radius: 12px; padding: 16px 20px;">
                 <tr>
                   <td>
                     <table role="presentation" cellspacing="0" cellpadding="0">
-                      <tr>
-                        <td style="padding: 4px 0; font-size: 13px; color: #854d0e;">✓ Save this email for your records</td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 4px 0; font-size: 13px; color: #854d0e;">✓ Arrive at the venue 30 minutes early</td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 4px 0; font-size: 13px; color: #854d0e;">✓ Bring a valid ID for verification</td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 4px 0; font-size: 13px; color: #854d0e;">✓ Check your dashboard for updates</td>
-                      </tr>
+                      ${content.checklist
+                        .map(
+                          (item) =>
+                            `<tr><td style="padding: 4px 0; font-size: 13px; color: #854d0e;">✓ ${escapeHtml(item)}</td></tr>`,
+                        )
+                        .join("")}
                     </table>
                   </td>
                 </tr>
               </table>
             </td>
-          </tr>
+          </tr>`
+              : ""
+          }
 
           <!-- ═══ CTA Buttons ═══ -->
           <tr>

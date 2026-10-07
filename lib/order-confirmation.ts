@@ -13,6 +13,8 @@ import { applyCoupon } from "@/lib/coupon/apply-coupon";
 import { sendPaymentConfirmationEmail } from "@/lib/email/send-payment-confirmation";
 import { formatBDPhone, sendSMS } from "@/lib/sms";
 import { buildConfirmationSms } from "@/lib/sms-template-server";
+import { buildConfirmationEmail } from "@/lib/email-template-server";
+import type { SmsVars } from "@/lib/sms-template";
 import { recordDelivery } from "@/lib/notification-log";
 import type { ChildLogger } from "@/lib/logger";
 
@@ -114,6 +116,24 @@ export async function runPostPaymentSteps({
       //   order.packageId,
       // );
 
+      // Runner details for the admin-editable email and SMS text.
+      const messageVars: SmsVars = {
+        name: order.registration?.fullName || order.user.firstName || "Runner",
+        event: order.event.name,
+        package: order.package.name,
+        distance: order.package.distance,
+        tshirt: order.registration?.tshirtSize ?? undefined,
+        bib: order.registration?.bibNumber ?? undefined,
+        eventDate: new Date(order.event.date).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          timeZone: "Asia/Dhaka",
+        }),
+        orderId: order.id.slice(0, 8).toUpperCase(),
+        amount: order.payment ? `৳${order.payment.amount.toLocaleString("en-IN")}` : undefined,
+      };
+
       // Email
       const emailTo = order.registration?.email || order.user.email || null;
       if (sendEmail) try {
@@ -151,6 +171,8 @@ export async function runPostPaymentSteps({
           // bibNumber: bibNumber ?? undefined,
           tshirtSize: order.registration?.tshirtSize ?? undefined,
           bloodGroup: order.registration?.bloodGroup ?? undefined,
+          // Admin-editable text (event's own → default → built-in).
+          content: await buildConfirmationEmail(order.eventId, messageVars),
         });
         // if (emailResult.success) console.log("✅ Email sent");
         await record({
@@ -201,25 +223,7 @@ export async function runPostPaymentSteps({
         if (phoneNumber) {
           const formattedPhone = formatBDPhone(phoneNumber);
           // Admin-editable template (event's own → default → built-in).
-          const smsMessage = await buildConfirmationSms(order.eventId, {
-            name:
-              order.registration?.fullName ||
-              order.user.firstName ||
-              "Runner",
-            event: order.event.name,
-            package: order.package.name,
-            distance: order.package.distance,
-            tshirt: order.registration?.tshirtSize ?? undefined,
-            bib: order.registration?.bibNumber ?? undefined,
-            eventDate: new Date(order.event.date).toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-              timeZone: "Asia/Dhaka",
-            }),
-            orderId: order.id.slice(0, 8).toUpperCase(),
-            amount: order.payment ? `৳${order.payment.amount.toLocaleString("en-IN")}` : undefined,
-          });
+          const smsMessage = await buildConfirmationSms(order.eventId, messageVars);
           const smsResult = await sendSMS({
             number: formattedPhone,
             message: smsMessage,

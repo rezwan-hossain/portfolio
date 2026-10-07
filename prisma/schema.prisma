@@ -65,6 +65,9 @@ model Event {
   // Custom payment-confirmation SMS for this event; null = use the default
   // (site_settings "sms.confirmation"). See lib/sms-template.ts.
   confirmationSmsTemplate String?
+  // Custom confirmation-email text for this event ({subject, heading,
+  // subheading, message, checklist}); null = use the default. See lib/email-template.ts.
+  confirmationEmail Json?
   status          Status         @default(ACTIVE)
   isActive        Boolean        @default(true)
   isArchived      Boolean        @default(false)
