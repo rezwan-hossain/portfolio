@@ -11,6 +11,7 @@ import EventDescription3 from "../components/EventDescription3";
 import ShareButtons from "../components/ShareButtons";
 import { formatEventTime, formatEventTimeUTC } from "@/utils/date";
 import { ViewContentTracker } from "@/components/tracking/ViewContentTracker";
+import RichDescription from "../components/RichDescription";
 
 // Dynamic imports for non-critical components
 const TicketSelector = dynamic(() => import("../components/TicketSelector"), {
@@ -170,7 +171,8 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
                 // <Suspense fallback={<DescriptionSkeleton />}>
                 //   <EventDescription description={event.description} />
                 // </Suspense>
-                <EventDescription3 description={event.description} />
+                // <EventDescription3 description={event.description} />
+                <RichDescription html={event.description} />
               )}
             </section>
           </div>
