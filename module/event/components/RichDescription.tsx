@@ -4,7 +4,7 @@
 // fact panel, notes) by normalizeDescription and styled by the CSS module.
 // Server component.
 
-import { normalizeDescription } from "./event-description/normalize";
+import { normalizeDescription } from "./rich-description/normalize";
 import styles from "./RichDescription.module.css";
 
 export default function RichDescription({ html }: { html: string }) {

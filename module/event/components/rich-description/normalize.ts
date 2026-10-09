@@ -1,4 +1,4 @@
-// module/event/components/event-description/normalize.ts
+// module/event/components/rich-description/normalize.ts
 //
 // Gives admin-written event descriptions real structure without changing their
 // words. The rich-text editor produces "headings" as bold paragraphs and lists

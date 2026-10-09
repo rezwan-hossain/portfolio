@@ -7,7 +7,6 @@ import Link from "next/link";
 import { HeroText } from "@/components/ui/HeroText";
 import type { EventData } from "@/types/event";
 import EventInfoCard from "../components/EventInfoCard";
-import EventDescription3 from "../components/EventDescription3";
 import ShareButtons from "../components/ShareButtons";
 import { formatEventTime, formatEventTimeUTC } from "@/utils/date";
 import { ViewContentTracker } from "@/components/tracking/ViewContentTracker";
@@ -171,7 +170,6 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
                 // <Suspense fallback={<DescriptionSkeleton />}>
                 //   <EventDescription description={event.description} />
                 // </Suspense>
-                // <EventDescription3 description={event.description} />
                 <RichDescription html={event.description} />
               )}
             </section>
