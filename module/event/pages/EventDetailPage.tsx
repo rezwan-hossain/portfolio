@@ -100,7 +100,7 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
           isCompleted ? "grayscale opacity-60" : ""
         }`}
       >
-        {/* <div className="hidden md:block relative rounded-xl overflow-hidden mt-4 mb-8">
+        <div className="hidden md:block relative rounded-xl overflow-hidden mt-4 mb-8">
           <Image
             src={event.bannerImage}
             alt={event.name}
@@ -114,8 +114,8 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
             blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAUH/8QAIhAAAgEDAwUBAAAAAAAAAAAAAQIDBAURAAYhEiIxQVFh/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAYEQEBAQEBAAAAAAAAAAAAAAABAgADEf/aAAwDAQACEQMRAD8Aw+3bdu9ru1BXQ26eSGnqIpZFRVZmVXBIAHknGmG/rjPuC4Uu4J6SajgqIPTjp8qV7Y0H3A5Azk8f2mms0Bui5NdXe//Z"
           />
           <StatusRibbon status={event.status} />
-        </div> */}
-        <EventBanner event={event} />
+        </div>
+        {/* <EventBanner event={event} /> */}
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 lg:gap-12">
           {/* Left column */}
