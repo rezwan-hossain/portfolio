@@ -11,6 +11,7 @@ import ShareButtons from "../components/ShareButtons";
 import { formatEventTime, formatEventTimeUTC } from "@/utils/date";
 import { ViewContentTracker } from "@/components/tracking/ViewContentTracker";
 import RichDescription from "../components/RichDescription";
+import { EventBanner } from "../components/EventBanner";
 
 // Dynamic imports for non-critical components
 const TicketSelector = dynamic(() => import("../components/TicketSelector"), {
@@ -95,22 +96,11 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
       </div>
 
       <div
-        // className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12"
         className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 ${
           isCompleted ? "grayscale opacity-60" : ""
         }`}
       >
-        {/* Desktop Banner - LCP Element */}
-        <div className="hidden md:block relative rounded-xl overflow-hidden mt-4 mb-8">
-          {/* <Image
-            src={event.bannerImage}
-            alt={event.name}
-            fill
-            className="object-contain lg:object-cover"
-            sizes="(min-width: 1024px) 100vw, (min-width: 768px) 100vw, 100vw"
-            quality={75}
-            priority // 👈 Add this for LCP optimization
-          /> */}
+        {/* <div className="hidden md:block relative rounded-xl overflow-hidden mt-4 mb-8">
           <Image
             src={event.bannerImage}
             alt={event.name}
@@ -123,9 +113,9 @@ const EventDetailPage = ({ event, searchParams }: EventDetailPageProps) => {
             quality={75}
             blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAUH/8QAIhAAAgEDAwUBAAAAAAAAAAAAAQIDBAURAAYhEiIxQVFh/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAYEQEBAQEBAAAAAAAAAAAAAAABAgADEf/aAAwDAQACEQMRAD8Aw+3bdu9ru1BXQ26eSGnqIpZFRVZmVXBIAHknGmG/rjPuC4Uu4J6SajgqIPTjp8qV7Y0H3A5Azk8f2mms0Bui5NdXe//Z"
           />
-          {/* <EventTypeBadge eventType={event.eventType} /> */}
           <StatusRibbon status={event.status} />
-        </div>
+        </div> */}
+        <EventBanner event={event} />
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 lg:gap-12">
           {/* Left column */}
