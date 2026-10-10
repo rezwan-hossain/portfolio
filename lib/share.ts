@@ -11,7 +11,8 @@
 
 import { cleanCampaign } from "@/lib/traffic-source";
 
-export const SHARE_CHANNELS = ["whatsapp", "facebook", "messenger", "x", "copy", "native"] as const;
+// "x" is no longer offered as a button, but stays so earlier clicks keep their label.
+export const SHARE_CHANNELS = ["whatsapp", "facebook", "messenger", "instagram", "x", "copy", "native"] as const;
 export type ShareChannel = (typeof SHARE_CHANNELS)[number];
 
 export const SHARE_PLACES = ["event", "paid"] as const;
@@ -26,6 +27,7 @@ export const CHANNEL_LABELS: Record<ShareChannel, string> = {
   whatsapp: "WhatsApp",
   facebook: "Facebook",
   messenger: "Messenger",
+  instagram: "Instagram",
   x: "X / Twitter",
   copy: "Copied link",
   native: "Phone share menu",
@@ -57,6 +59,7 @@ const UTM_SOURCE: Partial<Record<ShareChannel, string>> = {
   whatsapp: "whatsapp",
   facebook: "facebook",
   messenger: "messenger",
+  instagram: "instagram",
   x: "x",
 };
 
@@ -70,7 +73,10 @@ export function shareLink(siteUrl: string, slug: string, channel: ShareChannel, 
   return url.toString();
 }
 
-/** Where a share button sends the browser (null = handled in the page: copy / native). */
+/**
+ * Where a share button sends the browser (null = handled in the page: copy,
+ * native, and Instagram — which has no web address for sharing a link).
+ */
 export function shareTarget(channel: ShareChannel, link: string, text: string): string | null {
   const u = encodeURIComponent(link);
   switch (channel) {

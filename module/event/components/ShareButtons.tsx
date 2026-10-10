@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useSyncExternalStore, type ReactNode } from "react";
-import { Check, Copy, Facebook, MessageCircle, Send, Share2, Twitter } from "lucide-react";
+import { Check, Copy, Facebook, Instagram, MessageCircle, Send, Share2 } from "lucide-react";
 import { shareLink, shareTarget, type ShareChannel, type SharePlace } from "@/lib/share";
 
 type Props = {
@@ -90,6 +90,7 @@ export default function ShareButtons({
   const canNativeShare = useCanNativeShare();
   const isPhone = useIsPhone();
   const [copied, setCopied] = useState(false);
+  const [igCopied, setIgCopied] = useState(false);
 
   const text =
     place === "paid"
@@ -119,6 +120,30 @@ export default function ShareButtons({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Instagram can't be handed a link from a website. On phones, the share sheet
+  // lists Instagram (Stories, Direct); elsewhere, copy the link and open it.
+  const shareInstagram = async () => {
+    trackShare(slug, place, "instagram");
+    const link = linkFor("instagram");
+    if (isPhone && canNativeShare) {
+      try {
+        await navigator.share({ title: eventName, text, url: link });
+      } catch {
+        // cancelled — nothing to do
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      window.prompt("Copy this link, then paste it in Instagram:", link);
+      return;
+    }
+    setIgCopied(true);
+    setTimeout(() => setIgCopied(false), 5000);
+    window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
+  };
+
   const nativeShare = async () => {
     trackShare(slug, place, "native");
     try {
@@ -146,7 +171,13 @@ export default function ShareButtons({
         <Tile icon={<MessageCircle size={20} aria-hidden />} label="WhatsApp" onClick={() => open("whatsapp")} />
         <Tile icon={<Facebook size={20} aria-hidden />} label="Facebook" onClick={() => open("facebook")} />
         {isPhone && <Tile icon={<Send size={20} aria-hidden />} label="Messenger" onClick={() => open("messenger")} />}
-        <Tile icon={<Twitter size={20} aria-hidden />} label="X" ariaLabel="Share on X (Twitter)" onClick={() => open("x")} />
+        <Tile
+          icon={igCopied ? <Check size={20} aria-hidden /> : <Instagram size={20} aria-hidden />}
+          label="Instagram"
+          ariaLabel="Share on Instagram"
+          active={igCopied}
+          onClick={shareInstagram}
+        />
         <Tile
           icon={copied ? <Check size={20} aria-hidden /> : <Copy size={20} aria-hidden />}
           label={copied ? "Copied" : "Copy link"}
@@ -155,7 +186,10 @@ export default function ShareButtons({
         />
         {canNativeShare && <Tile icon={<Share2 size={20} aria-hidden />} label="More" onClick={nativeShare} />}
       </div>
-      <span className="sr-only" aria-live="polite">{copied ? "Link copied" : ""}</span>
+      <p className="text-xs text-muted-foreground mt-2 min-h-4" aria-live="polite">
+        {igCopied ? "Link copied — paste it in your Instagram story or message." : ""}
+        <span className="sr-only">{copied ? "Link copied" : ""}</span>
+      </p>
 
     </div>
   );
